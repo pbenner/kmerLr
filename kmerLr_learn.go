@@ -30,7 +30,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn(config Config, m, n int, filename_fg, filename_bg, basename_out string) {
+func learn(config Config, m, n, kfold int, filename_fg, filename_bg, basename_out string) {
   kmersCounter, err := NewKmersCounter(m, n, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
@@ -81,6 +81,7 @@ func main_learn(config Config, args []string) {
   optMaxEpochs  := options.    IntLong("max-epochs", 0 ,            1, "maximum number of epochs")
   optEpsilon    := options. StringLong("epsilon",    0 ,       "1e-4", "optimization tolerance level")
   optSaveTrace  := options.   BoolLong("save-trace", 0 ,               "save trace to file")
+  optKFoldCV    := options.    IntLong("k-fold-cv",  0 ,            1, "perform k-fold cross-validation")
   optVerbose    := options.CounterLong("verbose",   'v',               "verbose level [-v or -vv]")
   optHelp       := options.   BoolLong("help",      'h',               "print help")
 
@@ -112,6 +113,10 @@ func main_learn(config Config, args []string) {
   } else {
     config.Alphabet = alphabet
   }
+  if *optKFoldCV < 1 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(1)
+  }
   config.Binarize      = *optBinarize
   config.Complement    = *optComplement
   config.Reverse       = *optReverse
@@ -140,5 +145,5 @@ func main_learn(config Config, args []string) {
   filename_bg  := options.Args()[3]
   basename_out := options.Args()[4]
 
-  learn(config, int(n), int(m), filename_fg, filename_bg, basename_out)
+  learn(config, int(n), int(m), *optKFoldCV, filename_fg, filename_bg, basename_out)
 }
