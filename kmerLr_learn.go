@@ -120,6 +120,10 @@ func main_learn(config Config, args []string) {
   config.SaveTrace     = *optSaveTrace
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
+  if len(options.Args()) != 5 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(0)
+  }
   n, err := strconv.ParseInt(options.Args()[0], 10, 64); if err != nil {
     options.PrintUsage(os.Stderr)
     os.Exit(1)
