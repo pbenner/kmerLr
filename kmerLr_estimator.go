@@ -27,6 +27,7 @@ import . "github.com/pbenner/ngstat/estimation"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
+import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
 /* -------------------------------------------------------------------------- */
@@ -87,9 +88,16 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) VectorPd
   if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, data); err != nil {
     log.Fatal(err)
   }
-  if r, err := obj.GetEstimate(); err != nil {
+  if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
     log.Fatal(err)
   } else {
+    r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
+    r.Binarize     = config.Binarize
+    r.Complement   = config.Complement
+    r.Reverse      = config.Reverse
+    r.Revcomp      = config.Revcomp
+    r.MaxAmbiguous = config.MaxAmbiguous
+    r.Alphabet     = config.Alphabet
     return r
   }
   return nil
