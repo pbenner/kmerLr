@@ -19,126 +19,92 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
-import   "bufio"
 import   "log"
-import   "os"
 
-import . "github.com/pbenner/ngstat/estimation"
+import . "github.com/pbenner/gonetics"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
-import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
-
-/* -------------------------------------------------------------------------- */
-
-type HookType func(x ConstVector, change ConstScalar, epoch int) bool
-
-/* -------------------------------------------------------------------------- */
-
-func NewHook(config Config, trace *Trace) HookType {
-  hook := func(x ConstVector, change ConstScalar, epoch int) bool {
-    n := 0
-    for it := x.ConstIterator(); it.Ok(); it.Next() {
-      if it.GetConst().GetValue() != 0.0 {
-        n += 1
-      }
-    }
-    if trace != nil {
-      trace.Append(epoch, n, change.GetValue())
-    }
-    if config.Verbose > 1 {
-      fmt.Printf("epoch : %d\n", epoch)
-      fmt.Printf("change: %v\n", change)
-      fmt.Printf("#ceof : %d\n", n)
-      fmt.Println()
-    }
-    return false
-  }
-  return hook
-}
+import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 
 /* -------------------------------------------------------------------------- */
 
 type KmerLr struct {
-  vectorEstimator.LogisticRegression
-  Hook func(x ConstVector, change ConstScalar, epoch int) bool
+  vectorDistribution.LogisticRegression
+  Binarize       bool
+  Complement     bool
+  Reverse        bool
+  Revcomp        bool
+  MaxAmbiguous []int
+  Alphabet       ComplementableAlphabet
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLr(config Config, n int, hook HookType) *KmerLr {
-  if estimator, err := vectorEstimator.NewLogisticRegression(n+1, true); err != nil {
-    panic(err)
-  } else {
-    estimator.Hook          = hook
-    estimator.Seed          = config.Seed
-    estimator.L1Reg         = config.Lambda
-    estimator.Epsilon       = config.Epsilon
-    estimator.MaxIterations = config.MaxEpochs
-    return &KmerLr{*estimator, hook}
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-
-func (obj *KmerLr) Estimate(config Config, data []ConstVector) VectorPdf {
-  if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, data); err != nil {
+func NewKmerLr(theta Vector) *KmerLr {
+  if lr, err := vectorDistribution.NewLogisticRegression(theta); err != nil {
     log.Fatal(err)
-  }
-  if r, err := obj.GetEstimate(); err != nil {
-    log.Fatal(err)
+    return nil
   } else {
-    return r
+    return &KmerLr{LogisticRegression: *lr}
   }
-  return nil
-}
-
-func (obj *KmerLr) EstimateAndTest(config Config, data_train, data_test []ConstVector) []float64 {
-  // learn logistic model
-  classifier := obj.Estimate(config, data_train)
-
-  r := make([]float64, len(data_test))
-  t := BareReal(0.0)
-  for i, _ := range data_test {
-    if err := classifier.LogPdf(&t, data_test[i]); err != nil {
-      log.Fatal(err)
-    }
-    r[i] = t.GetValue()
-  }
-  return r
 }
 
 /* -------------------------------------------------------------------------- */
 
-type Trace struct {
-  Epoch   []int
-  Nonzero []int
-  Change  []float64
-}
-
-func (obj Trace) Export(filename string) error {
-  f, err := os.Create(filename)
-  if err != nil {
+func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
+  if len(config.Distributions) != 1 {
+    return fmt.Errorf("invalid config file")
+  }
+  if err := obj.LogisticRegression.ImportConfig(config.Distributions[0], t); err != nil {
     return err
   }
-  defer f.Close()
-
-  w := bufio.NewWriter(f)
-  defer w.Flush()
-
-  fmt.Fprintf(w, "%6s %12s %8s\n", "epoch", "change", "nonzero")
-  for i := 0; i < obj.Length(); i++ {
-    fmt.Fprintf(w, "%6d %12e %8d\n", obj.Epoch[i], obj.Change[i], obj.Nonzero[i])
+  binarize, ok := config.GetNamedParameterAsBool("Binarize"); if !ok {
+    return fmt.Errorf("invalid config file")
   }
+  complement, ok := config.GetNamedParameterAsBool("Complement"); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
+  reverse, ok := config.GetNamedParameterAsBool("Reverse"); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
+  revcomp, ok := config.GetNamedParameterAsBool("Revcomp"); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
+  maxAmbiguous, ok := config.GetNamedParametersAsInts("MaxAmbiguous"); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
+  alphabet, ok := config.GetNamedParameterAsString("Alphabet"); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
+  if r, err := alphabet_from_string(alphabet); err != nil {
+    return err
+  } else {
+    obj.Alphabet = r
+  }
+  obj.Binarize     = binarize
+  obj.Complement   = complement
+  obj.Reverse      = reverse
+  obj.Revcomp      = revcomp
+  obj.MaxAmbiguous = maxAmbiguous
   return nil
 }
 
-func (obj Trace) Length() int {
-  return len(obj.Epoch)
-}
+func (obj *KmerLr) ExportConfig() ConfigDistribution {
+  config := struct{
+    Binarize       bool
+    Complement     bool
+    Reverse        bool
+    Revcomp        bool
+    MaxAmbiguous []int
+    Alphabet       string
+  }{}
+  config.Binarize     = obj.Binarize
+  config.Complement   = obj.Complement
+  config.Reverse      = obj.Reverse
+  config.Revcomp      = obj.Revcomp
+  config.MaxAmbiguous = obj.MaxAmbiguous
+  config.Alphabet     = obj.Alphabet.String()
 
-func (obj *Trace) Append(epoch, nonzero int, change float64) {
-  obj.Epoch   = append(obj.Epoch  , epoch)
-  obj.Nonzero = append(obj.Nonzero, nonzero)
-  obj.Change  = append(obj.Change , change)
+  return NewConfigDistribution("kmerLr", config, obj.LogisticRegression.ExportConfig())
 }

@@ -41,11 +41,11 @@ func learn(config Config, m, n int, filename_fg, filename_bg, basename_out strin
   }
   data_train := compile_training_data(config, kmersCounter, config.Binarize, filename_fg, filename_bg)
 
-  estimator  := NewKmerLr(config, kmersCounter.Length(), NewHook(config, trace))
+  estimator  := NewKmerLrEstimator(config, kmersCounter.Length(), NewHook(config, trace))
   classifier := estimator.Estimate(config, data_train)
 
   filename_trace := fmt.Sprintf("%s.trace.table", basename_out)
-  filename_json  := fmt.Sprintf("%s.json", basename_out)
+  filename_json  := fmt.Sprintf("%s.json"       , basename_out)
   // export trace
   if config.SaveTrace {
     PrintStderr(config, 1, "Exporting trace to `%s'... ", filename_trace)
