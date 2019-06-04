@@ -90,6 +90,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) VectorPd
   }
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
     log.Fatal(err)
+    return nil
   } else {
     r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
     r.Binarize     = config.Binarize
@@ -100,7 +101,6 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) VectorPd
     r.Alphabet     = config.Alphabet
     return r
   }
-  return nil
 }
 
 func (obj *KmerLrEstimator) EstimateAndTest(config Config, data_train, data_test []ConstVector) []float64 {
