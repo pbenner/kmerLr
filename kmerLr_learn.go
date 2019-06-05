@@ -26,6 +26,7 @@ import   "strconv"
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import . "github.com/pbenner/gonetics"
+import   "github.com/pbenner/threadpool"
 
 import   "github.com/pborman/getopt"
 
@@ -60,6 +61,33 @@ func learn_parameters(config Config, data []ConstVector, n int, basename_out str
   PrintStderr(config, 1, "done\n")
 
   return classifier
+}
+
+func learn_cv(config Config, data []ConstVector, n, kfold int, basename_out string) ([]float64, []int) {
+  pool   := threadpool.New(config.Threads, 100)
+  groups := getCvGroups(len(data), kfold, config.Seed)
+
+  r_predictions := make([][]float64, kfold)
+  r_labels      := make([][]int,     kfold)
+  pool.RangeJob(0, kfold, func(i int, pool threadpool.ThreadPool, erf func() error) error {
+    basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
+
+    data_test, data_train := filterCvGroup(data, groups, i)
+
+    classifier := learn_parameters(config, data_train, n, basename_out)
+
+    r_predictions[i] = predict_labeled(config, classifier, data_test)
+    r_labels     [i] = getLabels(data_test)
+    return nil
+  })
+  // join results
+  predictions := []float64{}
+  labels      := []int    {}
+  for i := 0; i <= n; i++ {
+    predictions = append(predictions, r_predictions[i]...)
+    labels      = append(labels     , r_labels     [i]...)
+  }
+  return predictions, labels
 }
 
 func learn(config Config, m, n, kfold int, filename_fg, filename_bg, basename_out string) {

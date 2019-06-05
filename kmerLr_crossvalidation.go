@@ -60,3 +60,11 @@ func filterCvGroup(data []ConstVector, groups []int, i int) ([]ConstVector, []Co
   }
   return r_test, r_train
 }
+
+func getLabels(data []ConstVector) []int {
+  r := make([]int, len(data))
+  for i := 0; i < len(data); i++ {
+    r[i] = int(data[i].ValueAt(data[i].Dim()-1))
+  }
+  return r
+}

@@ -103,21 +103,6 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) VectorPd
   }
 }
 
-func (obj *KmerLrEstimator) EstimateAndTest(config Config, data_train, data_test []ConstVector) []float64 {
-  // learn logistic model
-  classifier := obj.Estimate(config, data_train)
-
-  r := make([]float64, len(data_test))
-  t := BareReal(0.0)
-  for i, _ := range data_test {
-    if err := classifier.LogPdf(&t, data_test[i]); err != nil {
-      log.Fatal(err)
-    }
-    r[i] = t.GetValue()
-  }
-  return r
-}
-
 /* -------------------------------------------------------------------------- */
 
 type Trace struct {
