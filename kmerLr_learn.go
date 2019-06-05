@@ -23,6 +23,7 @@ import   "log"
 import   "os"
 import   "strconv"
 
+import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import . "github.com/pbenner/gonetics"
 
@@ -30,19 +31,14 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn(config Config, m, n, kfold int, filename_fg, filename_bg, basename_out string) {
-  kmersCounter, err := NewKmersCounter(m, n, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
-    log.Fatal(err)
-  }
+func learn_parameters(config Config, data []ConstVector, n int, basename_out string) VectorPdf {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
     trace = &Trace{}
   }
-  data_train := compile_training_data(config, kmersCounter, config.Binarize, filename_fg, filename_bg)
-
-  estimator  := NewKmerLrEstimator(config, kmersCounter.Length(), NewHook(config, trace))
-  classifier := estimator.Estimate(config, data_train)
+  estimator  := NewKmerLrEstimator(config, n, NewHook(config, trace))
+  classifier := estimator.Estimate(config, data)
 
   filename_trace := fmt.Sprintf("%s.trace.table", basename_out)
   filename_json  := fmt.Sprintf("%s.json"       , basename_out)
@@ -63,6 +59,16 @@ func learn(config Config, m, n, kfold int, filename_fg, filename_bg, basename_ou
   }
   PrintStderr(config, 1, "done\n")
 
+  return classifier
+}
+
+func learn(config Config, m, n, kfold int, filename_fg, filename_bg, basename_out string) {
+  kmersCounter, err := NewKmersCounter(m, n, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
+    log.Fatal(err)
+  }
+  data := compile_training_data(config, kmersCounter, config.Binarize, filename_fg, filename_bg)
+
+  learn_parameters(config, data, kmersCounter.Length(), basename_out)
 }
 
 /* -------------------------------------------------------------------------- */
