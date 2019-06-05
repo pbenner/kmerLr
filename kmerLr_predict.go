@@ -77,14 +77,7 @@ func predict_labeled(config Config, classifier VectorPdf, data []ConstVector) []
 /* -------------------------------------------------------------------------- */
 
 func predict(config Config, filename_in, filename_out string) {
-  classifier := new(KmerLr)
-  // export model
-  PrintStderr(config, 1, "Importing distribution from `%s'... ", filename_in)
-  if err := ImportDistribution(filename_in, classifier, BareRealType); err != nil {
-    PrintStderr(config, 1, "failed\n")
-    log.Fatal(err)
-  }
-  PrintStderr(config, 1, "done\n")
+  classifier := ImportKmerLr(config, filename_in)
 
   // copy config from classifier
   config.AlphabetDef = classifier.AlphabetDef

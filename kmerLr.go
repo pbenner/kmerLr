@@ -69,7 +69,8 @@ func main() {
   options.SetParameters("<COMMAND>\n\n" +
     " Commands:\n" +
     "     learn   - estimate logistic regression parameters\n" +
-    "     predict - use an estimated model to predict labels\n")
+    "     predict - use an estimated model to predict labels\n" +
+    "     combine - combine estimated models\n")
   options.Parse(os.Args)
 
   // command options
@@ -102,6 +103,8 @@ func main() {
     main_learn(config, options.Args())
   case "predict":
     main_predict(config, options.Args())
+  case "combine":
+    main_combine(config, options.Args())
   default:
     options.PrintUsage(os.Stderr)
     os.Exit(1)

@@ -20,6 +20,7 @@ package main
 
 import   "fmt"
 import   "log"
+import   "math"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -45,6 +46,41 @@ func NewKmerLr(theta Vector) *KmerLr {
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLr) Clone() *KmerLr {
+  r := KmerLr{}
+  r.LogisticRegression = *obj.LogisticRegression.Clone()
+  r.AlphabetDef        =  obj.AlphabetDef
+  return &r
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj *KmerLr) Mean(classifiers []*KmerLr) error {
+  obj.Theta.Reset()
+  for _, classifier := range classifiers {
+    obj.Theta.VaddV(obj.Theta, classifier.Theta)
+  }
+  n := ConstReal(float64(len(classifiers)))
+  for i := 0; i < obj.Theta.Dim(); i++ {
+    obj.Theta.At(i).Div(obj.Theta.ConstAt(i), n)
+  }
+  return nil
+}
+
+func (obj *KmerLr) Max(classifiers []*KmerLr) error {
+  for i := 0; i < obj.Theta.Dim(); i++ {
+    obj.Theta.At(i).SetValue(math.Inf(-1))
+  }
+  for i := 0; i < obj.Theta.Dim(); i++ {
+    for _, classifier := range classifiers {
+      obj.Theta.At(i).Max(obj.Theta.ConstAt(i), classifier.Theta.ConstAt(i))
+    }
+  }
+  return nil
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
   if len(config.Distributions) != 1 {
     return fmt.Errorf("invalid config file")
@@ -62,4 +98,18 @@ func (obj *KmerLr) ExportConfig() ConfigDistribution {
     obj.LogisticRegression.ExportConfig() }
 
   return config
+}
+
+/* -------------------------------------------------------------------------- */
+
+func ImportKmerLr(config Config, filename string) *KmerLr {
+  classifier := new(KmerLr)
+  // export model
+  PrintStderr(config, 1, "Importing distribution from `%s'... ", filename)
+  if err := ImportDistribution(filename, classifier, BareRealType); err != nil {
+    PrintStderr(config, 1, "failed\n")
+    log.Fatal(err)
+  }
+  PrintStderr(config, 1, "done\n")
+  return classifier
 }
