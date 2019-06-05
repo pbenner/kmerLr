@@ -83,7 +83,11 @@ func learn(config Config, m, n, kfold int, filename_fg, filename_bg, basename_ou
   }
   data := compile_training_data(config, kmersCounter, config.Binarize, filename_fg, filename_bg)
 
-  learn_parameters(config, data, kmersCounter.Length(), basename_out)
+  if kfold <= 1 {
+    learn_parameters(config, data, kmersCounter.Length(), basename_out)
+  } else {
+    learn_cv(config, data, kmersCounter.Length(), kfold, basename_out)
+  }
 }
 
 /* -------------------------------------------------------------------------- */
