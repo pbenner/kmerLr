@@ -18,8 +18,10 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import "fmt"
-import "math/rand"
+//import   "fmt"
+import   "math/rand"
+
+import . "github.com/pbenner/autodiff"
 
 /* -------------------------------------------------------------------------- */
 
@@ -33,6 +35,8 @@ func shuffleInts(vals []int, seed int64) {
   }
 }
 
+/* -------------------------------------------------------------------------- */
+
 func getCvGroups(n, fold int, seed int64) []int {
   groups := make([]int, n)
   for i := 0; i < n; i += fold {
@@ -42,4 +46,17 @@ func getCvGroups(n, fold int, seed int64) []int {
   }
   shuffleInts(groups, seed)
   return groups
+}
+
+func filterCvGroup(data []ConstVector, groups []int, i int) ([]ConstVector, []ConstVector) {
+  r_test  := []ConstVector{}
+  r_train := []ConstVector{}
+  for j := 0; j < len(data); j++ {
+    if groups[j] == i {
+      r_test  = append(r_test , data[j])
+    } else {
+      r_train = append(r_train, data[j])
+    }
+  }
+  return r_test, r_train
 }
