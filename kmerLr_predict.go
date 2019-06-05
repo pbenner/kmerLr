@@ -86,14 +86,8 @@ func predict(config Config, filename_in, filename_out string) {
   }
   PrintStderr(config, 1, "done\n")
 
-  config.M, config.N  = classifier.M, classifier.N
   // copy config from classifier
-  config.Binarize     = classifier.Binarize
-  config.Complement   = classifier.Complement
-  config.Reverse      = classifier.Reverse
-  config.Revcomp      = classifier.Revcomp
-  config.MaxAmbiguous = classifier.MaxAmbiguous
-  config.Alphabet     = classifier.Alphabet
+  config.AlphabetDef = classifier.AlphabetDef
 
   kmersCounter, err := NewKmersCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)

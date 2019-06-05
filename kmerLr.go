@@ -24,7 +24,6 @@ import   "log"
 import   "os"
 
 import . "github.com/pbenner/ngstat/config"
-import . "github.com/pbenner/gonetics"
 
 import   "github.com/pborman/getopt"
 
@@ -32,19 +31,12 @@ import   "github.com/pborman/getopt"
 
 type Config struct {
   SessionConfig
+  AlphabetDef
   Lambda         float64
   Epsilon        float64
   Seed           int64
   SaveTrace      bool
   MaxEpochs      int
-  // alphabet/data definition
-  M, N           int
-  Binarize       bool
-  Complement     bool
-  Reverse        bool
-  Revcomp        bool
-  MaxAmbiguous []int
-  Alphabet       ComplementableAlphabet
 }
 
 

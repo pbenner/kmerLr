@@ -25,6 +25,18 @@ import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
+type AlphabetDef struct {
+  M, N           int
+  Binarize       bool
+  Complement     bool
+  Reverse        bool
+  Revcomp        bool
+  MaxAmbiguous []int
+  Alphabet       ComplementableAlphabet
+}
+
+/* -------------------------------------------------------------------------- */
+
 func alphabet_from_string(str string) (ComplementableAlphabet, error) {
   str = strings.ToLower(str)
   str = strings.Replace(str, "-", " ", -1)

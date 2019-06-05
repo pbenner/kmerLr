@@ -21,8 +21,6 @@ package main
 import   "fmt"
 import   "log"
 
-import . "github.com/pbenner/gonetics"
-
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
@@ -31,13 +29,7 @@ import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 
 type KmerLr struct {
   vectorDistribution.LogisticRegression
-  M, N           int
-  Binarize       bool
-  Complement     bool
-  Reverse        bool
-  Revcomp        bool
-  MaxAmbiguous []int
-  Alphabet       ComplementableAlphabet
+  AlphabetDef
 }
 
 /* -------------------------------------------------------------------------- */
