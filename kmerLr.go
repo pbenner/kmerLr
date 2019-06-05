@@ -64,7 +64,7 @@ func main() {
   optThreads := options.    IntLong("threads", 't',  1, "number of threads")
   optHelp    := options.   BoolLong("help",    'h',     "print help")
   optVerbose := options.CounterLong("verbose", 'v',     "verbose level [-v or -vv]")
-  optVersion := options.   BoolLong("version",  0 ,     "print ModHMM version")
+  optVersion := options.   BoolLong("version",  0 ,     "print version")
 
   options.SetParameters("<COMMAND>\n\n" +
     " Commands:\n" +
