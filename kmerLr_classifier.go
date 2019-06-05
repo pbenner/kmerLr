@@ -52,61 +52,14 @@ func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
   if err := obj.LogisticRegression.ImportConfig(config.Distributions[0], t); err != nil {
     return err
   }
-  m, ok := config.GetNamedParameterAsInt("M"); if !ok {
-    return fmt.Errorf("invalid config file")
-  }
-  n, ok := config.GetNamedParameterAsInt("N"); if !ok {
-    return fmt.Errorf("invalid config file")
-  }
-  binarize, ok := config.GetNamedParameterAsBool("Binarize"); if !ok {
-    return fmt.Errorf("invalid config file")
-  }
-  complement, ok := config.GetNamedParameterAsBool("Complement"); if !ok {
-    return fmt.Errorf("invalid config file")
-  }
-  reverse, ok := config.GetNamedParameterAsBool("Reverse"); if !ok {
-    return fmt.Errorf("invalid config file")
-  }
-  revcomp, ok := config.GetNamedParameterAsBool("Revcomp"); if !ok {
-    return fmt.Errorf("invalid config file")
-  }
-  maxAmbiguous, ok := config.GetNamedParametersAsInts("MaxAmbiguous"); if !ok {
-    return fmt.Errorf("invalid config file")
-  }
-  alphabet, ok := config.GetNamedParameterAsString("Alphabet"); if !ok {
-    return fmt.Errorf("invalid config file")
-  }
-  if r, err := alphabet_from_string(alphabet); err != nil {
-    return err
-  } else {
-    obj.Alphabet = r
-  }
-  obj.M, obj.N     = m, n
-  obj.Binarize     = binarize
-  obj.Complement   = complement
-  obj.Reverse      = reverse
-  obj.Revcomp      = revcomp
-  obj.MaxAmbiguous = maxAmbiguous
-  return nil
+  return obj.AlphabetDef.ImportConfig(config, t)
 }
 
 func (obj *KmerLr) ExportConfig() ConfigDistribution {
-  config := struct{
-    M, N           int
-    Binarize       bool
-    Complement     bool
-    Reverse        bool
-    Revcomp        bool
-    MaxAmbiguous []int
-    Alphabet       string
-  }{}
-  config.M, config.N  = obj.M, obj.N
-  config.Binarize     = obj.Binarize
-  config.Complement   = obj.Complement
-  config.Reverse      = obj.Reverse
-  config.Revcomp      = obj.Revcomp
-  config.MaxAmbiguous = obj.MaxAmbiguous
-  config.Alphabet     = obj.Alphabet.String()
+  config := obj.AlphabetDef.ExportConfig()
+  config.Name          = "kmerLr"
+  config.Distributions = []ConfigDistribution{
+    obj.LogisticRegression.ExportConfig() }
 
-  return NewConfigDistribution("kmerLr", config, obj.LogisticRegression.ExportConfig())
+  return config
 }
