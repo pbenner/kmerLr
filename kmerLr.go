@@ -100,6 +100,8 @@ func main() {
   switch command {
   case "learn":
     main_learn(config, options.Args())
+  case "predict":
+    main_predict(config, options.Args())
   default:
     options.PrintUsage(os.Stderr)
     os.Exit(1)
