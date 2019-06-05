@@ -31,6 +31,7 @@ import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 
 type KmerLr struct {
   vectorDistribution.LogisticRegression
+  M, N           int
   Binarize       bool
   Complement     bool
   Reverse        bool
@@ -59,6 +60,12 @@ func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
   if err := obj.LogisticRegression.ImportConfig(config.Distributions[0], t); err != nil {
     return err
   }
+  m, ok := config.GetNamedParameterAsInt("M"); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
+  n, ok := config.GetNamedParameterAsInt("N"); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
   binarize, ok := config.GetNamedParameterAsBool("Binarize"); if !ok {
     return fmt.Errorf("invalid config file")
   }
@@ -82,6 +89,7 @@ func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
   } else {
     obj.Alphabet = r
   }
+  obj.M, obj.N     = m, n
   obj.Binarize     = binarize
   obj.Complement   = complement
   obj.Reverse      = reverse
@@ -92,6 +100,7 @@ func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
 
 func (obj *KmerLr) ExportConfig() ConfigDistribution {
   config := struct{
+    M, N           int
     Binarize       bool
     Complement     bool
     Reverse        bool
@@ -99,6 +108,7 @@ func (obj *KmerLr) ExportConfig() ConfigDistribution {
     MaxAmbiguous []int
     Alphabet       string
   }{}
+  config.M, config.N  = obj.M, obj.N
   config.Binarize     = obj.Binarize
   config.Complement   = obj.Complement
   config.Reverse      = obj.Reverse

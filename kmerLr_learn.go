@@ -77,8 +77,8 @@ func learn_cv(config Config, data []ConstVector, n, kfold int, basename_out stri
   saveCrossvalidation(fmt.Sprintf("%s.table", basename_out), predictions, labels)
 }
 
-func learn(config Config, m, n, kfold int, filename_fg, filename_bg, basename_out string) {
-  kmersCounter, err := NewKmersCounter(m, n, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
+func learn(config Config, kfold int, filename_fg, filename_bg, basename_out string) {
+  kmersCounter, err := NewKmersCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
   data := compile_training_data(config, kmersCounter, config.Binarize, filename_fg, filename_bg)
@@ -93,8 +93,6 @@ func learn(config Config, m, n, kfold int, filename_fg, filename_bg, basename_ou
 /* -------------------------------------------------------------------------- */
 
 func main_learn(config Config, args []string) {
-  log.SetFlags(0)
-
   options := getopt.New()
 
   optAlphabet   := options. StringLong("alphabet",   0 , "nucleotide", "nucleotide, gappend-nucleotide, or iupac-nucleotide")
@@ -110,7 +108,7 @@ func main_learn(config Config, args []string) {
   optVerbose    := options.CounterLong("verbose",   'v',               "verbose level [-v or -vv]")
   optHelp       := options.   BoolLong("help",      'h',               "print help")
 
-  options.SetParameters("<N> <M> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
+  options.SetParameters("<M> <N> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
   options.Parse(args)
 
   // parse options
@@ -154,15 +152,19 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  n, err := strconv.ParseInt(options.Args()[0], 10, 64); if err != nil {
+  if m, err := strconv.ParseInt(options.Args()[0], 10, 64); err != nil {
     options.PrintUsage(os.Stderr)
     os.Exit(1)
+  } else {
+    config.M = int(m)
   }
-  m, err := strconv.ParseInt(options.Args()[1], 10, 64); if err != nil {
+  if n, err := strconv.ParseInt(options.Args()[1], 10, 64); err != nil {
     options.PrintUsage(os.Stderr)
     os.Exit(1)
+  } else {
+    config.N = int(n)
   }
-  if n < 1 || m < n {
+  if config.M < 1 || config.N < config.M {
     options.PrintUsage(os.Stderr)
     os.Exit(1)
   }
@@ -170,5 +172,5 @@ func main_learn(config Config, args []string) {
   filename_bg  := options.Args()[3]
   basename_out := options.Args()[4]
 
-  learn(config, int(n), int(m), *optKFoldCV, filename_fg, filename_bg, basename_out)
+  learn(config, *optKFoldCV, filename_fg, filename_bg, basename_out)
 }

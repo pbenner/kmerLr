@@ -35,14 +35,16 @@ type Config struct {
   Lambda         float64
   Epsilon        float64
   Seed           int64
+  SaveTrace      bool
+  MaxEpochs      int
+  // alphabet/data definition
+  M, N           int
   Binarize       bool
   Complement     bool
   Reverse        bool
   Revcomp        bool
   MaxAmbiguous []int
   Alphabet       ComplementableAlphabet
-  SaveTrace      bool
-  MaxEpochs      int
 }
 
 
@@ -74,7 +76,8 @@ func main() {
 
   options.SetParameters("<COMMAND>\n\n" +
     " Commands:\n" +
-    "     learn - estimate logistic regression parameters\n")
+    "     learn   - estimate logistic regression parameters\n" +
+    "     predict - use an estimated model to predict labels\n")
   options.Parse(os.Args)
 
   // command options

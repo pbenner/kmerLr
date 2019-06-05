@@ -93,6 +93,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) VectorPd
     return nil
   } else {
     r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
+    r.M, r.N       = config.M, config.N
     r.Binarize     = config.Binarize
     r.Complement   = config.Complement
     r.Reverse      = config.Reverse
