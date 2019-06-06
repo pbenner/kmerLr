@@ -100,12 +100,11 @@ func saveCrossvalidation(filename string, predictions []float64, labels []int) {
 func crossvalidation(config Config, data []ConstVector, labels []int, kfold int,
   learnClassifier func(i int, data []ConstVector) VectorPdf,
    testClassifier func(i int, data []ConstVector, classifier VectorPdf) []float64) ([]float64, []int) {
-  pool   := threadpool.New(config.Threads, 100)
   groups := getCvGroups(len(data), kfold, config.Seed)
 
   r_predictions := make([][]float64, kfold)
   r_labels      := make([][]int,     kfold)
-  pool.RangeJob(0, kfold, func(i int, pool threadpool.ThreadPool, erf func() error) error {
+  config.Pool.RangeJob(0, kfold, func(i int, pool threadpool.ThreadPool, erf func() error) error {
     data_test, labels_test, data_train, _ := filterCvGroup(data, labels, groups, i)
 
     classifier := learnClassifier(i, data_train)

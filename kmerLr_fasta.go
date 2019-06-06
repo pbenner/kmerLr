@@ -23,6 +23,7 @@ import   "log"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
+import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
 
@@ -82,15 +83,20 @@ func scan_sequences(config Config, kmersCounter KmersCounter, binarize bool, lab
   result := make([]ConstVector, len(sequences))
 
   PrintStderr(config, 1, "Counting kmers... ")
-  for i, s := range sequences {
-    if r, err := scan_sequence(config, kmersCounter, binarize, label, []byte(s)); err != nil {
-      PrintStderr(config, 1, "failed\n")
-      log.Fatal(err)
+  if err := config.Pool.RangeJob(0, len(sequences), func(i int, pool threadpool.ThreadPool, erf func() error) error {
+    if erf() != nil {
+      return nil
+    }
+    if r, err := scan_sequence(config, kmersCounter, binarize, label, []byte(sequences[i])); err != nil {
+      return err
     } else {
       result[i] = r
     }
+    return nil
+  }); err != nil {
+    PrintStderr(config, 1, "failed\n")
+    log.Fatal(err)
   }
-  PrintStderr(config, 1, "done\n")
   return result
 }
 

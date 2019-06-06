@@ -24,6 +24,7 @@ import   "log"
 import   "os"
 
 import . "github.com/pbenner/ngstat/config"
+import   "github.com/pbenner/threadpool"
 
 import   "github.com/pborman/getopt"
 
@@ -38,6 +39,7 @@ type Config struct {
   Seed           int64
   SaveTrace      bool
   MaxEpochs      int
+  Pool           threadpool.ThreadPool
 }
 
 
@@ -91,6 +93,7 @@ func main() {
   }
   if options.Lookup('t').Seen() {
     config.Threads = *optThreads
+    config.Pool    = threadpool.New(*optThreads, 100)
   }
   // command arguments
   if len(options.Args()) == 0 {
