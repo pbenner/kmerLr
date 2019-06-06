@@ -61,6 +61,11 @@ func NewHook(config Config, trace *Trace) HookType {
       }
       fmt.Println()
     }
+    if trace != nil && config.EpsilonVar != 0.0 {
+      if r := trace.CompVar(10); r < config.EpsilonVar {
+        return true
+      }
+    }
     return false
   }
   return hook
