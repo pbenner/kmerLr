@@ -21,6 +21,7 @@ package main
 import   "fmt"
 import   "bufio"
 import   "log"
+import   "math"
 import   "os"
 
 import . "github.com/pbenner/ngstat/estimation"
@@ -48,9 +49,16 @@ func NewHook(config Config, trace *Trace) HookType {
       trace.Append(epoch, n, change.GetValue())
     }
     if config.Verbose > 1 {
-      fmt.Printf("epoch : %d\n", epoch)
-      fmt.Printf("change: %v\n", change)
-      fmt.Printf("#ceof : %d\n", n)
+      if trace != nil {
+        fmt.Printf("epoch     : %d\n", epoch)
+        fmt.Printf("change    : %v\n", change)
+        fmt.Printf("#ceof     : %d\n", n)
+        fmt.Printf("var(#ceof): %f\n", trace.CompVar(10))
+      } else {
+        fmt.Printf("epoch : %d\n", epoch)
+        fmt.Printf("change: %v\n", change)
+        fmt.Printf("#ceof : %d\n", n)
+      }
       fmt.Println()
     }
     return false
@@ -131,4 +139,23 @@ func (obj *Trace) Append(epoch, nonzero int, change float64) {
   obj.Epoch   = append(obj.Epoch  , epoch)
   obj.Nonzero = append(obj.Nonzero, nonzero)
   obj.Change  = append(obj.Change , change)
+}
+
+func (obj Trace) CompVar(n int) float64 {
+  if len(obj.Nonzero) < n {
+    return math.NaN()
+  }
+  v := obj.Nonzero[len(obj.Nonzero)-n:len(obj.Nonzero)]
+  m := 0.0
+  for i := 0; i < n; i++ {
+    m += float64(v[i])
+  }
+  m /= float64(n)
+  r := 0.0
+  for i := 0; i < n; i++ {
+    s := float64(v[i]) - m
+    r += s*s
+  }
+  r /= float64(n)
+  return r
 }

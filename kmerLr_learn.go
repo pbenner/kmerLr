@@ -35,7 +35,7 @@ import   "github.com/pborman/getopt"
 func learn_parameters(config Config, data []ConstVector, n int, basename_out string) VectorPdf {
   // hook and trace
   var trace *Trace
-  if config.SaveTrace {
+  if config.SaveTrace || config.EpsilonVar != 0.0 {
     trace = &Trace{}
   }
   estimator  := NewKmerLrEstimator(config, n, NewHook(config, trace))
@@ -105,6 +105,7 @@ func main_learn(config Config, args []string) {
   optMaxAmbiguous := options. StringLong("max-ambiguous", 0 , "-1",         "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
   optMaxEpochs    := options.    IntLong("max-epochs",    0 ,            1, "maximum number of epochs")
   optEpsilon      := options. StringLong("epsilon",       0 ,       "1e-4", "optimization tolerance level")
+  optEpsilonVar   := options. StringLong("epsilon-var",   0 ,       "1e-2", "optimization tolerance level for the variance of the number of components")
   optSaveTrace    := options.   BoolLong("save-trace",    0 ,               "save trace to file")
   optKFoldCV      := options.    IntLong("k-fold-cv",     0 ,            1, "perform k-fold cross-validation")
   optVerbose      := options.CounterLong("verbose",      'v',               "verbose level [-v or -vv]")
@@ -151,6 +152,11 @@ func main_learn(config Config, args []string) {
     log.Fatal(err)
   } else {
     config.Epsilon = s
+  }
+  if s, err := strconv.ParseFloat(*optEpsilonVar, 64); err != nil {
+    log.Fatal(err)
+  } else {
+    config.EpsilonVar = s
   }
   if v, err := strconv.ParseFloat(*optLambda, 64); err != nil {
     log.Fatal(err)

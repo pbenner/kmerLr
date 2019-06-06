@@ -34,6 +34,7 @@ type Config struct {
   AlphabetDef
   Lambda         float64
   Epsilon        float64
+  EpsilonVar     float64
   Seed           int64
   SaveTrace      bool
   MaxEpochs      int
