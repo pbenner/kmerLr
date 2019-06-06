@@ -19,7 +19,10 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
+import   "log"
 import   "os"
+
+import . "github.com/pbenner/autodiff/statistics"
 
 /* -------------------------------------------------------------------------- */
 
@@ -27,4 +30,37 @@ func PrintStderr(config Config, level int, format string, args ...interface{}) {
   if config.Verbose >= level {
     fmt.Fprintf(os.Stderr, format, args...)
   }
+}
+
+/* -------------------------------------------------------------------------- */
+
+func SaveCrossvalidation(config Config, filename string, predictions []float64, labels []int) {
+  PrintStderr(config, 1, "Exporting cross-validation results to `%s'... ", filename)
+  if err := saveCrossvalidation(filename, predictions, labels); err != nil {
+    PrintStderr(config, 1, "failed\n")
+    log.Fatal(err)
+  }
+  PrintStderr(config, 1, "done\n")
+}
+
+/* -------------------------------------------------------------------------- */
+
+func SaveTrace(config Config, filename string, trace *Trace) {
+  PrintStderr(config, 1, "Exporting trace to `%s'... ", filename)
+  if err := trace.Export(filename); err != nil {
+    PrintStderr(config, 1, "failed\n")
+    log.Fatal(err)
+  }
+  PrintStderr(config, 1, "done\n")
+}
+
+/* -------------------------------------------------------------------------- */
+
+func SaveModel(config Config, filename string, classifier VectorPdf) {
+  PrintStderr(config, 1, "Exporting model to `%s'... ", filename)
+  if err := ExportDistribution(filename, classifier); err != nil {
+    PrintStderr(config, 1, "failed\n")
+    log.Fatal(err)
+  }
+  PrintStderr(config, 1, "done\n")
 }

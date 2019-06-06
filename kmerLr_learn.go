@@ -45,20 +45,10 @@ func learn_parameters(config Config, data []ConstVector, n int, basename_out str
   filename_json  := fmt.Sprintf("%s.json"       , basename_out)
   // export trace
   if config.SaveTrace {
-    PrintStderr(config, 1, "Exporting trace to `%s'... ", filename_trace)
-    if err := trace.Export(filename_trace); err != nil {
-      PrintStderr(config, 1, "failed\n")
-      log.Fatal(err)
-    }
-    PrintStderr(config, 1, "done\n")
+    SaveTrace(config, filename_trace, trace)
   }
   // export model
-  PrintStderr(config, 1, "Exporting distribution to `%s'... ", filename_json)
-  if err := ExportDistribution(filename_json, classifier); err != nil {
-    PrintStderr(config, 1, "failed\n")
-    log.Fatal(err)
-  }
-  PrintStderr(config, 1, "done\n")
+  SaveModel(config, filename_json, classifier)
 
   return classifier
 }
@@ -71,11 +61,11 @@ func learn_cv(config Config, data []ConstVector, n, kfold int, basename_out stri
     return learn_parameters(config, data, n, basename_out)
   }
   testClassifier := func(i int, data []ConstVector, classifier VectorPdf) []float64 {
-    return predict_labeled(config, classifier, data)
+    return predict_labeled(config, data, classifier)
   }
   predictions, labels := crossvalidation(config, data, labels, kfold, learnClassifier, testClassifier)
 
-  saveCrossvalidation(fmt.Sprintf("%s.table", basename_out), predictions, labels)
+  SaveCrossvalidation(config, fmt.Sprintf("%s.table", basename_out), predictions, labels)
 }
 
 func learn(config Config, kfold int, filename_fg, filename_bg, basename_out string) {

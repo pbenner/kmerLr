@@ -79,10 +79,10 @@ func getLabels(data []ConstVector) []int {
 
 /* -------------------------------------------------------------------------- */
 
-func saveCrossvalidation(filename string, predictions []float64, labels []int) {
+func saveCrossvalidation(filename string, predictions []float64, labels []int) error {
   f, err := os.Create(filename)
   if err != nil {
-    panic(err)
+    return err
   }
   defer f.Close()
 
@@ -93,6 +93,7 @@ func saveCrossvalidation(filename string, predictions []float64, labels []int) {
   for i := 0; i < len(predictions); i++ {
     fmt.Fprintf(w, "%15f\t%d\n", predictions[i], labels[i])
   }
+  return nil
 }
 
 /* -------------------------------------------------------------------------- */

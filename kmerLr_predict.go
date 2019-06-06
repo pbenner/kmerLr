@@ -49,7 +49,7 @@ func savePredictions(filename string, predictions []float64) {
 
 /* -------------------------------------------------------------------------- */
 
-func predict_unlabeled(config Config, classifier VectorPdf, data []ConstVector) []float64 {
+func predict_unlabeled(config Config, data []ConstVector, classifier VectorPdf) []float64 {
   r := make([]float64, len(data))
   t := BareReal(0.0)
   for i, _ := range data {
@@ -61,7 +61,7 @@ func predict_unlabeled(config Config, classifier VectorPdf, data []ConstVector) 
   return r
 }
 
-func predict_labeled(config Config, classifier VectorPdf, data []ConstVector) []float64 {
+func predict_labeled(config Config, data []ConstVector, classifier VectorPdf) []float64 {
   r := make([]float64, len(data))
   t := BareReal(0.0)
   for i, _ := range data {
@@ -87,7 +87,7 @@ func predict(config Config, filename_in, filename_out string) {
   }
   data := compile_test_data(config, kmersCounter, config.Binarize, filename_in)
 
-  predictions := predict_unlabeled(config, classifier, data)
+  predictions := predict_unlabeled(config, data, classifier)
 
   savePredictions(filename_out, predictions)
 }
