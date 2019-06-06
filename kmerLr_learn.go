@@ -22,6 +22,7 @@ import   "fmt"
 import   "log"
 import   "os"
 import   "strconv"
+import   "strings"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -95,57 +96,23 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
 func main_learn(config Config, args []string) {
   options := getopt.New()
 
-  optAlphabet   := options. StringLong("alphabet",   0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
-  optLambda     := options. StringLong("lambda",     0 ,        "0.0", "regularization strength (L1)")
-  optBinarize   := options.   BoolLong("binarize",   0 ,               "binarize k-mer counts")
-  optComplement := options.   BoolLong("complement", 0 ,               "consider complement sequences")
-  optReverse    := options.   BoolLong("reverse",    0 ,               "consider reverse sequences")
-  optRevcomp    := options.   BoolLong("revcomp",    0 ,               "consider reverse complement sequences")
-  optMaxEpochs  := options.    IntLong("max-epochs", 0 ,            1, "maximum number of epochs")
-  optEpsilon    := options. StringLong("epsilon",    0 ,       "1e-4", "optimization tolerance level")
-  optSaveTrace  := options.   BoolLong("save-trace", 0 ,               "save trace to file")
-  optKFoldCV    := options.    IntLong("k-fold-cv",  0 ,            1, "perform k-fold cross-validation")
-  optVerbose    := options.CounterLong("verbose",   'v',               "verbose level [-v or -vv]")
-  optHelp       := options.   BoolLong("help",      'h',               "print help")
+  optAlphabet     := options. StringLong("alphabet",      0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
+  optLambda       := options. StringLong("lambda",        0 ,        "0.0", "regularization strength (L1)")
+  optBinarize     := options.   BoolLong("binarize",      0 ,               "binarize k-mer counts")
+  optComplement   := options.   BoolLong("complement",    0 ,               "consider complement sequences")
+  optReverse      := options.   BoolLong("reverse",       0 ,               "consider reverse sequences")
+  optRevcomp      := options.   BoolLong("revcomp",       0 ,               "consider reverse complement sequences")
+  optMaxAmbiguous := options. StringLong("max-ambiguous", 0 , "-1",         "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
+  optMaxEpochs    := options.    IntLong("max-epochs",    0 ,            1, "maximum number of epochs")
+  optEpsilon      := options. StringLong("epsilon",       0 ,       "1e-4", "optimization tolerance level")
+  optSaveTrace    := options.   BoolLong("save-trace",    0 ,               "save trace to file")
+  optKFoldCV      := options.    IntLong("k-fold-cv",     0 ,            1, "perform k-fold cross-validation")
+  optVerbose      := options.CounterLong("verbose",      'v',               "verbose level [-v or -vv]")
+  optHelp         := options.   BoolLong("help",         'h',               "print help")
 
   options.SetParameters("<M> <N> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
   options.Parse(args)
 
-  // parse options
-  //////////////////////////////////////////////////////////////////////////////
-  if *optHelp {
-    options.PrintUsage(os.Stdout)
-    os.Exit(0)
-  }
-  if *optVerbose != 0 {
-    config.Verbose = *optVerbose
-  }
-  if s, err := strconv.ParseFloat(*optEpsilon, 64); err != nil {
-    log.Fatal(err)
-  } else {
-    config.Epsilon = s
-  }
-  if v, err := strconv.ParseFloat(*optLambda, 64); err != nil {
-    log.Fatal(err)
-  } else {
-    config.Lambda = v
-  }
-  if alphabet, err := alphabet_from_string(*optAlphabet); err != nil {
-    options.PrintUsage(os.Stderr)
-    os.Exit(1)
-  } else {
-    config.Alphabet = alphabet
-  }
-  if *optKFoldCV < 1 {
-    options.PrintUsage(os.Stdout)
-    os.Exit(1)
-  }
-  config.Binarize      = *optBinarize
-  config.Complement    = *optComplement
-  config.Reverse       = *optReverse
-  config.Revcomp       = *optRevcomp
-  config.MaxEpochs     = *optMaxEpochs
-  config.SaveTrace     = *optSaveTrace
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
   if len(options.Args()) != 5 {
@@ -171,6 +138,55 @@ func main_learn(config Config, args []string) {
   filename_fg  := options.Args()[2]
   filename_bg  := options.Args()[3]
   basename_out := options.Args()[4]
+  // parse options
+  //////////////////////////////////////////////////////////////////////////////
+  if *optHelp {
+    options.PrintUsage(os.Stdout)
+    os.Exit(0)
+  }
+  if *optVerbose != 0 {
+    config.Verbose = *optVerbose
+  }
+  if s, err := strconv.ParseFloat(*optEpsilon, 64); err != nil {
+    log.Fatal(err)
+  } else {
+    config.Epsilon = s
+  }
+  if v, err := strconv.ParseFloat(*optLambda, 64); err != nil {
+    log.Fatal(err)
+  } else {
+    config.Lambda = v
+  }
+  if fields := strings.Split(*optMaxAmbiguous, ","); len(fields) == 1 || len(fields) == int(config.M-config.N+1) {
+    config.MaxAmbiguous = make([]int, len(fields))
+    for i := 0; i < len(fields); i++ {
+      if t, err := strconv.ParseInt(fields[i], 10, 64); err != nil {
+        options.PrintUsage(os.Stderr)
+        os.Exit(1)
+      } else {
+        config.MaxAmbiguous[i] = int(t)
+      }
+    }
+  } else {
+    options.PrintUsage(os.Stderr)
+    os.Exit(1)
+  }
+  if alphabet, err := alphabet_from_string(*optAlphabet); err != nil {
+    options.PrintUsage(os.Stderr)
+    os.Exit(1)
+  } else {
+    config.Alphabet = alphabet
+  }
+  if *optKFoldCV < 1 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(1)
+  }
+  config.Binarize      = *optBinarize
+  config.Complement    = *optComplement
+  config.Reverse       = *optReverse
+  config.Revcomp       = *optRevcomp
+  config.MaxEpochs     = *optMaxEpochs
+  config.SaveTrace     = *optSaveTrace
 
   learn(config, *optKFoldCV, filename_fg, filename_bg, basename_out)
 }
