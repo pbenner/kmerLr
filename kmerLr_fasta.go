@@ -97,6 +97,7 @@ func scan_sequences(config Config, kmersCounter KmersCounter, binarize bool, lab
     PrintStderr(config, 1, "failed\n")
     log.Fatal(err)
   }
+  PrintStderr(config, 1, "done\n")
   return result
 }
 
