@@ -95,7 +95,7 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
 func main_learn(config Config, args []string) {
   options := getopt.New()
 
-  optAlphabet   := options. StringLong("alphabet",   0 , "nucleotide", "nucleotide, gappend-nucleotide, or iupac-nucleotide")
+  optAlphabet   := options. StringLong("alphabet",   0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
   optLambda     := options. StringLong("lambda",     0 ,        "0.0", "regularization strength (L1)")
   optBinarize   := options.   BoolLong("binarize",   0 ,               "binarize k-mer counts")
   optComplement := options.   BoolLong("complement", 0 ,               "consider complement sequences")
