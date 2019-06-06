@@ -32,13 +32,13 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data []ConstVector, n int, basename_out string) VectorPdf {
+func learn_parameters(config Config, data []ConstVector, n, icv int, basename_out string) VectorPdf {
   // hook and trace
   var trace *Trace
   if config.SaveTrace || config.EpsilonVar != 0.0 {
     trace = &Trace{}
   }
-  estimator  := NewKmerLrEstimator(config, n, NewHook(config, trace))
+  estimator  := NewKmerLrEstimator(config, n, NewHook(config, trace, icv))
   classifier := estimator.Estimate(config, data)
 
   filename_trace := fmt.Sprintf("%s.trace.table", basename_out)
@@ -58,7 +58,7 @@ func learn_cv(config Config, data []ConstVector, n, kfold int, basename_out stri
 
   learnClassifier := func(i int, data []ConstVector) VectorPdf {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_parameters(config, data, n, basename_out)
+    return learn_parameters(config, data, n, i, basename_out)
   }
   testClassifier := func(i int, data []ConstVector, classifier VectorPdf) []float64 {
     return predict_labeled(config, data, classifier)
@@ -75,7 +75,7 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
   data := compile_training_data(config, kmersCounter, config.Binarize, filename_fg, filename_bg)
 
   if kfold <= 1 {
-    learn_parameters(config, data, kmersCounter.Length(), basename_out)
+    learn_parameters(config, data, kmersCounter.Length(), -1, basename_out)
   } else {
     learn_cv(config, data, kmersCounter.Length(), kfold, basename_out)
   }
