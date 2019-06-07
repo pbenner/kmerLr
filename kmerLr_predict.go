@@ -76,8 +76,8 @@ func predict_labeled(config Config, data []ConstVector, classifier VectorPdf) []
 
 /* -------------------------------------------------------------------------- */
 
-func predict(config Config, filename_in, filename_out string) {
-  classifier := ImportKmerLr(config, filename_in)
+func predict(config Config, filename_json, filename_in, filename_out string) {
+  classifier := ImportKmerLr(config, filename_json)
 
   // copy config from classifier
   config.AlphabetDef = classifier.AlphabetDef
@@ -100,7 +100,7 @@ func main_predict(config Config, args []string) {
   optVerbose    := options.CounterLong("verbose",   'v', "verbose level [-v or -vv]")
   optHelp       := options.   BoolLong("help",      'h', "print help")
 
-  options.SetParameters("<SEQUENCES.fa> <RESULT.table>")
+  options.SetParameters("<MODEL.json> <SEQUENCES.fa> <RESULT.table>")
   options.Parse(args)
 
   // parse options
@@ -114,12 +114,13 @@ func main_predict(config Config, args []string) {
   }
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
-  if len(options.Args()) != 2 {
+  if len(options.Args()) != 3 {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  filename_in  := options.Args()[0]
-  filename_out := options.Args()[1]
+  filename_json := options.Args()[0]
+  filename_in   := options.Args()[0]
+  filename_out  := options.Args()[1]
 
-  predict(config, filename_in, filename_out)
+  predict(config, filename_json, filename_in, filename_out)
 }
