@@ -69,11 +69,33 @@ func (obj *KmerLr) Mean(classifiers []*KmerLr) error {
 
 func (obj *KmerLr) Max(classifiers []*KmerLr) error {
   for i := 0; i < obj.Theta.Dim(); i++ {
-    obj.Theta.At(i).SetValue(math.Inf(-1))
+    obj.Theta.At(i).SetValue(0.0)
+  }
+  maxAbs := func(a Scalar, b ConstScalar) {
+    if math.Abs(a.GetValue()) < math.Abs(b.GetValue()) {
+      a.Set(b)
+    }
   }
   for i := 0; i < obj.Theta.Dim(); i++ {
     for _, classifier := range classifiers {
-      obj.Theta.At(i).Max(obj.Theta.ConstAt(i), classifier.Theta.ConstAt(i))
+      maxAbs(obj.Theta.At(i), classifier.Theta.ConstAt(i))
+    }
+  }
+  return nil
+}
+
+func (obj *KmerLr) Min(classifiers []*KmerLr) error {
+  for i := 0; i < obj.Theta.Dim(); i++ {
+    obj.Theta.At(i).SetValue(math.Inf(1))
+  }
+  minAbs := func(a Scalar, b ConstScalar) {
+    if math.Abs(a.GetValue()) > math.Abs(b.GetValue()) {
+      a.Set(b)
+    }
+  }
+  for i := 0; i < obj.Theta.Dim(); i++ {
+    for _, classifier := range classifiers {
+      minAbs(obj.Theta.At(i), classifier.Theta.ConstAt(i))
     }
   }
   return nil
