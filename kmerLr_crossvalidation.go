@@ -89,9 +89,9 @@ func saveCrossvalidation(filename string, predictions []float64, labels []int) e
   w := bufio.NewWriter(f)
   defer w.Flush()
 
-  fmt.Fprintf(w, "prediction\tlabels\n")
+  fmt.Fprintf(w, "%15s\t%6s\n", "prediction", "labels")
   for i := 0; i < len(predictions); i++ {
-    fmt.Fprintf(w, "%15f\t%d\n", predictions[i], labels[i])
+    fmt.Fprintf(w, "%15e\t%6d\n", predictions[i], labels[i])
   }
   return nil
 }
