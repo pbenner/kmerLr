@@ -97,8 +97,7 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
 func main_predict(config Config, args []string) {
   options := getopt.New()
 
-  optVerbose    := options.CounterLong("verbose",   'v', "verbose level [-v or -vv]")
-  optHelp       := options.   BoolLong("help",      'h', "print help")
+  optHelp       := options.   BoolLong("help", 'h', "print help")
 
   options.SetParameters("<MODEL.json> <SEQUENCES.fa> <RESULT.table>")
   options.Parse(args)
@@ -108,9 +107,6 @@ func main_predict(config Config, args []string) {
   if *optHelp {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
-  }
-  if *optVerbose != 0 {
-    config.Verbose = *optVerbose
   }
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////

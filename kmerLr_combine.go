@@ -56,9 +56,8 @@ func combine(config Config, summary, filename_out string, filename_ins ...string
 func main_combine(config Config, args []string) {
   options := getopt.New()
 
-  optSummary := options. StringLong("combine",    0 , "summary [mean (default), max, min]")
-  optVerbose := options.CounterLong("verbose",   'v', "verbose level [-v or -vv]")
-  optHelp    := options.   BoolLong("help",      'h', "print help")
+  optSummary := options. StringLong("combine",    0 , "mean", "summary [mean (default), max, min]")
+  optHelp    := options.   BoolLong("help",      'h',         "print help")
 
   options.SetParameters("<RESULT.json> <MODEL1.json> [<MODEL2.json>...]")
   options.Parse(args)
@@ -68,9 +67,6 @@ func main_combine(config Config, args []string) {
   if *optHelp {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
-  }
-  if *optVerbose != 0 {
-    config.Verbose = *optVerbose
   }
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////

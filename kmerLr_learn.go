@@ -98,7 +98,6 @@ func main_learn(config Config, args []string) {
   optEpsilonVar   := options. StringLong("epsilon-var",   0 ,       "1e-2", "optimization tolerance level for the variance of the number of components")
   optSaveTrace    := options.   BoolLong("save-trace",    0 ,               "save trace to file")
   optKFoldCV      := options.    IntLong("k-fold-cv",     0 ,            1, "perform k-fold cross-validation")
-  optVerbose      := options.CounterLong("verbose",      'v',               "verbose level [-v or -vv]")
   optHelp         := options.   BoolLong("help",         'h',               "print help")
 
   options.SetParameters("<M> <N> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
@@ -134,9 +133,6 @@ func main_learn(config Config, args []string) {
   if *optHelp {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
-  }
-  if *optVerbose != 0 {
-    config.Verbose = *optVerbose
   }
   if s, err := strconv.ParseFloat(*optEpsilon, 64); err != nil {
     log.Fatal(err)
