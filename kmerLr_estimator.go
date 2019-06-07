@@ -51,7 +51,7 @@ func NewHook(config Config, trace *Trace, icv int) HookType {
     if config.Verbose > 1 {
       if trace != nil {
         if icv != -1 {
-          fmt.Printf("cv run    : %d\n", icv)
+          fmt.Printf("cv run    : %d\n", icv+1)
         }
         fmt.Printf("epoch     : %d\n", epoch)
         fmt.Printf("change    : %v\n", change)
@@ -59,7 +59,7 @@ func NewHook(config Config, trace *Trace, icv int) HookType {
         fmt.Printf("var(#ceof): %f\n", trace.CompVar(10))
       } else {
         if icv != -1 {
-          fmt.Printf("cv run: %d\n", icv)
+          fmt.Printf("cv run: %d\n", icv+1)
         }
         fmt.Printf("epoch : %d\n", epoch)
         fmt.Printf("change: %v\n", change)
