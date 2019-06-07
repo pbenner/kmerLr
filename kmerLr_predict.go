@@ -119,8 +119,8 @@ func main_predict(config Config, args []string) {
     os.Exit(0)
   }
   filename_json := options.Args()[0]
-  filename_in   := options.Args()[0]
-  filename_out  := options.Args()[1]
+  filename_in   := options.Args()[1]
+  filename_out  := options.Args()[2]
 
   predict(config, filename_json, filename_in, filename_out)
 }
