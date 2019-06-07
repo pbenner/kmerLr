@@ -41,7 +41,7 @@ func savePredictions(filename string, predictions []float64) {
   w := bufio.NewWriter(f)
   defer w.Flush()
 
-  fmt.Fprintf(w, "%15s", "prediction\n")
+  fmt.Fprintf(w, "%15s\n", "prediction")
   for i := 0; i < len(predictions); i++ {
     fmt.Fprintf(w, "%15e\n", predictions[i])
   }
