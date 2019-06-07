@@ -39,6 +39,41 @@ type AlphabetDef struct {
 
 /* -------------------------------------------------------------------------- */
 
+func (a AlphabetDef) Equals(b AlphabetDef) bool {
+  if a.M != b.M {
+    return false
+  }
+  if a.N != b.N {
+    return false
+  }
+  if a.Binarize != b.Binarize {
+    return false
+  }
+  if a.Complement != b.Complement {
+    return false
+  }
+  if a.Reverse != b.Reverse {
+    return false
+  }
+  if a.Revcomp != b.Revcomp {
+    return false
+  }
+  if a.Alphabet.String() != b.Alphabet.String() {
+    return false
+  }
+  if len(a.MaxAmbiguous) != len(b.MaxAmbiguous) {
+    return false
+  }
+  for i := 0; i < len(a.MaxAmbiguous); i++ {
+    if a.MaxAmbiguous[i] != b.MaxAmbiguous[i] {
+      return false
+    }
+  }
+  return true
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *AlphabetDef) ImportConfig(config ConfigDistribution, t ScalarType) error {
   m, ok := config.GetNamedParameterAsInt("M"); if !ok {
     return fmt.Errorf("invalid config file")
