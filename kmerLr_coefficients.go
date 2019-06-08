@@ -18,50 +18,46 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
 import   "log"
+import   "math"
 import   "os"
-import   "strings"
+import   "sort"
+
+import . "github.com/pbenner/gonetics"
 
 import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func combine(config Config, summary, filename_out string, filename_ins ...string) {
-  classifiers := make([]*KmerLr, len(filename_ins))
-  for i, filename_in := range filename_ins {
-    classifiers[i] = ImportKmerLr(config, filename_in)
-    if !classifiers[i].AlphabetDef.Equals(classifiers[0].AlphabetDef) {
-      log.Fatalf("alphabet not consistent across classifiers")
-    }
-    if classifiers[i].Theta.Dim() != classifiers[0].Theta.Dim() {
-      panic("internal error")
-    }
+func coefficients(config Config, filename string) {
+  classifier   := ImportKmerLr(config, filename)
+  coefficients := classifier.Theta.GetValues()
+
+  kmersCounter, err := NewKmersCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
+    log.Fatal(err)
   }
-  r := classifiers[0].Clone()
-  switch strings.ToLower(summary) {
-  case "mean":
-    r.Mean(classifiers)
-  case "max":
-    r.Max(classifiers)
-  case "min":
-    r.Min(classifiers)
-  default:
-    log.Fatalf("invalid summary statistic: %s", summary)
+  r  := FloatInt{}
+  r.a = make([]float64, len(coefficients))
+  r.b = make([]int    , len(coefficients))
+  for i, v := range coefficients {
+    r.a[i] = math.Abs(v)
+    r.b[i] = i
   }
-  // export model
-  SaveModel(config, filename_out, r)
+  sort.Sort(sort.Reverse(r))
+  for i, k := range r.b {
+    fmt.Printf("%6d %14e %s\n", i+1, coefficients[k], kmersCounter.KmerName(k))
+  }
 }
 
 /* -------------------------------------------------------------------------- */
 
-func main_combine(config Config, args []string) {
+func main_coefficients(config Config, args []string) {
   options := getopt.New()
 
-  optSummary := options. StringLong("summary",    0 , "mean", "summary [mean (default), max, min]")
-  optHelp    := options.   BoolLong("help",      'h',         "print help")
+  optHelp := options.BoolLong("help",  'h',  "print help")
 
-  options.SetParameters("<RESULT.json> <MODEL1.json> [<MODEL2.json>...]")
+  options.SetParameters("<MODEL.json>")
   options.Parse(args)
 
   // parse options
@@ -72,12 +68,11 @@ func main_combine(config Config, args []string) {
   }
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
-  if len(options.Args()) < 2 {
+  if len(options.Args()) != 1 {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  filename_out := options.Args()[0]
-  filename_ins := options.Args()[1:len(options.Args())]
+  filename := options.Args()[0]
 
-  combine(config, *optSummary, filename_out, filename_ins...)
+  coefficients(config, filename)
 }
