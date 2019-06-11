@@ -74,6 +74,18 @@ func coefficients_print_related(coefficients []float64, kmersCounter KmersCounte
   coefficients_print(coefficients, kmersCounter, r)
 }
 
+func coefficients_format(coefficients []float64, kmersCounter KmersCounter) string {
+  n := 0
+  for k, _ := range coefficients {
+    if coefficients[k] != 0.0 {
+      if r := len(kmersCounter.KmerName(k)); r > n {
+        n = r
+      }
+    }
+  }
+  return fmt.Sprintf("%%6d %%14e %%%ds ", n)
+}
+
 /* -------------------------------------------------------------------------- */
 
 func coefficients(config Config, filename string, related bool) {
@@ -83,9 +95,11 @@ func coefficients(config Config, filename string, related bool) {
   kmersCounter, err := NewKmersCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
     log.Fatal(err)
   }
+  format := coefficients_format(coefficients, kmersCounter)
+
   for i, k := range coefficients_sort(coefficients) {
     if coefficients[k] != 0.0 {
-      fmt.Printf("%6d %14e %20s ", i+1, coefficients[k], kmersCounter.KmerName(k))
+      fmt.Printf(format, i+1, coefficients[k], kmersCounter.KmerName(k))
       if related {
         coefficients_print_related(coefficients, kmersCounter, k)
       }
