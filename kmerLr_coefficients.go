@@ -30,13 +30,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients(config Config, filename string, related bool) {
-  classifier   := ImportKmerLr(config, filename)
-  coefficients := classifier.Theta.GetValues()
-
-  kmersCounter, err := NewKmersCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
-    log.Fatal(err)
-  }
+func coefficients_sort(coefficients []float64) []int {
   r  := FloatInt{}
   r.a = make([]float64, len(coefficients))
   r.b = make([]int    , len(coefficients))
@@ -45,8 +39,20 @@ func coefficients(config Config, filename string, related bool) {
     r.b[i] = i
   }
   sort.Sort(sort.Reverse(r))
+  return r.b
+}
+
+/* -------------------------------------------------------------------------- */
+
+func coefficients(config Config, filename string, related bool) {
+  classifier   := ImportKmerLr(config, filename)
+  coefficients := classifier.Theta.GetValues()
+
+  kmersCounter, err := NewKmersCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
+    log.Fatal(err)
+  }
   if related {
-    for i, k := range r.b {
+    for i, k := range coefficients_sort(coefficients) {
       if coefficients[k] != 0.0 {
         fmt.Printf("%6d %14e %20s ", i+1, coefficients[k], kmersCounter.KmerName(k))
         first := true
@@ -64,7 +70,7 @@ func coefficients(config Config, filename string, related bool) {
       }
     }
   } else {
-    for i, k := range r.b {
+    for i, k := range coefficients_sort(coefficients) {
       if coefficients[k] != 0.0 {
         fmt.Printf("%6d %14e %s\n", i+1, coefficients[k], kmersCounter.KmerName(k))
       }
