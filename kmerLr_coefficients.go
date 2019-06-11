@@ -42,6 +42,19 @@ func coefficients_sort(coefficients []float64) []int {
   return r.b
 }
 
+func coefficients_related(coefficients []float64, kmersCounter KmersCounter, k int) []int {
+  re := kmersCounter.RelatedKmers(k)
+  r  := FloatInt{}
+  r.a = make([]float64, len(re))
+  r.b = make([]int    , len(re))
+  for i, kr := range re {
+    r.a[i] = math.Abs(coefficients[kr])
+    r.b[i] = kr
+  }
+  sort.Sort(sort.Reverse(r))
+  return r.b
+}
+
 /* -------------------------------------------------------------------------- */
 
 func coefficients(config Config, filename string, related bool) {
@@ -56,7 +69,7 @@ func coefficients(config Config, filename string, related bool) {
       if coefficients[k] != 0.0 {
         fmt.Printf("%6d %14e %20s ", i+1, coefficients[k], kmersCounter.KmerName(k))
         first := true
-        for _, kr := range kmersCounter.RelatedKmers(k) {
+        for _, kr := range coefficients_related(coefficients, kmersCounter, k) {
           if coefficients[kr] != 0.0 {
             if !first {
               fmt.Printf(",")
