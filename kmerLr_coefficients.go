@@ -55,6 +55,25 @@ func coefficients_related(coefficients []float64, kmersCounter KmersCounter, k i
   return r.b
 }
 
+func coefficients_print(coefficients []float64, kmersCounter KmersCounter, indices []int) {
+  first := true
+  for _, i := range indices {
+    if coefficients[i] != 0.0 {
+      if !first {
+        fmt.Printf(",")
+      } else {
+        first = false
+      }
+      fmt.Printf("%s:%e", kmersCounter.KmerName(i), coefficients[i])
+    }
+  }
+}
+
+func coefficients_print_related(coefficients []float64, kmersCounter KmersCounter, k int) {
+  r := coefficients_related(coefficients, kmersCounter, k)
+  coefficients_print(coefficients, kmersCounter, r)
+}
+
 /* -------------------------------------------------------------------------- */
 
 func coefficients(config Config, filename string, related bool) {
@@ -64,29 +83,13 @@ func coefficients(config Config, filename string, related bool) {
   kmersCounter, err := NewKmersCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  if related {
-    for i, k := range coefficients_sort(coefficients) {
-      if coefficients[k] != 0.0 {
-        fmt.Printf("%6d %14e %20s ", i+1, coefficients[k], kmersCounter.KmerName(k))
-        first := true
-        for _, kr := range coefficients_related(coefficients, kmersCounter, k) {
-          if coefficients[kr] != 0.0 {
-            if !first {
-              fmt.Printf(",")
-            } else {
-              first = false
-            }
-            fmt.Printf("%s:%e", kmersCounter.KmerName(kr), coefficients[kr])
-          }
-        }
-        fmt.Println()
+  for i, k := range coefficients_sort(coefficients) {
+    if coefficients[k] != 0.0 {
+      fmt.Printf("%6d %14e %20s ", i+1, coefficients[k], kmersCounter.KmerName(k))
+      if related {
+        coefficients_print_related(coefficients, kmersCounter, k)
       }
-    }
-  } else {
-    for i, k := range coefficients_sort(coefficients) {
-      if coefficients[k] != 0.0 {
-        fmt.Printf("%6d %14e %s\n", i+1, coefficients[k], kmersCounter.KmerName(k))
-      }
+      fmt.Println()
     }
   }
 }
