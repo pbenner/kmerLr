@@ -30,7 +30,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients(config Config, filename string) {
+func coefficients(config Config, filename string, related bool) {
   classifier   := ImportKmerLr(config, filename)
   coefficients := classifier.Theta.GetValues()
 
@@ -45,8 +45,30 @@ func coefficients(config Config, filename string) {
     r.b[i] = i
   }
   sort.Sort(sort.Reverse(r))
-  for i, k := range r.b {
-    fmt.Printf("%6d %14e %s\n", i+1, coefficients[k], kmersCounter.KmerName(k))
+  if related {
+    for i, k := range r.b {
+      if coefficients[k] != 0.0 {
+        fmt.Printf("%6d %14e %20s ", i+1, coefficients[k], kmersCounter.KmerName(k))
+        first := true
+        for _, kr := range kmersCounter.RelatedKmers(k) {
+          if coefficients[kr] != 0.0 {
+            if !first {
+              fmt.Printf(",")
+            } else {
+              first = false
+            }
+            fmt.Printf("%s:%e", kmersCounter.KmerName(kr), coefficients[kr])
+          }
+        }
+        fmt.Println()
+      }
+    }
+  } else {
+    for i, k := range r.b {
+      if coefficients[k] != 0.0 {
+        fmt.Printf("%6d %14e %s\n", i+1, coefficients[k], kmersCounter.KmerName(k))
+      }
+    }
   }
 }
 
@@ -55,7 +77,8 @@ func coefficients(config Config, filename string) {
 func main_coefficients(config Config, args []string) {
   options := getopt.New()
 
-  optHelp := options.BoolLong("help",  'h',  "print help")
+  optRelated := options.BoolLong("related",   0 ,  "print related coefficients")
+  optHelp    := options.BoolLong("help",     'h',  "print help")
 
   options.SetParameters("<MODEL.json>")
   options.Parse(args)
@@ -74,5 +97,5 @@ func main_coefficients(config Config, args []string) {
   }
   filename := options.Args()[0]
 
-  coefficients(config, filename)
+  coefficients(config, filename, *optRelated)
 }
