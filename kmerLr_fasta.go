@@ -44,7 +44,7 @@ func import_fasta(config Config, filename string) []string {
 
 /* -------------------------------------------------------------------------- */
 
-func convert_counts(config Config, counts KmerCounts, binarize bool, label int) ConstVector {
+func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
   n := counts.N()+1
   if label != -1 {
     n += 1
@@ -69,10 +69,10 @@ func convert_counts(config Config, counts KmerCounts, binarize bool, label int) 
   return NewSparseConstRealVector(i, v, n)
 }
 
-func convert_counts_list(config Config, countsList KmerCountsList, binarize bool, label int) []ConstVector {
+func convert_counts_list(config Config, countsList *KmerCountsList, label int) []ConstVector {
   r := make([]ConstVector, countsList.Len())
   for i := 0; i < countsList.Len(); i++ {
-    r[i] = convert_counts(config, countsList.At(i), binarize, label)
+    r[i] = convert_counts(config, countsList.At(i), label)
     // free memory
     countsList.Counts[i] = nil
   }
@@ -81,7 +81,7 @@ func convert_counts_list(config Config, countsList KmerCountsList, binarize bool
 
 /* -------------------------------------------------------------------------- */
 
-func scan_sequence(config Config, kmersCounter *KmersCounter, binarize bool, label int, sequence []byte) KmerCounts {
+func scan_sequence(config Config, kmersCounter *KmersCounter, binarize bool, sequence []byte) KmerCounts {
   if binarize {
     return kmersCounter.IdentifyKmers(sequence)
   } else {
@@ -89,19 +89,19 @@ func scan_sequence(config Config, kmersCounter *KmersCounter, binarize bool, lab
   }
 }
 
-func scan_sequences(config Config, kmersCounter *KmersCounter, binarize bool, label int, sequences []string) []ConstVector {
+func scan_sequences(config Config, kmersCounter *KmersCounter, binarize bool, sequences []string) []KmerCounts {
   r := make([]KmerCounts, len(sequences))
 
   PrintStderr(config, 1, "Counting kmers... ")
   if err := config.Pool.RangeJob(0, len(sequences), func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    r[i] = scan_sequence(config, kmersCounter, binarize, label, []byte(sequences[i]))
+    r[i] = scan_sequence(config, kmersCounter, binarize, []byte(sequences[i]))
     return nil
   }); err != nil {
     PrintStderr(config, 1, "failed\n")
     log.Fatal(err)
   }
   PrintStderr(config, 1, "done\n")
-  return convert_counts_list(config, NewKmerCountsList(r...), binarize, label)
+  return r
 }
 
 /* -------------------------------------------------------------------------- */
@@ -109,12 +109,19 @@ func scan_sequences(config Config, kmersCounter *KmersCounter, binarize bool, la
 func compile_training_data(config Config, kmersCounter *KmersCounter, binarize bool, filename_fg, filename_bg string) []ConstVector {
   fg := import_fasta(config, filename_fg)
   bg := import_fasta(config, filename_bg)
-  fg_counts := scan_sequences(config, kmersCounter, binarize, 1, fg)
-  bg_counts := scan_sequences(config, kmersCounter, binarize, 0, bg)
-  return append(fg_counts, bg_counts...)
+  counts_fg := scan_sequences(config, kmersCounter, binarize, fg)
+  counts_bg := scan_sequences(config, kmersCounter, binarize, bg)
+  counts_list    := NewKmerCountsList(append(counts_fg, counts_bg...)...)
+  counts_list_fg := counts_list.Slice(      0, len(fg))
+  counts_list_bg := counts_list.Slice(len(fg), len(fg)+len(bg))
+  r_fg := convert_counts_list(config, &counts_list_fg, 1)
+  r_bg := convert_counts_list(config, &counts_list_bg, 0)
+  return append(r_fg, r_bg...)
 }
 
 func compile_test_data(config Config, kmersCounter *KmersCounter, binarize bool, filename string) []ConstVector {
-  sequences := import_fasta(config, filename)
-  return scan_sequences(config, kmersCounter, binarize, -1, sequences)
+  sequences   := import_fasta(config, filename)
+  counts      := scan_sequences(config, kmersCounter, binarize, sequences)
+  counts_list := NewKmerCountsList(counts...)
+  return convert_counts_list(config, &counts_list, 01)
 }
