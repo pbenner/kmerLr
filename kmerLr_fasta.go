@@ -44,66 +44,69 @@ func import_fasta(config Config, filename string) []string {
 
 /* -------------------------------------------------------------------------- */
 
-func scan_sequence(config Config, kmersCounter KmersCounter, binarize bool, label int, sequence []byte) (ConstVector, error) {
-  i := []int(nil)
-  t := []int(nil)
-  v := []float64(nil)
-  n := kmersCounter.Length()
-  if binarize {
-    i = kmersCounter.IdentifyKmersSparse(sequence)
-    v = make([]float64, len(i))
-    for k := 0; k < len(v); k++ {
-      v[k] = 1.0
-    }
-  } else {
-    i, t = kmersCounter.CountKmersSparse(sequence)
-    v = make([]float64, len(i))
-    for k := 0; k < len(v); k++ {
-      v[k] = float64(t[k])
-    }
-  }
-  { // append 1 to data vector
+func convert_counts(config Config, counts KmerCounts, binarize bool, label int) ConstVector {
+  n := counts.N()+1
+  if label != -1 {
     n += 1
-    for k := 0; k < len(i); k++ {
-      i[k] += 1
+  }
+  i := make([]int    , n)
+  v := make([]float64, n)
+  i[0] = 0
+  v[0] = 1.0
+  // copy counts to (i, v)
+  for j, it := 1, counts.Iterate(); it.Ok(); it.Next() {
+    if c := it.GetCount(); c != 0 {
+      i[j] = j
+      v[j] = float64(c)
     }
-    i = append([]    int{0  }, i...)
-    v = append([]float64{1.0}, v...)
+    j++
   }
   if label != -1 {
     // append label to data vector
-    n += 1
-    i = append(i, n-1)
-    v = append(v, float64(label))
+    i[n-1] = n-1
+    v[n-1] = float64(label)
   }
-  return NewSparseConstRealVector(i, v, n), nil
+  return NewSparseConstRealVector(i, v, n)
 }
 
-func scan_sequences(config Config, kmersCounter KmersCounter, binarize bool, label int, sequences []string) []ConstVector {
-  result := make([]ConstVector, len(sequences))
+func convert_counts_list(config Config, countsList KmerCountsList, binarize bool, label int) []ConstVector {
+  r := make([]ConstVector, countsList.Len())
+  for i := 0; i < countsList.Len(); i++ {
+    r[i] = convert_counts(config, countsList.At(i), binarize, label)
+    // free memory
+    countsList.Counts[i] = nil
+  }
+  return r
+}
+
+/* -------------------------------------------------------------------------- */
+
+func scan_sequence(config Config, kmersCounter *KmersCounter, binarize bool, label int, sequence []byte) KmerCounts {
+  if binarize {
+    return kmersCounter.IdentifyKmers(sequence)
+  } else {
+    return kmersCounter.CountKmers(sequence)
+  }
+}
+
+func scan_sequences(config Config, kmersCounter *KmersCounter, binarize bool, label int, sequences []string) []ConstVector {
+  r := make([]KmerCounts, len(sequences))
 
   PrintStderr(config, 1, "Counting kmers... ")
   if err := config.Pool.RangeJob(0, len(sequences), func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    if erf() != nil {
-      return nil
-    }
-    if r, err := scan_sequence(config, kmersCounter, binarize, label, []byte(sequences[i])); err != nil {
-      return err
-    } else {
-      result[i] = r
-    }
+    r[i] = scan_sequence(config, kmersCounter, binarize, label, []byte(sequences[i]))
     return nil
   }); err != nil {
     PrintStderr(config, 1, "failed\n")
     log.Fatal(err)
   }
   PrintStderr(config, 1, "done\n")
-  return result
+  return convert_counts_list(config, NewKmerCountsList(r...), binarize, label)
 }
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data(config Config, kmersCounter KmersCounter, binarize bool, filename_fg, filename_bg string) []ConstVector {
+func compile_training_data(config Config, kmersCounter *KmersCounter, binarize bool, filename_fg, filename_bg string) []ConstVector {
   fg := import_fasta(config, filename_fg)
   bg := import_fasta(config, filename_bg)
   fg_counts := scan_sequences(config, kmersCounter, binarize, 1, fg)
@@ -111,7 +114,7 @@ func compile_training_data(config Config, kmersCounter KmersCounter, binarize bo
   return append(fg_counts, bg_counts...)
 }
 
-func compile_test_data(config Config, kmersCounter KmersCounter, binarize bool, filename string) []ConstVector {
+func compile_test_data(config Config, kmersCounter *KmersCounter, binarize bool, filename string) []ConstVector {
   sequences := import_fasta(config, filename)
   return scan_sequences(config, kmersCounter, binarize, -1, sequences)
 }
