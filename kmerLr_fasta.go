@@ -106,7 +106,7 @@ func scan_sequences(config Config, kmersCounter *KmersCounter, binarize bool, se
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data(config Config, kmersCounter *KmersCounter, binarize bool, filename_fg, filename_bg string) []ConstVector {
+func compile_training_data(config Config, kmersCounter *KmersCounter, binarize bool, filename_fg, filename_bg string) ([]ConstVector, KmerList) {
   fg := import_fasta(config, filename_fg)
   bg := import_fasta(config, filename_bg)
   counts_fg := scan_sequences(config, kmersCounter, binarize, fg)
@@ -116,12 +116,12 @@ func compile_training_data(config Config, kmersCounter *KmersCounter, binarize b
   counts_list_bg := counts_list.Slice(len(fg), len(fg)+len(bg))
   r_fg := convert_counts_list(config, &counts_list_fg, 1)
   r_bg := convert_counts_list(config, &counts_list_bg, 0)
-  return append(r_fg, r_bg...)
+  return append(r_fg, r_bg...), counts_list.Kmers
 }
 
-func compile_test_data(config Config, kmersCounter *KmersCounter, binarize bool, filename string) []ConstVector {
+func compile_test_data(config Config, kmersCounter *KmersCounter, binarize bool, filename string) ([]ConstVector, KmerList) {
   sequences   := import_fasta(config, filename)
   counts      := scan_sequences(config, kmersCounter, binarize, sequences)
   counts_list := NewKmerCountsList(counts...)
-  return convert_counts_list(config, &counts_list, 01)
+  return convert_counts_list(config, &counts_list, -1), counts_list.Kmers
 }

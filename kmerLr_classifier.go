@@ -26,21 +26,24 @@ import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 
+import . "github.com/pbenner/gonetics"
+
 /* -------------------------------------------------------------------------- */
 
 type KmerLr struct {
   vectorDistribution.LogisticRegression
+  Kmers KmerList
   AlphabetDef
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLr(theta Vector) *KmerLr {
+func NewKmerLr(theta Vector, kmers KmerList) *KmerLr {
   if lr, err := vectorDistribution.NewLogisticRegression(theta); err != nil {
     log.Fatal(err)
     return nil
   } else {
-    return &KmerLr{LogisticRegression: *lr}
+    return &KmerLr{LogisticRegression: *lr, Kmers: kmers}
   }
 }
 
@@ -49,6 +52,7 @@ func NewKmerLr(theta Vector) *KmerLr {
 func (obj *KmerLr) Clone() *KmerLr {
   r := KmerLr{}
   r.LogisticRegression = *obj.LogisticRegression.Clone()
+  r.Kmers              =  obj.Kmers             .Clone()
   r.AlphabetDef        =  obj.AlphabetDef
   return &r
 }

@@ -19,7 +19,6 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
-import   "log"
 import   "math"
 import   "os"
 import   "sort"
@@ -42,20 +41,29 @@ func coefficients_sort(coefficients []float64) []int {
   return r.b
 }
 
-func coefficients_related(coefficients []float64, kmersCounter KmersCounter, k int) []int {
-  re := kmersCounter.RelatedKmers(k)
-  r  := FloatInt{}
-  r.a = make([]float64, len(re))
-  r.b = make([]int    , len(re))
-  for i, kr := range re {
-    r.a[i] = math.Abs(coefficients[kr])
-    r.b[i] = kr
-  }
-  sort.Sort(sort.Reverse(r))
-  return r.b
-}
+/* -------------------------------------------------------------------------- */
 
-func coefficients_print(coefficients []float64, kmersCounter KmersCounter, indices []int) {
+// func coefficients_related(coefficients []float64, kmersCounter KmersCounter, k int) []int {
+//   re := kmersCounter.RelatedKmers(k)
+//   r  := FloatInt{}
+//   r.a = make([]float64, len(re))
+//   r.b = make([]int    , len(re))
+//   for i, kr := range re {
+//     r.a[i] = math.Abs(coefficients[kr])
+//     r.b[i] = kr
+//   }
+//   sort.Sort(sort.Reverse(r))
+//   return r.b
+// }
+
+// func coefficients_print_related(coefficients []float64, kmersCounter KmersCounter, k int) {
+//   r := coefficients_related(coefficients, kmersCounter, k)
+//   coefficients_print(coefficients, kmersCounter, r)
+// }
+
+/* -------------------------------------------------------------------------- */
+
+func coefficients_print(coefficients []float64, kmers KmerList, indices []int) {
   first := true
   for _, i := range indices {
     if coefficients[i] != 0.0 {
@@ -64,21 +72,16 @@ func coefficients_print(coefficients []float64, kmersCounter KmersCounter, indic
       } else {
         first = false
       }
-      fmt.Printf("%s:%e", kmersCounter.KmerName(i), coefficients[i])
+      fmt.Printf("%s:%e", kmers[i], coefficients[i])
     }
   }
 }
 
-func coefficients_print_related(coefficients []float64, kmersCounter KmersCounter, k int) {
-  r := coefficients_related(coefficients, kmersCounter, k)
-  coefficients_print(coefficients, kmersCounter, r)
-}
-
-func coefficients_format(coefficients []float64, kmersCounter KmersCounter) string {
+func coefficients_format(coefficients []float64, kmers KmerList) string {
   n := 0
   for k, _ := range coefficients {
     if coefficients[k] != 0.0 {
-      if r := len(kmersCounter.KmerName(k)); r > n {
+      if r := len(kmers[k].Name); r > n {
         n = r
       }
     }
@@ -91,18 +94,19 @@ func coefficients_format(coefficients []float64, kmersCounter KmersCounter) stri
 func coefficients(config Config, filename string, related bool) {
   classifier   := ImportKmerLr(config, filename)
   coefficients := classifier.Theta.GetValues()
+  kmers        := classifier.Kmers
 
-  kmersCounter, err := NewKmersCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
-    log.Fatal(err)
-  }
-  format := coefficients_format(coefficients, kmersCounter)
+  // kmersCounter, err := NewKmersCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
+  //   log.Fatal(err)
+  // }
+  format := coefficients_format(coefficients, kmers)
 
   for i, k := range coefficients_sort(coefficients) {
     if coefficients[k] != 0.0 {
-      fmt.Printf(format, i+1, coefficients[k], kmersCounter.KmerName(k))
-      if related {
-        coefficients_print_related(coefficients, kmersCounter, k)
-      }
+      fmt.Printf(format, i+1, coefficients[k], kmers[k].Name)
+      // if related {
+      //   coefficients_print_related(coefficients, kmersCounter, k)
+      // }
       fmt.Println()
     }
   }

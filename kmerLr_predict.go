@@ -85,7 +85,7 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
   kmersCounter, err := NewKmersCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data := compile_test_data(config, kmersCounter, config.Binarize, filename_in)
+  data, _ := compile_test_data(config, kmersCounter, config.Binarize, filename_in)
 
   predictions := predict_unlabeled(config, data, classifier)
 

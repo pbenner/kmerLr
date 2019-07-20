@@ -31,6 +31,8 @@ import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
+import . "github.com/pbenner/gonetics"
+
 /* -------------------------------------------------------------------------- */
 
 type HookType func(x ConstVector, change ConstScalar, epoch int) bool
@@ -81,13 +83,14 @@ func NewHook(config Config, trace *Trace, icv int) HookType {
 
 type KmerLrEstimator struct {
   vectorEstimator.LogisticRegression
-  Hook func(x ConstVector, change ConstScalar, epoch int) bool
+  Kmers KmerList
+  Hook  func(x ConstVector, change ConstScalar, epoch int) bool
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, n int, hook HookType) *KmerLrEstimator {
-  if estimator, err := vectorEstimator.NewLogisticRegression(n+1, true); err != nil {
+func NewKmerLrEstimator(config Config, kmers KmerList, hook HookType) *KmerLrEstimator {
+  if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
@@ -97,7 +100,7 @@ func NewKmerLrEstimator(config Config, n int, hook HookType) *KmerLrEstimator {
     estimator.Epsilon       = config.Epsilon
     estimator.MaxIterations = config.MaxEpochs
     // alphabet parameters
-    return &KmerLrEstimator{*estimator, hook}
+    return &KmerLrEstimator{*estimator, kmers, hook}
   }
 }
 
@@ -112,6 +115,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) VectorPd
     return nil
   } else {
     r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
+    r.Kmers       = obj.Kmers
     r.AlphabetDef = config.AlphabetDef
     return r
   }
