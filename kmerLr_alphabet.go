@@ -132,8 +132,8 @@ func (obj KmerLrAlphabet) getKmer(a interface{}) (Kmer, bool) {
   return r, true
 }
 
-func (obj KmerLrAlphabet) getKmers(a interface{}) (KmerList, bool) {
-  if a == nil {
+func (obj KmerLrAlphabet) getKmers(config ConfigDistribution) (KmerList, bool) {
+  a, ok := config.GetNamedParameter("Kmers"); if !ok {
     return nil, true
   }
   switch reflect.TypeOf(a).Kind() {
@@ -179,6 +179,9 @@ func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType)
   alphabet, ok := config.GetNamedParameterAsString("Alphabet"); if !ok {
     return fmt.Errorf("invalid config file")
   }
+  kmers, ok := obj.getKmers(config); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
   if r, err := alphabet_from_string(alphabet); err != nil {
     return err
   } else {
@@ -190,6 +193,7 @@ func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType)
   obj.Reverse      = reverse
   obj.Revcomp      = revcomp
   obj.MaxAmbiguous = maxAmbiguous
+  obj.Kmers        = kmers
   return nil
 }
 
