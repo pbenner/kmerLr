@@ -19,6 +19,7 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
+import   "reflect"
 import   "strings"
 
 import . "github.com/pbenner/autodiff"
@@ -107,6 +108,52 @@ func (a KmerLrAlphabet) Equals(b KmerLrAlphabet) bool {
 
 /* -------------------------------------------------------------------------- */
 
+func (obj KmerLrAlphabet) getKmer(a interface{}) (Kmer, bool) {
+  r := Kmer{}
+  switch reflect.TypeOf(a).Kind() {
+  case reflect.Map:
+    s := reflect.ValueOf(a)
+    t := s.MapIndex(reflect.ValueOf("K"))
+    if !t.IsValid() {
+      return r, false
+    }
+    r.K = int(reflect.ValueOf(t).Float())
+    t = s.MapIndex(reflect.ValueOf("I"))
+    if !t.IsValid() {
+      return r, false
+    }
+    r.I = int(reflect.ValueOf(t).Float())
+    t = s.MapIndex(reflect.ValueOf("Name"))
+    if t.IsValid() {
+      return r, false
+    }
+    r.Name = reflect.ValueOf(t).String()
+  }
+  return r, true
+}
+
+func (obj KmerLrAlphabet) getKmers(a interface{}) (KmerList, bool) {
+  if a == nil {
+    return nil, true
+  }
+  switch reflect.TypeOf(a).Kind() {
+  case reflect.Slice:
+    s := reflect.ValueOf(a)
+    p := make(KmerList, s.Len())
+    for i := 0; i < s.Len(); i++ {
+      if v, ok := obj.getKmer(s.Index(i).Elem().Interface()); !ok {
+        return nil, false
+      } else {
+        p[i] = v
+      }
+    }
+    return p, true
+  }
+  return nil, false
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType) error {
   m, ok := config.GetNamedParameterAsInt("M"); if !ok {
     return fmt.Errorf("invalid config file")
@@ -155,6 +202,7 @@ func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
     Revcomp        bool
     MaxAmbiguous []int
     Alphabet       string
+    Kmers          KmerList
   }{}
   config.M, config.N  = obj.M, obj.N
   config.Binarize     = obj.Binarize
@@ -163,6 +211,7 @@ func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
   config.Revcomp      = obj.Revcomp
   config.MaxAmbiguous = obj.MaxAmbiguous
   config.Alphabet     = obj.Alphabet.String()
+  config.Kmers        = obj.Kmers
 
   return NewConfigDistribution("alphabet", config)
 }
