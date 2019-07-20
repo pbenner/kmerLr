@@ -26,24 +26,21 @@ import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 
-import . "github.com/pbenner/gonetics"
-
 /* -------------------------------------------------------------------------- */
 
 type KmerLr struct {
   vectorDistribution.LogisticRegression
-  Kmers KmerList
-  AlphabetDef
+  KmerLrAlphabet
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLr(theta Vector, kmers KmerList) *KmerLr {
+func NewKmerLr(theta Vector, alphabet KmerLrAlphabet) *KmerLr {
   if lr, err := vectorDistribution.NewLogisticRegression(theta); err != nil {
     log.Fatal(err)
     return nil
   } else {
-    return &KmerLr{LogisticRegression: *lr, Kmers: kmers}
+    return &KmerLr{LogisticRegression: *lr, KmerLrAlphabet: alphabet}
   }
 }
 
@@ -52,8 +49,7 @@ func NewKmerLr(theta Vector, kmers KmerList) *KmerLr {
 func (obj *KmerLr) Clone() *KmerLr {
   r := KmerLr{}
   r.LogisticRegression = *obj.LogisticRegression.Clone()
-  r.Kmers              =  obj.Kmers             .Clone()
-  r.AlphabetDef        =  obj.AlphabetDef
+  r.KmerLrAlphabet     =  obj.KmerLrAlphabet
   return &r
 }
 
@@ -114,11 +110,11 @@ func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
   if err := obj.LogisticRegression.ImportConfig(config.Distributions[0], t); err != nil {
     return err
   }
-  return obj.AlphabetDef.ImportConfig(config, t)
+  return obj.KmerLrAlphabet.ImportConfig(config, t)
 }
 
 func (obj *KmerLr) ExportConfig() ConfigDistribution {
-  config := obj.AlphabetDef.ExportConfig()
+  config := obj.KmerLrAlphabet.ExportConfig()
   config.Name          = "kmerLr"
   config.Distributions = []ConfigDistribution{
     obj.LogisticRegression.ExportConfig() }

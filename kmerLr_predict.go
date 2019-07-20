@@ -80,7 +80,7 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
   classifier := ImportKmerLr(config, filename_json)
 
   // copy config from classifier
-  config.AlphabetDef = classifier.AlphabetDef
+  config.KmerLrAlphabetDef = classifier.KmerLrAlphabet.KmerLrAlphabetDef
 
   kmersCounter, err := NewKmersCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)

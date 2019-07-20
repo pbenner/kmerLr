@@ -27,7 +27,7 @@ import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
-type AlphabetDef struct {
+type KmerLrAlphabetDef struct {
   M, N           int
   Binarize       bool
   Complement     bool
@@ -39,7 +39,15 @@ type AlphabetDef struct {
 
 /* -------------------------------------------------------------------------- */
 
-func (a AlphabetDef) Equals(b AlphabetDef) bool {
+func (obj KmerLrAlphabetDef) Clone() KmerLrAlphabetDef {
+  r := KmerLrAlphabetDef{}
+  r  = obj
+  r.MaxAmbiguous = make([]int, len(obj.MaxAmbiguous))
+  copy(r.MaxAmbiguous, obj.MaxAmbiguous)
+  return r
+}
+
+func (a KmerLrAlphabetDef) Equals(b KmerLrAlphabetDef) bool {
   if a.M != b.M {
     return false
   }
@@ -74,7 +82,32 @@ func (a AlphabetDef) Equals(b AlphabetDef) bool {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *AlphabetDef) ImportConfig(config ConfigDistribution, t ScalarType) error {
+type KmerLrAlphabet struct {
+  KmerLrAlphabetDef
+  Kmers KmerList
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj KmerLrAlphabet) Clone() KmerLrAlphabet {
+  r := KmerLrAlphabet{}
+  r.KmerLrAlphabetDef = obj.KmerLrAlphabetDef.Clone()
+  r.Kmers             = obj.Kmers            .Clone()
+  return r
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (a KmerLrAlphabet) Equals(b KmerLrAlphabet) bool {
+  if !a.KmerLrAlphabetDef.Equals(b.KmerLrAlphabetDef) {
+    return false
+  }
+  return a.Kmers.Equals(b.Kmers)
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType) error {
   m, ok := config.GetNamedParameterAsInt("M"); if !ok {
     return fmt.Errorf("invalid config file")
   }
@@ -113,7 +146,7 @@ func (obj *AlphabetDef) ImportConfig(config ConfigDistribution, t ScalarType) er
   return nil
 }
 
-func (obj *AlphabetDef) ExportConfig() ConfigDistribution {
+func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
   config := struct{
     M, N           int
     Binarize       bool

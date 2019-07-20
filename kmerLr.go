@@ -32,7 +32,7 @@ import   "github.com/pborman/getopt"
 
 type Config struct {
   SessionConfig
-  AlphabetDef
+  KmerLrAlphabetDef
   Lambda         float64
   Epsilon        float64
   EpsilonVar     float64
