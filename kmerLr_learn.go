@@ -32,7 +32,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data []ConstVector, kmers KmerList, icv int, basename_out string) VectorPdf {
+func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, icv int, basename_out string) VectorPdf {
   // hook and trace
   var trace *Trace
   if config.SaveTrace || config.EpsilonVar != 0.0 {
@@ -53,7 +53,7 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerList, icv int
   return classifier
 }
 
-func learn_cv(config Config, data []ConstVector, kmers KmerList, kfold int, basename_out string) {
+func learn_cv(config Config, data []ConstVector, kmers KmerClassList, kfold int, basename_out string) {
   labels := getLabels(data)
 
   learnClassifier := func(i int, data []ConstVector) VectorPdf {
@@ -69,7 +69,7 @@ func learn_cv(config Config, data []ConstVector, kmers KmerList, kfold int, base
 }
 
 func learn(config Config, kfold int, filename_fg, filename_bg, basename_out string) {
-  kmersCounter, err := NewKmersCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
+  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
   data, kmers := compile_training_data(config, kmersCounter, config.Binarize, filename_fg, filename_bg)

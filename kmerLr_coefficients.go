@@ -63,7 +63,7 @@ func coefficients_sort(coefficients []float64) []int {
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients_print(coefficients []float64, kmers KmerList, indices []int) {
+func coefficients_print(coefficients []float64, kmers KmerClassList, indices []int) {
   first := true
   for _, i := range indices {
     if coefficients[i] != 0.0 {
@@ -77,11 +77,11 @@ func coefficients_print(coefficients []float64, kmers KmerList, indices []int) {
   }
 }
 
-func coefficients_format(coefficients []float64, kmers KmerList) string {
+func coefficients_format(coefficients []float64, kmers KmerClassList) string {
   n := 0
   for k, _ := range coefficients {
     if coefficients[k] != 0.0 {
-      if r := len(kmers[k].Name); r > n {
+      if r := len(kmers[k].String()); r > n {
         n = r
       }
     }
@@ -103,7 +103,7 @@ func coefficients(config Config, filename string, related bool) {
 
   for i, k := range coefficients_sort(coefficients) {
     if coefficients[k] != 0.0 {
-      fmt.Printf(format, i+1, coefficients[k], kmers[k].Name)
+      fmt.Printf(format, i+1, coefficients[k], kmers[k].String())
       // if related {
       //   coefficients_print_related(coefficients, kmersCounter, k)
       // }

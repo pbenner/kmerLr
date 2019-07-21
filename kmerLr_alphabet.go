@@ -85,7 +85,7 @@ func (a KmerLrAlphabetDef) Equals(b KmerLrAlphabetDef) bool {
 
 type KmerLrAlphabet struct {
   KmerLrAlphabetDef
-  Kmers KmerList
+  Kmers KmerClassList
 }
 
 /* -------------------------------------------------------------------------- */
@@ -108,8 +108,8 @@ func (a KmerLrAlphabet) Equals(b KmerLrAlphabet) bool {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj KmerLrAlphabet) getKmer(a interface{}) (Kmer, bool) {
-  r := Kmer{}
+func (obj KmerLrAlphabet) getKmer(a interface{}) (KmerClass, bool) {
+  r := KmerClass{}
   switch reflect.TypeOf(a).Kind() {
   case reflect.Map:
     s := reflect.ValueOf(a)
@@ -127,19 +127,19 @@ func (obj KmerLrAlphabet) getKmer(a interface{}) (Kmer, bool) {
     if t.IsValid() {
       return r, false
     }
-    r.Name = reflect.ValueOf(t).String()
+    r.Elements = strings.Split(reflect.ValueOf(t).String(), "|")
   }
   return r, true
 }
 
-func (obj KmerLrAlphabet) getKmers(config ConfigDistribution) (KmerList, bool) {
+func (obj KmerLrAlphabet) getKmers(config ConfigDistribution) (KmerClassList, bool) {
   a, ok := config.GetNamedParameter("Kmers"); if !ok {
     return nil, true
   }
   switch reflect.TypeOf(a).Kind() {
   case reflect.Slice:
     s := reflect.ValueOf(a)
-    p := make(KmerList, s.Len())
+    p := make(KmerClassList, s.Len())
     for i := 0; i < s.Len(); i++ {
       if v, ok := obj.getKmer(s.Index(i).Elem().Interface()); !ok {
         return nil, false
@@ -206,7 +206,7 @@ func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
     Revcomp        bool
     MaxAmbiguous []int
     Alphabet       string
-    Kmers          KmerList
+    Kmers          KmerClassList
   }{}
   config.M, config.N  = obj.M, obj.N
   config.Binarize     = obj.Binarize

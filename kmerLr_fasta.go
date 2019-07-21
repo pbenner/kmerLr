@@ -81,7 +81,7 @@ func convert_counts_list(config Config, countsList *KmerCountsList, label int) [
 
 /* -------------------------------------------------------------------------- */
 
-func scan_sequence(config Config, kmersCounter *KmersCounter, binarize bool, sequence []byte) KmerCounts {
+func scan_sequence(config Config, kmersCounter *KmerCounter, binarize bool, sequence []byte) KmerCounts {
   if binarize {
     return kmersCounter.IdentifyKmers(sequence)
   } else {
@@ -89,7 +89,7 @@ func scan_sequence(config Config, kmersCounter *KmersCounter, binarize bool, seq
   }
 }
 
-func scan_sequences(config Config, kmersCounter *KmersCounter, binarize bool, sequences []string) []KmerCounts {
+func scan_sequences(config Config, kmersCounter *KmerCounter, binarize bool, sequences []string) []KmerCounts {
   r := make([]KmerCounts, len(sequences))
 
   PrintStderr(config, 1, "Counting kmers... ")
@@ -106,7 +106,7 @@ func scan_sequences(config Config, kmersCounter *KmersCounter, binarize bool, se
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data(config Config, kmersCounter *KmersCounter, binarize bool, filename_fg, filename_bg string) ([]ConstVector, KmerList) {
+func compile_training_data(config Config, kmersCounter *KmerCounter, binarize bool, filename_fg, filename_bg string) ([]ConstVector, KmerClassList) {
   fg := import_fasta(config, filename_fg)
   bg := import_fasta(config, filename_bg)
   counts_fg := scan_sequences(config, kmersCounter, binarize, fg)
@@ -119,7 +119,7 @@ func compile_training_data(config Config, kmersCounter *KmersCounter, binarize b
   return append(r_fg, r_bg...), counts_list.Kmers
 }
 
-func compile_test_data(config Config, kmersCounter *KmersCounter, binarize bool, filename string) ([]ConstVector, KmerList) {
+func compile_test_data(config Config, kmersCounter *KmerCounter, binarize bool, filename string) ([]ConstVector, KmerClassList) {
   sequences   := import_fasta(config, filename)
   counts      := scan_sequences(config, kmersCounter, binarize, sequences)
   counts_list := NewKmerCountsList(counts...)

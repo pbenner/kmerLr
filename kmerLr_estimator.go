@@ -83,13 +83,13 @@ func NewHook(config Config, trace *Trace, icv int) HookType {
 
 type KmerLrEstimator struct {
   vectorEstimator.LogisticRegression
-  Kmers KmerList
+  Kmers KmerClassList
   Hook  func(x ConstVector, change ConstScalar, epoch int) bool
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, kmers KmerList, hook HookType) *KmerLrEstimator {
+func NewKmerLrEstimator(config Config, kmers KmerClassList, hook HookType) *KmerLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
