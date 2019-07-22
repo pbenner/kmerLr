@@ -119,9 +119,12 @@ func compile_training_data(config Config, kmersCounter *KmerCounter, binarize bo
   return append(r_fg, r_bg...), counts_list.Kmers
 }
 
-func compile_test_data(config Config, kmersCounter *KmerCounter, binarize bool, filename string) ([]ConstVector, KmerClassList) {
+func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, binarize bool, filename string) ([]ConstVector, KmerClassList) {
   sequences   := import_fasta(config, filename)
   counts      := scan_sequences(config, kmersCounter, binarize, sequences)
   counts_list := NewKmerCountsList(counts...)
+  // set counts_list.Kmers to the set of kmers on which the
+  // classifier was trained on
+  counts_list.Kmers = kmers
   return convert_counts_list(config, &counts_list, -1), counts_list.Kmers
 }
