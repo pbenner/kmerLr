@@ -45,7 +45,7 @@ func import_fasta(config Config, filename string) []string {
 /* -------------------------------------------------------------------------- */
 
 func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
-  n := counts.N()+1
+  n := counts.Len()+1
   if label != -1 {
     n += 1
   }
@@ -91,10 +91,14 @@ func scan_sequence(config Config, kmersCounter *KmerCounter, binarize bool, sequ
 
 func scan_sequences(config Config, kmersCounter *KmerCounter, binarize bool, sequences []string) []KmerCounts {
   r := make([]KmerCounts, len(sequences))
-
+  // create one counter for each thread
+  counters := make([]*KmerCounter, config.Pool.NumberOfThreads())
+  for i, _ := range counters {
+    counters[i] = kmersCounter.Clone()
+  }
   PrintStderr(config, 1, "Counting kmers... ")
   if err := config.Pool.RangeJob(0, len(sequences), func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    r[i] = scan_sequence(config, kmersCounter, binarize, []byte(sequences[i]))
+    r[i] = scan_sequence(config, counters[pool.GetThreadId()], binarize, []byte(sequences[i]))
     return nil
   }); err != nil {
     PrintStderr(config, 1, "failed\n")
@@ -119,9 +123,12 @@ func compile_training_data(config Config, kmersCounter *KmerCounter, binarize bo
   return append(r_fg, r_bg...), counts_list.Kmers
 }
 
-func compile_test_data(config Config, kmersCounter *KmerCounter, binarize bool, filename string) ([]ConstVector, KmerClassList) {
+func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, binarize bool, filename string) ([]ConstVector, KmerClassList) {
   sequences   := import_fasta(config, filename)
   counts      := scan_sequences(config, kmersCounter, binarize, sequences)
   counts_list := NewKmerCountsList(counts...)
+  // set counts_list.Kmers to the set of kmers on which the
+  // classifier was trained on
+  counts_list.Kmers = kmers
   return convert_counts_list(config, &counts_list, -1), counts_list.Kmers
 }

@@ -55,7 +55,7 @@ func NewHook(config Config, trace *Trace, icv int) HookType {
         if icv != -1 {
           fmt.Printf("cv run    : %d\n", icv+1)
         }
-        fmt.Printf("epoch     : %d\n", epoch)
+        fmt.Printf("epoch     : %d\n", epoch+1)
         fmt.Printf("change    : %v\n", change)
         fmt.Printf("#ceof     : %d\n", n)
         fmt.Printf("var(#ceof): %f\n", trace.CompVar(10))
@@ -98,7 +98,9 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, hook HookType) *Kmer
     estimator.Seed          = config.Seed
     estimator.L1Reg         = config.Lambda
     estimator.Epsilon       = config.Epsilon
-    estimator.MaxIterations = config.MaxEpochs
+    if config.MaxEpochs != 0 {
+      estimator.MaxIterations = config.MaxEpochs
+    }
     // alphabet parameters
     return &KmerLrEstimator{*estimator, kmers, hook}
   }
@@ -117,7 +119,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) VectorPd
     r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
     r.KmerLrAlphabet.KmerLrAlphabetDef = config.KmerLrAlphabetDef
     r.KmerLrAlphabet.Kmers             = obj   .Kmers
-    return r
+    return r.Sparsify()
   }
 }
 

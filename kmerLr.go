@@ -64,7 +64,8 @@ func main() {
   config  := Config{SessionConfig: DefaultSessionConfig()}
   options := getopt.New()
 
-  optThreads := options.    IntLong("threads", 't',  1, "number of threads")
+  optThreads := options.    IntLong("threads",  0 ,  1, "number of threads")
+  optSeed    := options.    IntLong("seed",     0 ,  1, "seed for the random number generateor")
   optHelp    := options.   BoolLong("help",    'h',     "print help")
   optVerbose := options.CounterLong("verbose", 'v',     "verbose level [-v or -vv]")
   optVersion := options.   BoolLong("version",  0 ,     "print version")
@@ -92,10 +93,11 @@ func main() {
   if *optThreads < 1 {
     log.Fatalf("invalid number of threads `%d'", *optThreads)
   }
-  if options.Lookup('t').Seen() {
-    config.Threads = *optThreads
-    config.Pool    = threadpool.New(*optThreads, 100)
+  if *optThreads > 1 {
+    config.Pool = threadpool.New(*optThreads, 100)
   }
+  config.Seed    = int64(*optSeed)
+  config.Threads = *optThreads
   // command arguments
   if len(options.Args()) == 0 {
     options.PrintUsage(os.Stderr)

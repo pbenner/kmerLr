@@ -19,7 +19,6 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
-import   "reflect"
 import   "strings"
 
 import . "github.com/pbenner/autodiff"
@@ -108,52 +107,6 @@ func (a KmerLrAlphabet) Equals(b KmerLrAlphabet) bool {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj KmerLrAlphabet) getKmer(a interface{}) (KmerClass, bool) {
-  r := KmerClass{}
-  switch reflect.TypeOf(a).Kind() {
-  case reflect.Map:
-    s := reflect.ValueOf(a)
-    t := s.MapIndex(reflect.ValueOf("K"))
-    if !t.IsValid() {
-      return r, false
-    }
-    r.K = int(reflect.ValueOf(t).Float())
-    t = s.MapIndex(reflect.ValueOf("I"))
-    if !t.IsValid() {
-      return r, false
-    }
-    r.I = int(reflect.ValueOf(t).Float())
-    t = s.MapIndex(reflect.ValueOf("Name"))
-    if t.IsValid() {
-      return r, false
-    }
-    r.Elements = strings.Split(reflect.ValueOf(t).String(), "|")
-  }
-  return r, true
-}
-
-func (obj KmerLrAlphabet) getKmers(config ConfigDistribution) (KmerClassList, bool) {
-  a, ok := config.GetNamedParameter("Kmers"); if !ok {
-    return nil, true
-  }
-  switch reflect.TypeOf(a).Kind() {
-  case reflect.Slice:
-    s := reflect.ValueOf(a)
-    p := make(KmerClassList, s.Len())
-    for i := 0; i < s.Len(); i++ {
-      if v, ok := obj.getKmer(s.Index(i).Elem().Interface()); !ok {
-        return nil, false
-      } else {
-        p[i] = v
-      }
-    }
-    return p, true
-  }
-  return nil, false
-}
-
-/* -------------------------------------------------------------------------- */
-
 func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType) error {
   m, ok := config.GetNamedParameterAsInt("M"); if !ok {
     return fmt.Errorf("invalid config file")
@@ -179,7 +132,7 @@ func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType)
   alphabet, ok := config.GetNamedParameterAsString("Alphabet"); if !ok {
     return fmt.Errorf("invalid config file")
   }
-  kmers, ok := obj.getKmers(config); if !ok {
+  kmers, ok := config.GetNamedParametersAsStrings("Kmers"); if !ok {
     return fmt.Errorf("invalid config file")
   }
   if r, err := alphabet_from_string(alphabet); err != nil {
@@ -187,13 +140,20 @@ func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType)
   } else {
     obj.Alphabet = r
   }
+  if rel, err := NewKmerEquivalenceRelation(n, m, complement, reverse, revcomp, maxAmbiguous, obj.Alphabet); err != nil {
+    return err
+  } else {
+    obj.Kmers = make(KmerClassList, len(kmers))
+    for i, str := range kmers {
+      obj.Kmers[i] = rel.EquivalenceClass(strings.Split(str, "|")[0])
+    }
+  }
   obj.M, obj.N     = m, n
   obj.Binarize     = binarize
   obj.Complement   = complement
   obj.Reverse      = reverse
   obj.Revcomp      = revcomp
   obj.MaxAmbiguous = maxAmbiguous
-  obj.Kmers        = kmers
   return nil
 }
 
@@ -206,7 +166,7 @@ func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
     Revcomp        bool
     MaxAmbiguous []int
     Alphabet       string
-    Kmers          KmerClassList
+    Kmers        []string
   }{}
   config.M, config.N  = obj.M, obj.N
   config.Binarize     = obj.Binarize
@@ -215,8 +175,10 @@ func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
   config.Revcomp      = obj.Revcomp
   config.MaxAmbiguous = obj.MaxAmbiguous
   config.Alphabet     = obj.Alphabet.String()
-  config.Kmers        = obj.Kmers
-
+  config.Kmers        = make([]string, len(obj.Kmers))
+  for i, kmer := range obj.Kmers {
+    config.Kmers[i] = kmer.String()
+  }
   return NewConfigDistribution("alphabet", config)
 }
 
