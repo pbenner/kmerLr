@@ -19,6 +19,7 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
+import   "log"
 import   "math"
 import   "os"
 import   "sort"
@@ -29,13 +30,13 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients_sort(coefficients []float64) []int {
-  r  := FloatInt{}
-  r.a = make([]float64, len(coefficients))
-  r.b = make([]int    , len(coefficients))
-  for i, v := range coefficients {
-    r.a[i] = math.Abs(v)
-    r.b[i] = i
+func coefficients_sort(kmers KmerClassList, coefficients map[KmerClassId]float64) []KmerClass {
+  r  := FloatKmer{}
+  r.a = []float64  (nil)
+  r.b = []KmerClass(nil)
+  for _, kmer := range kmers {
+    r.a = append(r.a, math.Abs(coefficients[kmer.KmerClassId]))
+    r.b = append(r.b, kmer)
   }
   sort.Sort(sort.Reverse(r))
   return r.b
@@ -43,47 +44,31 @@ func coefficients_sort(coefficients []float64) []int {
 
 /* -------------------------------------------------------------------------- */
 
-// func coefficients_related(coefficients []float64, kmersCounter KmersCounter, k int) []int {
-//   re := kmersCounter.RelatedKmers(k)
-//   r  := FloatInt{}
-//   r.a = make([]float64, len(re))
-//   r.b = make([]int    , len(re))
-//   for i, kr := range re {
-//     r.a[i] = math.Abs(coefficients[kr])
-//     r.b[i] = kr
-//   }
-//   sort.Sort(sort.Reverse(r))
-//   return r.b
-// }
+func coefficients_related(kmer KmerClass, graph KmerGraph, coefficients map[KmerClassId]float64) []KmerClass {
+  related := graph.RelatedKmers(kmer.Elements[0])
+  return coefficients_sort(related, coefficients)
+}
 
-// func coefficients_print_related(coefficients []float64, kmersCounter KmersCounter, k int) {
-//   r := coefficients_related(coefficients, kmersCounter, k)
-//   coefficients_print(coefficients, kmersCounter, r)
-// }
-
-/* -------------------------------------------------------------------------- */
-
-func coefficients_print(coefficients []float64, kmers KmerClassList, indices []int) {
-  first := true
-  for _, i := range indices {
-    if coefficients[i] != 0.0 {
-      if !first {
-        fmt.Printf(",")
-      } else {
-        first = false
-      }
-      fmt.Printf("%s:%e", kmers[i], coefficients[i])
+func coefficients_print_related(kmer KmerClass, graph KmerGraph, coefficients map[KmerClassId]float64) {
+  related := coefficients_related(kmer, graph, coefficients)
+  first   := true
+  for _, r := range related {
+    if !first {
+      fmt.Printf(",")
+    } else {
+      first = false
     }
+    fmt.Printf("%s:%e", r, coefficients[r.KmerClassId])
   }
 }
 
-func coefficients_format(coefficients []float64, kmers KmerClassList) string {
+/* -------------------------------------------------------------------------- */
+
+func coefficients_format(kmers KmerClassList) string {
   n := 0
-  for k, _ := range coefficients {
-    if coefficients[k] != 0.0 {
-      if r := len(kmers[k].String()); r > n {
-        n = r
-      }
+  for _, kmer := range kmers {
+    if r := len(kmer.String()); r > n {
+      n = r
     }
   }
   return fmt.Sprintf("%%6d %%14e %%%ds ", n)
@@ -93,22 +78,30 @@ func coefficients_format(coefficients []float64, kmers KmerClassList) string {
 
 func coefficients(config Config, filename string, related bool) {
   classifier   := ImportKmerLr(config, filename)
-  coefficients := classifier.Theta.GetValues()[1:]
+  coefficients := make(map[KmerClassId]float64)
   kmers        := classifier.Kmers
+  graph        := KmerGraph{}
 
-  // kmersCounter, err := NewKmersCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
-  //   log.Fatal(err)
-  // }
-  format := coefficients_format(coefficients, kmers)
-
-  for i, k := range coefficients_sort(coefficients) {
-    if coefficients[k] != 0.0 {
-      fmt.Printf(format, i+1, coefficients[k], kmers[k].String())
-      // if related {
-      //   coefficients_print_related(coefficients, kmersCounter, k)
-      // }
-      fmt.Println()
+  // insert coefficients into the map
+  for i, v := range classifier.Theta.GetValues()[1:] {
+    coefficients[kmers[i].KmerClassId] = v
+  }
+  // construct graph of related k-mers if required
+  if related {
+    if rel, err := NewKmerEquivalenceRelation(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); err != nil {
+      log.Fatal(err)
+    } else {
+      graph = NewKmerGraph(kmers, rel)
     }
+  }
+  format := coefficients_format(kmers)
+
+  for i, kmer := range coefficients_sort(kmers, coefficients) {
+    fmt.Printf(format, i+1, coefficients[kmer.KmerClassId], kmer.String())
+    if related {
+      coefficients_print_related(kmer, graph, coefficients)
+    }
+    fmt.Println()
   }
 }
 

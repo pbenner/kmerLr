@@ -20,22 +20,24 @@ package main
 
 //import "fmt"
 
+import . "github.com/pbenner/gonetics"
+
 /* -------------------------------------------------------------------------- */
 
-type FloatInt struct {
+type FloatKmer struct {
   a []float64
-  b []int
+  b []KmerClass
 }
 
-func (obj FloatInt) Len() int {
+func (obj FloatKmer) Len() int {
   return len(obj.a)
 }
 
-func (obj FloatInt) Swap(i, j int) {
+func (obj FloatKmer) Swap(i, j int) {
   obj.a[i], obj.a[j] = obj.a[j], obj.a[i]
   obj.b[i], obj.b[j] = obj.b[j], obj.b[i]
 }
 
-func (obj FloatInt) Less(i, j int) bool {
+func (obj FloatKmer) Less(i, j int) bool {
   return obj.a[i] < obj.a[j]
 }
