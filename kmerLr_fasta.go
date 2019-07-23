@@ -91,10 +91,14 @@ func scan_sequence(config Config, kmersCounter *KmerCounter, binarize bool, sequ
 
 func scan_sequences(config Config, kmersCounter *KmerCounter, binarize bool, sequences []string) []KmerCounts {
   r := make([]KmerCounts, len(sequences))
-
+  // create one counter for each thread
+  counters := make([]*KmerCounter, config.Pool.NumberOfThreads())
+  for i, _ := range counters {
+    counters[i] = kmersCounter.Clone()
+  }
   PrintStderr(config, 1, "Counting kmers... ")
   if err := config.Pool.RangeJob(0, len(sequences), func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    r[i] = scan_sequence(config, kmersCounter, binarize, []byte(sequences[i]))
+    r[i] = scan_sequence(config, counters[pool.GetThreadId()], binarize, []byte(sequences[i]))
     return nil
   }); err != nil {
     PrintStderr(config, 1, "failed\n")
