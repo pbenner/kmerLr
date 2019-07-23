@@ -26,6 +26,8 @@ import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 
+import . "github.com/pbenner/gonetics"
+
 /* -------------------------------------------------------------------------- */
 
 type KmerLr struct {
@@ -35,12 +37,12 @@ type KmerLr struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLr(theta Vector, alphabet KmerLrAlphabet) *KmerLr {
+func NewKmerLr(theta Vector, kmers KmerClassList, alphabet KmerLrAlphabetDef) *KmerLr {
   if lr, err := vectorDistribution.NewLogisticRegression(theta); err != nil {
     log.Fatal(err)
     return nil
   } else {
-    return &KmerLr{LogisticRegression: *lr, KmerLrAlphabet: alphabet}
+    return &KmerLr{LogisticRegression: *lr, KmerLrAlphabet: KmerLrAlphabet{KmerLrAlphabetDef: alphabet, Kmers: kmers}}
   }
 }
 
@@ -51,6 +53,20 @@ func (obj *KmerLr) Clone() *KmerLr {
   r.LogisticRegression = *obj.LogisticRegression.Clone()
   r.KmerLrAlphabet     =  obj.KmerLrAlphabet
   return &r
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj *KmerLr) Sparsify() *KmerLr {
+  theta := []float64{obj.Theta.ValueAt(0)}
+  kmers := KmerClassList{}
+  for i := 1; i < obj.Theta.Dim(); i++ {
+    if obj.Theta.ValueAt(i) != 0.0 {
+      theta = append(theta, obj.Theta.ValueAt(i))
+      kmers = append(kmers, obj.Kmers[i-1])
+    }
+  }
+  return NewKmerLr(NewDenseBareRealVector(theta), kmers, obj.KmerLrAlphabet.KmerLrAlphabetDef)
 }
 
 /* -------------------------------------------------------------------------- */
