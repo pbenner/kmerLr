@@ -23,6 +23,7 @@ import   "io"
 import   "log"
 import   "os"
 
+import . "github.com/pbenner/gonetics"
 import . "github.com/pbenner/ngstat/config"
 import   "github.com/pbenner/threadpool"
 
@@ -32,7 +33,8 @@ import   "github.com/pborman/getopt"
 
 type Config struct {
   SessionConfig
-  KmerLrAlphabetDef
+  KmerEquivalence
+  Binarize       bool
   Lambda         float64
   Epsilon        float64
   EpsilonVar     float64

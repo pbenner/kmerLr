@@ -27,79 +27,29 @@ import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
-type KmerLrAlphabetDef struct {
-  M, N           int
-  Binarize       bool
-  Complement     bool
-  Reverse        bool
-  Revcomp        bool
-  MaxAmbiguous []int
-  Alphabet       ComplementableAlphabet
-}
-
-/* -------------------------------------------------------------------------- */
-
-func (obj KmerLrAlphabetDef) Clone() KmerLrAlphabetDef {
-  r := KmerLrAlphabetDef{}
-  r  = obj
-  r.MaxAmbiguous = make([]int, len(obj.MaxAmbiguous))
-  copy(r.MaxAmbiguous, obj.MaxAmbiguous)
-  return r
-}
-
-func (a KmerLrAlphabetDef) Equals(b KmerLrAlphabetDef) bool {
-  if a.M != b.M {
-    return false
-  }
-  if a.N != b.N {
-    return false
-  }
-  if a.Binarize != b.Binarize {
-    return false
-  }
-  if a.Complement != b.Complement {
-    return false
-  }
-  if a.Reverse != b.Reverse {
-    return false
-  }
-  if a.Revcomp != b.Revcomp {
-    return false
-  }
-  if a.Alphabet.String() != b.Alphabet.String() {
-    return false
-  }
-  if len(a.MaxAmbiguous) != len(b.MaxAmbiguous) {
-    return false
-  }
-  for i := 0; i < len(a.MaxAmbiguous); i++ {
-    if a.MaxAmbiguous[i] != b.MaxAmbiguous[i] {
-      return false
-    }
-  }
-  return true
-}
-
-/* -------------------------------------------------------------------------- */
-
 type KmerLrAlphabet struct {
-  KmerLrAlphabetDef
-  Kmers KmerClassList
+  KmerEquivalence
+  Kmers    KmerClassList
+  Binarize bool
 }
 
 /* -------------------------------------------------------------------------- */
 
 func (obj KmerLrAlphabet) Clone() KmerLrAlphabet {
   r := KmerLrAlphabet{}
-  r.KmerLrAlphabetDef = obj.KmerLrAlphabetDef.Clone()
-  r.Kmers             = obj.Kmers            .Clone()
+  r.Binarize        = obj.Binarize
+  r.KmerEquivalence = obj.KmerEquivalence
+  r.Kmers           = obj.Kmers.Clone()
   return r
 }
 
 /* -------------------------------------------------------------------------- */
 
 func (a KmerLrAlphabet) Equals(b KmerLrAlphabet) bool {
-  if !a.KmerLrAlphabetDef.Equals(b.KmerLrAlphabetDef) {
+  if !a.KmerEquivalence.Equals(b.KmerEquivalence) {
+    return false
+  }
+  if a.Binarize != b.Binarize {
     return false
   }
   return a.Kmers.Equals(b.Kmers)

@@ -117,8 +117,9 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) VectorPd
     return nil
   } else {
     r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
-    r.KmerLrAlphabet.KmerLrAlphabetDef = config.KmerLrAlphabetDef
-    r.KmerLrAlphabet.Kmers             = obj   .Kmers
+    r.KmerLrAlphabet.Binarize        = config.Binarize
+    r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
+    r.KmerLrAlphabet.Kmers           = obj   .Kmers
     return r.Sparsify()
   }
 }

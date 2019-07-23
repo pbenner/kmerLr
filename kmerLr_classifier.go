@@ -38,12 +38,12 @@ type KmerLr struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLr(theta Vector, kmers KmerClassList, alphabet KmerLrAlphabetDef) *KmerLr {
+func NewKmerLr(theta Vector, alphabet KmerLrAlphabet) *KmerLr {
   if lr, err := vectorDistribution.NewLogisticRegression(theta); err != nil {
     log.Fatal(err)
     return nil
   } else {
-    return &KmerLr{LogisticRegression: *lr, KmerLrAlphabet: KmerLrAlphabet{KmerLrAlphabetDef: alphabet, Kmers: kmers}}
+    return &KmerLr{LogisticRegression: *lr, KmerLrAlphabet: alphabet}
   }
 }
 
@@ -52,7 +52,7 @@ func NewKmerLr(theta Vector, kmers KmerClassList, alphabet KmerLrAlphabetDef) *K
 func (obj *KmerLr) Clone() *KmerLr {
   r := KmerLr{}
   r.LogisticRegression = *obj.LogisticRegression.Clone()
-  r.KmerLrAlphabet     =  obj.KmerLrAlphabet
+  r.KmerLrAlphabet     =  obj.KmerLrAlphabet    .Clone()
   return &r
 }
 
@@ -67,7 +67,9 @@ func (obj *KmerLr) Sparsify() *KmerLr {
       kmers = append(kmers, obj.Kmers[i-1])
     }
   }
-  return NewKmerLr(NewDenseBareRealVector(theta), kmers, obj.KmerLrAlphabet.KmerLrAlphabetDef)
+  alphabet := obj.KmerLrAlphabet.Clone()
+  alphabet.Kmers = kmers
+  return NewKmerLr(NewDenseBareRealVector(theta), alphabet)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -90,7 +92,7 @@ func (obj *KmerLr) Mean(classifiers []*KmerLr) error {
   }
   c.DivAll(float64(len(classifiers)))
   c.Sort()
-  *obj = *c.AsKmerLr(obj.KmerLrAlphabet.KmerLrAlphabetDef)
+  *obj = *c.AsKmerLr(obj.KmerLrAlphabet.Clone())
   return nil
 }
 
@@ -100,7 +102,7 @@ func (obj *KmerLr) Max(classifiers []*KmerLr) error {
     c.MaxCoefficients(classifiers[i].GetCoefficients())
   }
   c.Sort()
-  *obj = *c.AsKmerLr(obj.KmerLrAlphabet.KmerLrAlphabetDef)
+  *obj = *c.AsKmerLr(obj.KmerLrAlphabet.Clone())
   return nil
 }
 
@@ -110,7 +112,7 @@ func (obj *KmerLr) Min(classifiers []*KmerLr) error {
     c.MinCoefficients(classifiers[i].GetCoefficients())
   }
   c.Sort()
-  *obj = *c.AsKmerLr(obj.KmerLrAlphabet.KmerLrAlphabetDef)
+  *obj = *c.AsKmerLr(obj.KmerLrAlphabet.Clone())
   return nil
 }
 
@@ -247,8 +249,8 @@ func (obj *KmerLrCoefficients) Sort() {
   sort.Sort(obj)
 }
 
-func (obj *KmerLrCoefficients) AsKmerLr(alphabet KmerLrAlphabetDef) *KmerLr {
-  coefficients := append([]float64{obj.Offset}, obj.Coefficients...)
-  r := NewKmerLr(NewDenseBareRealVector(coefficients), obj.Kmers, alphabet)
-  return r.Sparsify()
+func (obj *KmerLrCoefficients) AsKmerLr(alphabet KmerLrAlphabet) *KmerLr {
+  alphabet.Kmers = obj.Kmers
+  coefficients  := NewDenseBareRealVector(append([]float64{obj.Offset}, obj.Coefficients...))
+  return NewKmerLr(coefficients, alphabet).Sparsify()
 }

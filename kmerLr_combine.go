@@ -31,7 +31,7 @@ func combine(config Config, summary, filename_out string, filename_ins ...string
   classifiers := make([]*KmerLr, len(filename_ins))
   for i, filename_in := range filename_ins {
     classifiers[i] = ImportKmerLr(config, filename_in)
-    if !classifiers[i].KmerLrAlphabet.KmerLrAlphabetDef.Equals(classifiers[0].KmerLrAlphabet.KmerLrAlphabetDef) {
+    if !classifiers[i].KmerLrAlphabet.KmerEquivalence.Equals(classifiers[0].KmerLrAlphabet.KmerEquivalence) {
       log.Fatalf("alphabet not consistent across classifiers")
     }
   }
