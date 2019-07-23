@@ -45,7 +45,7 @@ func import_fasta(config Config, filename string) []string {
 /* -------------------------------------------------------------------------- */
 
 func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
-  n := counts.N()+1
+  n := counts.Len()+1
   if label != -1 {
     n += 1
   }
