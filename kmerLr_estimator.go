@@ -98,7 +98,9 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, hook HookType) *Kmer
     estimator.Seed          = config.Seed
     estimator.L1Reg         = config.Lambda
     estimator.Epsilon       = config.Epsilon
-    estimator.MaxIterations = config.MaxEpochs
+    if config.MaxEpochs != 0 {
+      estimator.MaxIterations = config.MaxEpochs
+    }
     // alphabet parameters
     return &KmerLrEstimator{*estimator, kmers, hook}
   }
