@@ -93,7 +93,7 @@ func coefficients_format(coefficients []float64, kmers KmerClassList) string {
 
 func coefficients(config Config, filename string, related bool) {
   classifier   := ImportKmerLr(config, filename)
-  coefficients := classifier.Theta.GetValues()
+  coefficients := classifier.Theta.GetValues()[1:]
   kmers        := classifier.Kmers
 
   // kmersCounter, err := NewKmersCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
