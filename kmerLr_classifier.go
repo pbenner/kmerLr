@@ -250,6 +250,5 @@ func (obj *KmerLrCoefficients) Sort() {
 func (obj *KmerLrCoefficients) AsKmerLr(alphabet KmerLrAlphabetDef) *KmerLr {
   coefficients := append([]float64{obj.Offset}, obj.Coefficients...)
   r := NewKmerLr(NewDenseBareRealVector(coefficients), obj.Kmers, alphabet)
-  r  = r.Sparsify()
-  return r
+  return r.Sparsify()
 }
