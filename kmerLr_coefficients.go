@@ -22,7 +22,6 @@ import   "fmt"
 import   "log"
 import   "math"
 import   "os"
-import   "sort"
 
 import . "github.com/pbenner/gonetics"
 
@@ -38,7 +37,7 @@ func coefficients_sort(kmers KmerClassList, coefficients map[KmerClassId]float64
     r.a = append(r.a, math.Abs(coefficients[kmer.KmerClassId]))
     r.b = append(r.b, kmer)
   }
-  sort.Sort(sort.Reverse(r))
+  r.SortReverse()
   return r.b
 }
 

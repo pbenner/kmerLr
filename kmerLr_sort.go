@@ -18,7 +18,8 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import "fmt"
+//import   "fmt"
+import   "sort"
 
 import . "github.com/pbenner/gonetics"
 
@@ -40,4 +41,12 @@ func (obj FloatKmer) Swap(i, j int) {
 
 func (obj FloatKmer) Less(i, j int) bool {
   return obj.a[i] < obj.a[j]
+}
+
+func (obj FloatKmer) Sort() {
+  sort.Sort(obj)
+}
+
+func (obj FloatKmer) SortReverse() {
+  sort.Sort(sort.Reverse(obj))
 }

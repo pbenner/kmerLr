@@ -38,7 +38,7 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
   if config.SaveTrace || config.EpsilonVar != 0.0 {
     trace = &Trace{}
   }
-  estimator  := NewKmerLrEstimator(config, kmers, NewHook(config, trace, icv))
+  estimator  := NewKmerLrOmpEstimator(config, kmers, NewHook(config, trace, icv))
   classifier := estimator.Estimate(config, data)
 
   filename_trace := fmt.Sprintf("%s.trace.table", basename_out)
