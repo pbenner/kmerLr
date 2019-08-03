@@ -62,6 +62,32 @@ func (obj logisticRegression) LogPdf(v SparseConstRealVector) float64 {
   return -LogAdd(0.0, -r)
 }
 
+func (obj logisticRegression) gradient(data []ConstVector) []float64 {
+  if len(data) == 0 {
+    return nil
+  }
+  n := len(data)
+  m := data[0].Dim()
+  w := 0.0
+  g := make([]float64, m-1)
+
+  for i := 0; i < n; i++ {
+    r := obj.LogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector))
+
+    if data[i].ValueAt(m-1) == 1 {
+      w = math.Exp(r) - 1.0
+    } else {
+      w = math.Exp(r)
+    }
+    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
+      if j := it.Index(); j != 0 && j != m-1 {
+        g[j] += w*it.GetConst().GetValue()
+      }
+    }
+  }
+  return g[1:]
+}
+
 /* -------------------------------------------------------------------------- */
 
 type KmerLrOmpEstimator struct {
@@ -113,7 +139,8 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrOmpEstimator) bestFeatures(data []ConstVector) {
-  g := obj.gradient(data)
+  r := logisticRegression{obj.Theta}
+  g := r.gradient(data)
   k := make([]KmerClass, len(g))
   if len(g) != len(obj.Kmers) {
     panic("internal error")
@@ -127,36 +154,6 @@ func (obj *KmerLrOmpEstimator) bestFeatures(data []ConstVector) {
   for i := 0; i < len(g); i++ {
     fmt.Printf("%e %v\n", g[i], k[i])
   }
-}
-
-func (obj *KmerLrOmpEstimator) gradient(data []ConstVector) []float64 {
-  if len(data) == 0 {
-    return nil
-  }
-  n := len(data)
-  m := data[0].Dim()
-  w := 0.0
-  g := make([]float64, m-1)
-
-  lr := logisticRegression{obj.Theta}
-
-  for i := 0; i < n; i++ {
-    r := lr.LogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector))
-    if math.IsNaN(r) {
-      panic("NaN value detected")
-    }
-    if data[i].ValueAt(m-1) == 1 {
-      w = math.Exp(r) - 1.0
-    } else {
-      w = math.Exp(r)
-    }
-    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      if j := it.Index(); j != 0 && j != m-1 {
-        g[j] += w*it.GetConst().GetValue()
-      }
-    }
-  }
-  return g[1:]
 }
 
 func (obj *KmerLrOmpEstimator) normalize(data []ConstVector) []ConstVector {
