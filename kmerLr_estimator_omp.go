@@ -140,6 +140,27 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVector {
+  m := make([]bool, len(obj.Kmers))
+  for _, j := range k {
+    m[j] = true
+  }
+  r := make([]ConstVector, len(data))
+  for i, _ := range data {
+    values  := []float64{}
+    indices := []int{}
+    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
+      j := it.Index()
+      if m[j] {
+        indices = append(indices, j)
+        values  = append(values , it.GetConst().GetValue())
+      }
+    }
+    r[i] = NewSparseBareRealVector(indices, values, len(k)+1)
+  }
+  return r
+}
+
 func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64) []int {
   r := logisticRegression{obj.Theta}
   g := r.gradient(data, gamma)
