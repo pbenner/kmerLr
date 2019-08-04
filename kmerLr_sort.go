@@ -50,3 +50,31 @@ func (obj FloatKmer) Sort() {
 func (obj FloatKmer) SortReverse() {
   sort.Sort(sort.Reverse(obj))
 }
+
+/* -------------------------------------------------------------------------- */
+
+type FloatInt struct {
+  a []float64
+  b []int
+}
+
+func (obj FloatInt) Len() int {
+  return len(obj.a)
+}
+
+func (obj FloatInt) Swap(i, j int) {
+  obj.a[i], obj.a[j] = obj.a[j], obj.a[i]
+  obj.b[i], obj.b[j] = obj.b[j], obj.b[i]
+}
+
+func (obj FloatInt) Less(i, j int) bool {
+  return obj.a[i] < obj.a[j]
+}
+
+func (obj FloatInt) Sort() {
+  sort.Sort(obj)
+}
+
+func (obj FloatInt) SortReverse() {
+  sort.Sort(sort.Reverse(obj))
+}

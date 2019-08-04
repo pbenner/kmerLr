@@ -18,7 +18,7 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-import   "fmt"
+//import   "fmt"
 import   "log"
 import   "math"
 
@@ -93,12 +93,14 @@ func (obj logisticRegression) gradient(data []ConstVector, gamma []float64) []fl
 type KmerLrOmpEstimator struct {
   vectorEstimator.LogisticRegression
   Kmers KmerClassList
+  // maximal number of active features
+  n     int
   Hook  func(x ConstVector, change ConstScalar, epoch int) bool
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, hook HookType) *KmerLrOmpEstimator {
+func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, hook HookType) *KmerLrOmpEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
@@ -111,7 +113,7 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, hook HookType) *K
       estimator.MaxIterations = config.MaxEpochs
     }
     // alphabet parameters
-    return &KmerLrOmpEstimator{*estimator, kmers, hook}
+    return &KmerLrOmpEstimator{*estimator, kmers, n, hook}
   }
 }
 
@@ -119,7 +121,7 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, hook HookType) *K
 
 func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) VectorPdf {
   gamma := obj.normalizationConstants(data)
-  obj.bestFeatures(data, gamma)
+  obj.selectFeatures(data, gamma)
   panic("exit")
   if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, data); err != nil {
     log.Fatal(err)
@@ -138,22 +140,20 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrOmpEstimator) bestFeatures(data []ConstVector, gamma []float64) {
+func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64) []int {
   r := logisticRegression{obj.Theta}
   g := r.gradient(data, gamma)
-  k := make([]KmerClass, len(g))
+  k := make([]int, len(g))
   if len(g) != len(obj.Kmers) {
     panic("internal error")
   }
   for i := 0; i < len(g); i++ {
     g[i] = math.Abs(g[i])
-    k[i] = obj.Kmers[i]
+    k[i] = i
   }
-  FloatKmer{g, k}.SortReverse()
+  FloatInt{g, k}.SortReverse()
 
-  for i := 0; i < len(g); i++ {
-    fmt.Printf("%e %v\n", g[i], k[i])
-  }
+  return k[0:obj.n]
 }
 
 func (obj *KmerLrOmpEstimator) normalizationConstants(data []ConstVector) []float64 {
