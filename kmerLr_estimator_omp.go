@@ -44,7 +44,7 @@ func (obj logisticRegression) Dim() int {
   return len(obj.Theta)-1
 }
 
-func (obj logisticRegression) LogPdf(v SparseConstRealVector) float64 {
+func (obj logisticRegression) LogPdf(v SparseConstRealVector, gamma []float64) float64 {
   x     := v.GetSparseValues ()
   index := v.GetSparseIndices()
   // set r to first element of theta
@@ -57,12 +57,12 @@ func (obj logisticRegression) LogPdf(v SparseConstRealVector) float64 {
     i++
   }
   for ; i < n; i++ {
-    r += float64(x[i])*float64(obj.Theta[index[i]])
+    r += float64(x[i])/gamma[index[i]]*float64(obj.Theta[index[i]])
   }
   return -LogAdd(0.0, -r)
 }
 
-func (obj logisticRegression) gradient(data []ConstVector) []float64 {
+func (obj logisticRegression) gradient(data []ConstVector, gamma []float64) []float64 {
   if len(data) == 0 {
     return nil
   }
@@ -72,7 +72,7 @@ func (obj logisticRegression) gradient(data []ConstVector) []float64 {
   g := make([]float64, m-1)
 
   for i := 0; i < n; i++ {
-    r := obj.LogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector))
+    r := obj.LogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma)
 
     if data[i].ValueAt(m-1) == 1 {
       w = math.Exp(r) - 1.0
@@ -118,8 +118,8 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, hook HookType) *K
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) VectorPdf {
-  data = obj.normalize(data)
-  obj.bestFeatures(data)
+  gamma := obj.normalizationConstants(data)
+  obj.bestFeatures(data, gamma)
   panic("exit")
   if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, data); err != nil {
     log.Fatal(err)
@@ -138,9 +138,9 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrOmpEstimator) bestFeatures(data []ConstVector) {
+func (obj *KmerLrOmpEstimator) bestFeatures(data []ConstVector, gamma []float64) {
   r := logisticRegression{obj.Theta}
-  g := r.gradient(data)
+  g := r.gradient(data, gamma)
   k := make([]KmerClass, len(g))
   if len(g) != len(obj.Kmers) {
     panic("internal error")
@@ -156,13 +156,13 @@ func (obj *KmerLrOmpEstimator) bestFeatures(data []ConstVector) {
   }
 }
 
-func (obj *KmerLrOmpEstimator) normalize(data []ConstVector) []ConstVector {
+func (obj *KmerLrOmpEstimator) normalizationConstants(data []ConstVector) []float64 {
   if len(data) == 0 {
-    return data
+    return nil
   }
   n := len(data)
   m := data[0].Dim()
-  x := make([]float64, m)
+  x := make([]float64, m-1)
   for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 && j != m-1 {
@@ -170,19 +170,5 @@ func (obj *KmerLrOmpEstimator) normalize(data []ConstVector) []ConstVector {
       }
     }
   }
-  for i := 0; i < n; i++ {
-    indices := []int{}
-    values  := []float64{}
-    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      if j := it.Index(); j != 0 && j != m-1 {
-        indices = append(indices, j)
-        values  = append(values , it.GetConst().GetValue()/x[j])
-      } else {
-        indices = append(indices, j)
-        values  = append(values , it.GetConst().GetValue())
-      }
-    }
-    data[i] = NewSparseConstRealVector(indices, values, m)
-  }
-  return data
+  return x
 }
