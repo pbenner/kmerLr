@@ -36,7 +36,7 @@ import . "github.com/pbenner/gonetics"
 /* -------------------------------------------------------------------------- */
 
 type logisticRegression struct {
-  Theta DenseBareRealVector
+  Theta []float64
 }
 
 /* -------------------------------------------------------------------------- */
@@ -49,7 +49,7 @@ func (obj logisticRegression) LogPdf(v SparseConstRealVector, gamma []float64) f
   x     := v.GetSparseValues ()
   index := v.GetSparseIndices()
   // set r to first element of theta
-  r := float64(obj.Theta[0])
+  r := obj.Theta[0]
   // loop over x
   i := 0
   n := len(index)
@@ -58,7 +58,7 @@ func (obj logisticRegression) LogPdf(v SparseConstRealVector, gamma []float64) f
     i++
   }
   for ; i < n; i++ {
-    r += float64(x[i])/gamma[index[i]]*float64(obj.Theta[index[i]])
+    r += float64(x[i])/gamma[index[i]]*obj.Theta[index[i]]
   }
   return -LogAdd(0.0, -r)
 }
@@ -170,14 +170,15 @@ func (obj *KmerLrOmpEstimator) saveCoefficients(k []int) {
     obj.theta_[j] = 0.0
   }
   for i, j := range k {
-    obj.theta_[j] = obj.Theta.ValueAt(i)
+    obj.theta_[j] = obj.Theta.ValueAt(i+1)
   }
+  obj.theta_[0] = obj.Theta.ValueAt(0)
 }
 
 func (obj *KmerLrOmpEstimator) selectCoefficients(data []ConstVector, k []int) Vector {
   v := make([]float64, len(k)+1)
   for i, j := range k {
-    v[i] = obj.theta_[j]
+    v[i+1] = obj.theta_[j]
   }
   v[0] = obj.theta_[0]
   return NewDenseBareRealVector(v)
@@ -212,7 +213,7 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
 }
 
 func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, gamma []float64) []int {
-  r := logisticRegression{obj.Theta}
+  r := logisticRegression{obj.theta_}
   g := r.gradient(data, gamma)
   k := make([]int, len(g))
   if len(g) != len(obj.Kmers) {
@@ -233,8 +234,8 @@ func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float6
   z := 0
   // keep all features j with theta_j != 0
   for _, j := range obj.active {
-    m[j] = obj.Theta.ValueAt(j)
-    if obj.Theta.ValueAt(j) != 0.0 {
+    m[j] = obj.theta_[j]
+    if obj.theta_[j] != 0.0 {
       z++
     }
   }
