@@ -130,6 +130,16 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, hook HookT
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrOmpEstimator) Clone() *KmerLrOmpEstimator {
+  panic("internal error")
+}
+
+func (obj *KmerLrOmpEstimator) CloneVectorEstimator() VectorEstimator {
+  panic("internal error")
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) VectorPdf {
   gamma := obj.normalizationConstants(data)
   for {
