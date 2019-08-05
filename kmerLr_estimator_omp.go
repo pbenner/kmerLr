@@ -194,13 +194,12 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
   }
   r := make([]ConstVector, len(data))
   for i, _ := range data {
-    values  := []float64{}
-    indices := []int{}
-    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      j := it.Index()
-      if b[j] {
-        indices = append(indices, j)
-        values  = append(values , it.GetConst().GetValue())
+    values  := []float64{1.0}
+    indices := []int    {0  }
+    for i, j := range k {
+      if v := data[i].ValueAt(j); b[j] && v != 0.0 {
+        indices = append(indices, i+1)
+        values  = append(values , v)
       }
     }
     { // append class label
