@@ -153,7 +153,10 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
     r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
     r.KmerLrAlphabet.Binarize        = config.Binarize
     r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
-    r.KmerLrAlphabet.Kmers           = obj   .Kmers
+    r.KmerLrAlphabet.Kmers           = make(KmerClassList, len(obj.active))
+    for l, j := range obj.active {
+      r.KmerLrAlphabet.Kmers[l] = obj.Kmers[j]
+    }
     return r.Sparsify()
   }
 }
