@@ -161,8 +161,8 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrOmpEstimator) saveCoefficients(k []int) {
-  for _, j := range obj.active {
-    obj.theta_[j+1] = 0.0
+  for j, _ := range obj.theta_ {
+    obj.theta_[j] = 0.0
   }
   for i, j := range k {
     obj.theta_[j+1] = obj.Theta.ValueAt(i+1)
