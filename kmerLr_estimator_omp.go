@@ -93,11 +93,15 @@ func (obj logisticRegression) gradient(data []ConstVector, gamma []float64) []fl
 
 type KmerLrOmpEstimator struct {
   vectorEstimator.LogisticRegression
+  // list of all features
   Kmers KmerClassList
+  // full coefficients vector
+  theta_ []float64
+  // set of active features
   active []int
   // maximal number of active features
-  n     int
-  Hook  func(x ConstVector, change ConstScalar, epoch int) bool
+  n    int
+  Hook func(x ConstVector, change ConstScalar, epoch int) bool
 }
 
 /* -------------------------------------------------------------------------- */
@@ -114,8 +118,13 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, hook HookT
     if config.MaxEpochs != 0 {
       estimator.MaxIterations = config.MaxEpochs
     }
-    // alphabet parameters
-    return &KmerLrOmpEstimator{*estimator, kmers, []int{}, n, hook}
+    r := KmerLrOmpEstimator{}
+    r.LogisticRegression = *estimator
+    r.Kmers  = kmers
+    r.theta_ = make([]float64, kmers.Len()+1)
+    r.n      = n
+    r.Hook   = hook
+    return &r
   }
 }
 
@@ -123,10 +132,24 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, hook HookT
 
 func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) VectorPdf {
   gamma := obj.normalizationConstants(data)
-  obj.selectFeatures(data, gamma)
-  panic("exit")
-  if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, data); err != nil {
-    log.Fatal(err)
+  for {
+    // select a subset of features using OMP
+    features, ok := obj.selectFeatures(data, gamma); if !ok {
+      break
+    }
+    // get subset of data and coefficients for these features
+    features_data := obj.selectData        (data, features)
+    features_coef := obj.selectCoefficients(data, features)
+    // copy coefficients to estimator
+    if err := obj.LogisticRegression.SetParameters(features_coef); err != nil {
+      log.Fatal(err)
+    }
+    // estimate reduced set of coefficients
+    if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, features_data); err != nil {
+      log.Fatal(err)
+    }
+    // copy coefficients to backup vector
+    obj.saveCoefficients(features)
   }
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
     log.Fatal(err)
@@ -142,12 +165,21 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrOmpEstimator) selectCoefficients(data []ConstVector, k []int) ConstVector {
+func (obj *KmerLrOmpEstimator) saveCoefficients(k []int) {
+  for j, _ := range obj.theta_ {
+    obj.theta_[j] = 0.0
+  }
+  for i, j := range k {
+    obj.theta_[j] = obj.Theta.ValueAt(i)
+  }
+}
+
+func (obj *KmerLrOmpEstimator) selectCoefficients(data []ConstVector, k []int) Vector {
   v := make([]float64, len(k)+1)
   for i, j := range k {
-    v[i] = obj.Theta.ValueAt(j)
+    v[i] = obj.theta_[j]
   }
-  v[0] = obj.Theta.ValueAt(0)
+  v[0] = obj.theta_[0]
   return NewDenseBareRealVector(v)
 }
 
