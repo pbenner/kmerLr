@@ -190,9 +190,9 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
   for i, _ := range data {
     values  := []float64{1.0}
     indices := []int    {0  }
-    for i, j := range k {
+    for l, j := range k {
       if v := data[i].ValueAt(j); b[j] && v != 0.0 {
-        indices = append(indices, i+1)
+        indices = append(indices, l+1)
         values  = append(values , v)
       }
     }
