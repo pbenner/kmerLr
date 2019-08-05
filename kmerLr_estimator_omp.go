@@ -21,6 +21,7 @@ package main
 //import   "fmt"
 import   "log"
 import   "math"
+import   "sort"
 
 import . "github.com/pbenner/ngstat/estimation"
 
@@ -141,6 +142,15 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrOmpEstimator) selectCoefficients(data []ConstVector, k []int) ConstVector {
+  v := make([]float64, len(k)+1)
+  for i, j := range k {
+    v[i] = obj.Theta.ValueAt(j)
+  }
+  v[0] = obj.Theta.ValueAt(0)
+  return NewDenseBareRealVector(v)
+}
+
 func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVector {
   n   := len(k)+2
   m   := len(obj.Kmers)+2
@@ -218,6 +228,7 @@ func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float6
       r[j] = k; j++
     }
   }
+  sort.Ints(r)
   return r, b
 }
 
