@@ -93,6 +93,7 @@ func (obj logisticRegression) gradient(data []ConstVector, gamma []float64) []fl
 type KmerLrOmpEstimator struct {
   vectorEstimator.LogisticRegression
   Kmers KmerClassList
+  active []int
   // maximal number of active features
   n     int
   Hook  func(x ConstVector, change ConstScalar, epoch int) bool
@@ -113,7 +114,7 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, hook HookT
       estimator.MaxIterations = config.MaxEpochs
     }
     // alphabet parameters
-    return &KmerLrOmpEstimator{*estimator, kmers, n, hook}
+    return &KmerLrOmpEstimator{*estimator, kmers, []int{}, n, hook}
   }
 }
 
@@ -168,7 +169,7 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
   return r
 }
 
-func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64) []int {
+func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, gamma []float64) []int {
   r := logisticRegression{obj.Theta}
   g := r.gradient(data, gamma)
   k := make([]int, len(g))
@@ -181,7 +182,43 @@ func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float6
   }
   FloatInt{g, k}.SortReverse()
 
-  return k[0:obj.n]
+  return k
+}
+
+func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64) ([]int, bool) {
+  m := make(map[int]float64)
+  b := false
+  z := 0
+  // keep all features j with theta_j != 0
+  for _, j := range obj.active {
+    m[j] = obj.Theta.ValueAt(j)
+    if obj.Theta.ValueAt(j) != 0.0 {
+      z++
+    }
+  }
+  if z < obj.n {
+    for _, j := range obj.rankFeatures(data, gamma) {
+      if _, ok := m[j]; !ok {
+        // found feature that was not considered
+        // in the previous iteration
+        b    = true
+        m[j] = 1.0
+        z   += 1
+      }
+      if z >= obj.n {
+        break
+      }
+    }
+  }
+  // convert map to slice
+  r := make([]int, z)
+  j := 0
+  for k, v := range m {
+    if v != 0.0 {
+      r[j] = k; j++
+    }
+  }
+  return r, b
 }
 
 func (obj *KmerLrOmpEstimator) normalizationConstants(data []ConstVector) []float64 {
