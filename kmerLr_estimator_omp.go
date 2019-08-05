@@ -70,7 +70,7 @@ func (obj logisticRegression) gradient(data []ConstVector, gamma []float64) []fl
   n := len(data)
   m := data[0].Dim()
   w := 0.0
-  g := make([]float64, m-1)
+  g := make([]float64, m-2)
 
   for i := 0; i < n; i++ {
     r := obj.LogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma)
@@ -82,11 +82,11 @@ func (obj logisticRegression) gradient(data []ConstVector, gamma []float64) []fl
     }
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 && j != m-1 {
-        g[j] += w*it.GetConst().GetValue()
+        g[j-1] += w*it.GetConst().GetValue()
       }
     }
   }
-  return g[1:]
+  return g
 }
 
 /* -------------------------------------------------------------------------- */
