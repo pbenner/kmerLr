@@ -138,12 +138,7 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
       break
     }
     // get subset of data and coefficients for these features
-    features_data := obj.selectData        (data, features)
-    features_coef := obj.selectCoefficients(data, features)
-    // copy coefficients to estimator
-    if err := obj.LogisticRegression.SetParameters(features_coef); err != nil {
-      log.Fatal(err)
-    }
+    features_data := obj.selectData(data, features)
     // estimate reduced set of coefficients
     if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, features_data); err != nil {
       log.Fatal(err)
@@ -166,29 +161,28 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrOmpEstimator) saveCoefficients(k []int) {
-  for j, _ := range obj.theta_ {
-    obj.theta_[j] = 0.0
+  for _, j := range obj.active {
+    obj.theta_[j+1] = 0.0
   }
   for i, j := range k {
-    obj.theta_[j] = obj.Theta.ValueAt(i+1)
+    obj.theta_[j+1] = obj.Theta.ValueAt(i+1)
   }
   obj.theta_[0] = obj.Theta.ValueAt(0)
 }
 
-func (obj *KmerLrOmpEstimator) selectCoefficients(data []ConstVector, k []int) Vector {
+func (obj *KmerLrOmpEstimator) selectCoefficients(k []int) Vector {
   v := make([]float64, len(k)+1)
   for i, j := range k {
-    v[i+1] = obj.theta_[j]
+    v[i+1] = obj.theta_[j+1]
   }
   v[0] = obj.theta_[0]
   return NewDenseBareRealVector(v)
 }
 
 func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVector {
-  n   := len(k)+2
-  m   := len(obj.Kmers)+2
-  b   := make([]bool, m)
-  b[0] = true
+  n := len(k)+2
+  m := len(obj.Kmers)+2
+  b := make([]bool, m-2)
   for _, j := range k {
     b[j] = true
   }
@@ -227,14 +221,23 @@ func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, gamma []float64)
   return k
 }
 
+func (obj *KmerLrOmpEstimator) setActive(k []int) {
+  coefficients := obj.selectCoefficients(k)
+  // copy coefficients to estimator
+  if err := obj.LogisticRegression.SetParameters(coefficients); err != nil {
+    log.Fatal(err)
+  }
+  obj.active = k
+}
+
 func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64) ([]int, bool) {
   m := make(map[int]float64)
   b := false
   z := 0
   // keep all features j with theta_j != 0
   for _, j := range obj.active {
-    m[j] = obj.theta_[j]
-    if obj.theta_[j] != 0.0 {
+    m[j] = obj.theta_[j+1]
+    if obj.theta_[j+1] != 0.0 {
       z++
     }
   }
@@ -261,6 +264,10 @@ func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float6
     }
   }
   sort.Ints(r)
+  // set coefficients
+  if b {
+    obj.setActive(r)
+  }
   return r, b
 }
 
