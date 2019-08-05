@@ -41,6 +41,7 @@ type Config struct {
   Seed           int64
   SaveTrace      bool
   MaxEpochs      int
+  Omp            int
   Pool           threadpool.ThreadPool
 }
 

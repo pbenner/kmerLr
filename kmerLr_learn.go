@@ -33,14 +33,19 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, icv int, basename_out string) VectorPdf {
+  var classifier VectorPdf
   // hook and trace
   var trace *Trace
   if config.SaveTrace || config.EpsilonVar != 0.0 {
     trace = &Trace{}
   }
-  estimator  := NewKmerLrEstimator(config, kmers, NewHook(config, trace, icv))
-  classifier := estimator.Estimate(config, data)
-
+  if config.Omp == 0 {
+    estimator  := NewKmerLrEstimator(config, kmers, NewHook(config, trace, icv))
+    classifier  = estimator.Estimate(config, data)
+  } else {
+    estimator  := NewKmerLrOmpEstimator(config, kmers, config.Omp, NewHook(config, trace, icv))
+    classifier  = estimator.Estimate(config, data)
+  }
   filename_trace := fmt.Sprintf("%s.trace.table", basename_out)
   filename_json  := fmt.Sprintf("%s.json"       , basename_out)
   // export trace
@@ -98,6 +103,7 @@ func main_learn(config Config, args []string) {
   optEpsilonVar   := options. StringLong("epsilon-var",   0 ,       "1e-2", "optimization tolerance level for the variance of the number of components")
   optSaveTrace    := options.   BoolLong("save-trace",    0 ,               "save trace to file")
   optKFoldCV      := options.    IntLong("k-fold-cv",     0 ,            1, "perform k-fold cross-validation")
+  optOmp          := options.    IntLong("omp",           0 ,            0, "use OMP to select subset of features")
   optHelp         := options.   BoolLong("help",         'h',               "print help")
 
   options.SetParameters("<M> <N> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
@@ -173,12 +179,17 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
   }
-  config.Binarize      = *optBinarize
-  config.Complement    = *optComplement
-  config.Reverse       = *optReverse
-  config.Revcomp       = *optRevcomp
-  config.MaxEpochs     = *optMaxEpochs
-  config.SaveTrace     = *optSaveTrace
+  if *optOmp < 0 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(1)
+  }
+  config.Binarize   = *optBinarize
+  config.Complement = *optComplement
+  config.Reverse    = *optReverse
+  config.Revcomp    = *optRevcomp
+  config.MaxEpochs  = *optMaxEpochs
+  config.SaveTrace  = *optSaveTrace
+  config.Omp        = *optOmp
 
   learn(config, *optKFoldCV, filename_fg, filename_bg, basename_out)
 }
