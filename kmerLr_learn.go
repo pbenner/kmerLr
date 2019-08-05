@@ -100,7 +100,7 @@ func main_learn(config Config, args []string) {
   optMaxAmbiguous := options. StringLong("max-ambiguous", 0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
   optMaxEpochs    := options.    IntLong("max-epochs",    0 ,            0, "maximum number of epochs")
   optEpsilon      := options. StringLong("epsilon",       0 ,       "1e-4", "optimization tolerance level")
-  optEpsilonVar   := options. StringLong("epsilon-var",   0 ,       "1e-2", "optimization tolerance level for the variance of the number of components")
+  optEpsilonVar   := options. StringLong("epsilon-var",   0 ,       "0e-0", "optimization tolerance level for the variance of the number of components")
   optSaveTrace    := options.   BoolLong("save-trace",    0 ,               "save trace to file")
   optKFoldCV      := options.    IntLong("k-fold-cv",     0 ,            1, "perform k-fold cross-validation")
   optOmp          := options.    IntLong("omp",           0 ,            0, "use OMP to select subset of features")

@@ -231,37 +231,36 @@ func (obj *KmerLrOmpEstimator) setActive(k []int) {
 }
 
 func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64) ([]int, bool) {
-  m := make(map[int]float64)
+  m := make(map[int]struct{})
+  z := make(map[int]struct{})
   b := false
-  z := 0
   // keep all features j with theta_j != 0
   for _, j := range obj.active {
-    m[j] = obj.theta_[j+1]
     if obj.theta_[j+1] != 0.0 {
-      z++
+      m[j] = struct{}{}
     }
+    z[j] = struct{}{}
   }
-  if z < obj.n {
+  if len(m) < obj.n {
     for _, j := range obj.rankFeatures(data, gamma) {
       if _, ok := m[j]; !ok {
-        // found feature that was not considered
-        // in the previous iteration
-        b    = true
-        m[j] = 1.0
-        z   += 1
+        if _, ok := z[j]; !ok {
+          // found feature that was not considered
+          // in the previous iteration
+          b = true
+        }
+        m[j] = struct{}{}
       }
-      if z >= obj.n {
+      if len(m) >= obj.n {
         break
       }
     }
   }
   // convert map to slice
-  r := make([]int, z)
+  r := make([]int, len(m))
   j := 0
-  for k, v := range m {
-    if v != 0.0 {
-      r[j] = k; j++
-    }
+  for k, _ := range m {
+    r[j] = k; j++
   }
   sort.Ints(r)
   // set coefficients
