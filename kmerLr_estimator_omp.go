@@ -141,9 +141,12 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVector {
-  m := make([]bool, len(obj.Kmers))
+  n   := len(k)+2
+  m   := len(obj.Kmers)+2
+  b   := make([]bool, m)
+  b[0] = true
   for _, j := range k {
-    m[j] = true
+    b[j] = true
   }
   r := make([]ConstVector, len(data))
   for i, _ := range data {
@@ -151,12 +154,16 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
     indices := []int{}
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       j := it.Index()
-      if m[j] {
+      if b[j] {
         indices = append(indices, j)
         values  = append(values , it.GetConst().GetValue())
       }
     }
-    r[i] = NewSparseBareRealVector(indices, values, len(k)+1)
+    { // append class label
+      indices = append(indices, n-1)
+      values  = append(values , data[i].ValueAt(m-1))
+    }
+    r[i] = NewSparseBareRealVector(indices, values, n)
   }
   return r
 }
@@ -191,5 +198,6 @@ func (obj *KmerLrOmpEstimator) normalizationConstants(data []ConstVector) []floa
       }
     }
   }
+  x[0] = 1.0
   return x
 }
