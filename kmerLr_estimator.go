@@ -89,11 +89,12 @@ type KmerLrEstimator struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, kmers KmerClassList, hook HookType) *KmerLrEstimator {
+func NewKmerLrEstimator(config Config, kmers KmerClassList, balance bool, hook HookType) *KmerLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
+    estimator.Balance       = balance
     estimator.Hook          = hook
     estimator.Seed          = config.Seed
     estimator.L1Reg         = config.Lambda

@@ -40,10 +40,10 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
     trace = &Trace{}
   }
   if config.Omp == 0 {
-    estimator  := NewKmerLrEstimator(config, kmers, NewHook(config, trace, icv))
+    estimator  := NewKmerLrEstimator(config, kmers, config.Balance, NewHook(config, trace, icv))
     classifier  = estimator.Estimate(config, data)
   } else {
-    estimator  := NewKmerLrOmpEstimator(config, kmers, config.Omp, NewHook(config, trace, icv))
+    estimator  := NewKmerLrOmpEstimator(config, kmers, config.Omp, config.Balance, NewHook(config, trace, icv))
     classifier  = estimator.Estimate(config, data)
   }
   filename_trace := fmt.Sprintf("%s.trace.table", basename_out)
@@ -93,6 +93,7 @@ func main_learn(config Config, args []string) {
 
   optAlphabet     := options. StringLong("alphabet",      0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
   optLambda       := options. StringLong("lambda",        0 ,        "0.0", "regularization strength (L1)")
+  optBalance      := options.   BoolLong("balance",       0 ,               "set class weights so that the data set is balanced")
   optBinarize     := options.   BoolLong("binarize",      0 ,               "binarize k-mer counts")
   optComplement   := options.   BoolLong("complement",    0 ,               "consider complement sequences")
   optReverse      := options.   BoolLong("reverse",       0 ,               "consider reverse sequences")
@@ -183,6 +184,7 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
   }
+  config.Balance    = *optBalance
   config.Binarize   = *optBinarize
   config.Complement = *optComplement
   config.Reverse    = *optReverse

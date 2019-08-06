@@ -36,7 +36,8 @@ import . "github.com/pbenner/gonetics"
 /* -------------------------------------------------------------------------- */
 
 type logisticRegression struct {
-  Theta []float64
+  Theta         []float64
+  ClassWeights [2]float64
 }
 
 /* -------------------------------------------------------------------------- */
@@ -76,9 +77,9 @@ func (obj logisticRegression) gradient(data []ConstVector, gamma []float64) []fl
     r := obj.LogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma)
 
     if data[i].ValueAt(m-1) == 1 {
-      w = math.Exp(r) - 1.0
+      w = obj.ClassWeights[1]*(math.Exp(r) - 1.0)
     } else {
-      w = math.Exp(r)
+      w = obj.ClassWeights[1]*(math.Exp(r))
     }
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 && j != m-1 {
@@ -95,6 +96,8 @@ type KmerLrOmpEstimator struct {
   vectorEstimator.LogisticRegression
   // list of all features
   Kmers KmerClassList
+  // if true compute class weights to balance data set
+  balance  bool
   // full coefficients vector
   theta_ []float64
   // set of active features
@@ -106,11 +109,12 @@ type KmerLrOmpEstimator struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, hook HookType) *KmerLrOmpEstimator {
+func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, balance bool, hook HookType) *KmerLrOmpEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
+    estimator.Balance       = balance
     estimator.Hook          = hook
     estimator.Seed          = config.Seed
     estimator.L1Reg         = config.Lambda
@@ -120,10 +124,10 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, hook HookT
     }
     r := KmerLrOmpEstimator{}
     r.LogisticRegression = *estimator
-    r.Kmers  = kmers
-    r.theta_ = make([]float64, kmers.Len()+1)
-    r.n      = n
-    r.Hook   = hook
+    r.Kmers   = kmers
+    r.theta_  = make([]float64, kmers.Len()+1)
+    r.n       = n
+    r.Hook    = hook
     return &r
   }
 }
@@ -219,7 +223,7 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
 }
 
 func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, gamma []float64) []int {
-  r := logisticRegression{obj.theta_}
+  r := logisticRegression{obj.theta_, obj.ClassWeights}
   g := r.gradient(data, gamma)
   k := make([]int, len(g))
   if len(g) != len(obj.Kmers) {

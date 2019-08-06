@@ -34,6 +34,7 @@ import   "github.com/pborman/getopt"
 type Config struct {
   SessionConfig
   KmerEquivalence
+  Balance        bool
   Binarize       bool
   Lambda         float64
   Epsilon        float64
