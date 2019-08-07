@@ -90,7 +90,7 @@ func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType)
   } else {
     obj.Alphabet = r
   }
-  if rel, err := NewKmerEquivalenceRelation(n, m, complement, reverse, revcomp, maxAmbiguous, obj.Alphabet); err != nil {
+  if rel, err := NewKmerEquivalenceRelation(m, n, complement, reverse, revcomp, maxAmbiguous, obj.Alphabet); err != nil {
     return err
   } else {
     obj.Kmers = make(KmerClassList, len(kmers))
