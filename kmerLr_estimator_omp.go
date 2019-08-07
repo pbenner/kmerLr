@@ -294,13 +294,22 @@ func (obj *KmerLrOmpEstimator) normalizationConstants(data []ConstVector) []floa
   n := len(data)
   m := data[0].Dim()
   x := make([]float64, m-1)
+  // class weights
+  n1 := 0
+  n0 := 0
   for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 && j != m-1 {
         x[j] += it.GetConst().GetValue()*it.GetConst().GetValue()
       }
     }
+    switch data[i].ValueAt(m-1) {
+    case 1.0: n1++
+    case 0.0: n0++
+    }
   }
   x[0] = 1.0
+  obj.ClassWeights[1] = 1.0/float64(n1)
+  obj.ClassWeights[0] = 1.0/float64(n0)
   return x
 }
