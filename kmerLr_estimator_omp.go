@@ -79,7 +79,7 @@ func (obj logisticRegression) gradient(data []ConstVector, gamma []float64) []fl
     if data[i].ValueAt(m-1) == 1 {
       w = obj.ClassWeights[1]*(math.Exp(r) - 1.0)
     } else {
-      w = obj.ClassWeights[1]*(math.Exp(r))
+      w = obj.ClassWeights[0]*(math.Exp(r))
     }
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 && j != m-1 {
