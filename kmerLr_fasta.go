@@ -18,7 +18,7 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
 import   "log"
 
 import . "github.com/pbenner/autodiff"
@@ -49,24 +49,27 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
   if label != -1 {
     n += 1
   }
-  i := make([]int    , n)
-  v := make([]float64, n)
+  i := make([]int      , n)
+  v := make([]ConstReal, n)
   i[0] = 0
   v[0] = 1.0
   // copy counts to (i, v)
   for j, it := 1, counts.Iterate(); it.Ok(); it.Next() {
     if c := it.GetCount(); c != 0 {
       i[j] = j
-      v[j] = float64(c)
+      v[j] = ConstReal(c)
     }
     j++
   }
   if label != -1 {
     // append label to data vector
     i[n-1] = n-1
-    v[n-1] = float64(label)
+    v[n-1] = ConstReal(label)
   }
-  return NewSparseConstRealVector(i, v, n)
+  r := NilSparseConstRealVector(n)
+  r.SetSparseIndices(i)
+  r.SetSparseValues (v)
+  return r
 }
 
 func convert_counts_list(config Config, countsList *KmerCountsList, label int) []ConstVector {

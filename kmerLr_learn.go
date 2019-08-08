@@ -46,8 +46,8 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
     estimator  := NewKmerLrOmpEstimator(config, kmers, config.Omp, config.Balance, NewHook(config, trace, icv))
     classifier  = estimator.Estimate(config, data)
   }
-  filename_trace := fmt.Sprintf("%s.trace.table", basename_out)
-  filename_json  := fmt.Sprintf("%s.json"       , basename_out)
+  filename_trace := fmt.Sprintf("%s.trace", basename_out)
+  filename_json  := fmt.Sprintf("%s.json" , basename_out)
   // export trace
   if config.SaveTrace {
     SaveTrace(config, filename_trace, trace)
