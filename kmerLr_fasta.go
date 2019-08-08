@@ -18,7 +18,7 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-import   "fmt"
+//import   "fmt"
 import   "log"
 
 import . "github.com/pbenner/autodiff"
