@@ -301,8 +301,8 @@ func (obj *KmerLrOmpEstimator) computeClassWeights(data []ConstVector) {
     case 0.0: n0++
     }
   }
-  obj.ClassWeights[1] = 1.0/float64(n1)
-  obj.ClassWeights[0] = 1.0/float64(n0)
+  obj.ClassWeights[1] = float64(n0+n1)/float64(2*n1)
+  obj.ClassWeights[0] = float64(n0+n1)/float64(2*n0)
 }
 
 func (obj *KmerLrOmpEstimator) normalizationConstants(data []ConstVector) []float64 {
