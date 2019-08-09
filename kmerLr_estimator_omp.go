@@ -32,6 +32,7 @@ import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 import . "github.com/pbenner/autodiff/logarithmetic"
 
 import . "github.com/pbenner/gonetics"
+import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
 
@@ -148,7 +149,7 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
   if obj.Balance {
     obj.computeClassWeights(data)
   }
-  gamma := obj.normalizationConstants(data)
+  gamma := obj.normalizationConstants(config, data)
   for {
     // select a subset of features using OMP
     features, ok := obj.selectFeatures(data, gamma); if !ok {
@@ -305,20 +306,26 @@ func (obj *KmerLrOmpEstimator) computeClassWeights(data []ConstVector) {
   obj.ClassWeights[0] = float64(n0+n1)/float64(2*n0)
 }
 
-func (obj *KmerLrOmpEstimator) normalizationConstants(data []ConstVector) []float64 {
+func (obj *KmerLrOmpEstimator) normalizationConstants(config Config, data []ConstVector) []float64 {
   if len(data) == 0 {
     return nil
   }
   n := len(data)
   m := data[0].Dim()
   x := make([]float64, m-1)
-  for i := 0; i < n; i++ {
+  PrintStderr(config, 1, "Computing OMP normalization... ")
+  if err := config.Pool.RangeJob(0, n, func(i int, pool threadpool.ThreadPool, erf func() error) error {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 && j != m-1 {
         x[j] += it.GetConst().GetValue()*it.GetConst().GetValue()
       }
     }
+    return nil
+  }); err != nil {
+    PrintStderr(config, 1, "failed\n")
+    log.Fatal(err)
   }
+  PrintStderr(config, 1, "done\n")
   x[0] = 1.0
   return x
 }

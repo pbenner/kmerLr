@@ -78,6 +78,7 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
     log.Fatal(err)
   }
   data, kmers := compile_training_data(config, kmersCounter, config.Binarize, filename_fg, filename_bg)
+  kmersCounter = nil
 
   if kfold <= 1 {
     learn_parameters(config, data, kmers, -1, basename_out)

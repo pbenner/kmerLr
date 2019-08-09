@@ -74,14 +74,17 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
 
 func convert_counts_list(config Config, countsList *KmerCountsList, label int) []ConstVector {
   r := make([]ConstVector, countsList.Len())
+  PrintStderr(config, 1, "Converting kmer counts... ")
   if err := config.Pool.RangeJob(0, countsList.Len(), func(i int, pool threadpool.ThreadPool, erf func() error) error {
     r[i] = convert_counts(config, countsList.At(i), label)
     // free memory
     countsList.Counts[i] = nil
     return nil
   }); err != nil {
+    PrintStderr(config, 1, "failed\n")
     log.Fatal(err)
   }
+  PrintStderr(config, 1, "done\n")
   return r
 }
 
