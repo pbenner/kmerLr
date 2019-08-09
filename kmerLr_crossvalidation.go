@@ -70,9 +70,20 @@ func filterCvGroup(data []ConstVector, labels []int, groups []int, i int) ([]Con
 }
 
 func getLabels(data []ConstVector) []int {
+  if len(data) == 0 {
+    return nil
+  }
+  n := data[0].Dim()
   r := make([]int, len(data))
   for i := 0; i < len(data); i++ {
-    r[i] = int(data[i].ValueAt(data[i].Dim()-1))
+    // do not use ValueAt to prevent that an index
+    // for the sparse vector is constructed
+    j := data[i].(SparseConstRealVector).GetSparseIndices()
+    v := data[i].(SparseConstRealVector).GetSparseValues ()
+    if j[len(j)-1] != n-1 {
+      panic("internal error")
+    }
+    r[i] = int(v[len(v)-1])
   }
   return r
 }
