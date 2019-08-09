@@ -62,7 +62,7 @@ func filterCvGroup(data []ConstVector, labels []int, groups []int, i int) ([]Con
       r_test         = append(r_test        , data[j])
       r_test_labels  = append(r_test_labels , labels[j])
     } else {
-      r_train        = append(r_train,        data[j])
+      r_train        = append(r_train       , data[j])
       r_train_labels = append(r_train_labels, labels[j])
     }
   }
