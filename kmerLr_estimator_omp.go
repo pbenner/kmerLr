@@ -134,9 +134,9 @@ func (obj logisticRegression) Loss(data []ConstVector, gamma []float64, lambda f
   r := 0.0
 
   for i := 0; i < n; i++ {
-    r += obj.ClassLogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma, data[i].ValueAt(m-1) == 1.0)
+    r -= obj.ClassLogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma, data[i].ValueAt(m-1) == 1.0)
   }
-  for j := 1; j < m; j++ {
+  for j := 1; j < m-1; j++ {
     r += lambda*math.Abs(obj.Theta[j])
   }
   return r
@@ -156,18 +156,16 @@ type KmerLrOmpEstimator struct {
   active []int
   // maximal number of active features
   n    int
-  Hook func(x ConstVector, change ConstScalar, epoch int) bool
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, balance bool, hook HookType) *KmerLrOmpEstimator {
+func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, balance bool) *KmerLrOmpEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
     estimator.Balance       = balance
-    estimator.Hook          = hook
     estimator.Seed          = config.Seed
     estimator.L1Reg         = config.Lambda
     estimator.Epsilon       = config.Epsilon
@@ -179,7 +177,6 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, balance bo
     r.Kmers   = kmers
     r.theta_  = make([]float64, kmers.Len()+1)
     r.n       = n
-    r.Hook    = hook
     return &r
   }
 }

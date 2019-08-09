@@ -40,10 +40,12 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
     trace = &Trace{}
   }
   if config.Omp == 0 {
-    estimator  := NewKmerLrEstimator(config, kmers, config.Balance, NewHook(config, trace, icv))
+    estimator  := NewKmerLrEstimator(config, kmers, config.Balance)
+    estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
     classifier  = estimator.Estimate(config, data)
   } else {
-    estimator  := NewKmerLrOmpEstimator(config, kmers, config.Omp, config.Balance, NewHook(config, trace, icv))
+    estimator  := NewKmerLrOmpEstimator(config, kmers, config.Omp, config.Balance)
+    estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
     classifier  = estimator.Estimate(config, data)
   }
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
@@ -104,6 +106,7 @@ func main_learn(config Config, args []string) {
   optEpsilon      := options. StringLong("epsilon",       0 ,       "1e-4", "optimization tolerance level")
   optEpsilonVar   := options. StringLong("epsilon-var",   0 ,       "0e-0", "optimization tolerance level for the variance of the number of components")
   optSaveTrace    := options.   BoolLong("save-trace",    0 ,               "save trace to file")
+  optEvalLoss     := options.   BoolLong("eval-loss",     0 ,               "evaluate loss function after each epoch")
   optKFoldCV      := options.    IntLong("k-fold-cv",     0 ,            1, "perform k-fold cross-validation")
   optOmp          := options.    IntLong("omp",           0 ,            0, "use OMP to select subset of features")
   optHelp         := options.   BoolLong("help",         'h',               "print help")
@@ -190,6 +193,7 @@ func main_learn(config Config, args []string) {
   config.Complement = *optComplement
   config.Reverse    = *optReverse
   config.Revcomp    = *optRevcomp
+  config.EvalLoss   = *optEvalLoss
   config.MaxEpochs  = *optMaxEpochs
   config.SaveTrace  = *optSaveTrace
   config.Omp        = *optOmp

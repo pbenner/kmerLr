@@ -39,16 +39,26 @@ type HookType func(x ConstVector, change ConstScalar, epoch int) bool
 
 /* -------------------------------------------------------------------------- */
 
-func NewHook(config Config, trace *Trace, icv int) HookType {
+func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator *vectorEstimator.LogisticRegression) HookType {
+  loss := func(x ConstVector) float64 {
+    lr := logisticRegression{}
+    lr.Theta = x.GetValues()
+    lr.ClassWeights = estimator.ClassWeights
+    return lr.Loss(data, nil, estimator.L1Reg)
+  }
   hook := func(x ConstVector, change ConstScalar, epoch int) bool {
     n := 0
+    l := math.NaN()
+    if config.EvalLoss {
+      l = loss(x)
+    }
     for it := x.ConstIterator(); it.Ok(); it.Next() {
       if it.GetConst().GetValue() != 0.0 {
         n += 1
       }
     }
     if trace != nil {
-      trace.Append(epoch, n, change.GetValue())
+      trace.Append(epoch, n, change.GetValue(), l)
     }
     if config.Verbose > 1 {
       if trace != nil {
@@ -59,6 +69,9 @@ func NewHook(config Config, trace *Trace, icv int) HookType {
         fmt.Printf("change    : %v\n", change)
         fmt.Printf("#ceof     : %d\n", n)
         fmt.Printf("var(#ceof): %f\n", trace.CompVar(10))
+        if config.EvalLoss {
+          fmt.Printf("loss      : %f\n", l)
+        }
       } else {
         if icv != -1 {
           fmt.Printf("cv run: %d\n", icv+1)
@@ -66,6 +79,9 @@ func NewHook(config Config, trace *Trace, icv int) HookType {
         fmt.Printf("epoch : %d\n", epoch)
         fmt.Printf("change: %v\n", change)
         fmt.Printf("#ceof : %d\n", n)
+        if config.EvalLoss {
+          fmt.Printf("loss      : %f\n", l)
+        }
       }
       fmt.Println()
     }
@@ -84,18 +100,16 @@ func NewHook(config Config, trace *Trace, icv int) HookType {
 type KmerLrEstimator struct {
   vectorEstimator.LogisticRegression
   Kmers KmerClassList
-  Hook  func(x ConstVector, change ConstScalar, epoch int) bool
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, kmers KmerClassList, balance bool, hook HookType) *KmerLrEstimator {
+func NewKmerLrEstimator(config Config, kmers KmerClassList, balance bool) *KmerLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
     estimator.Balance       = balance
-    estimator.Hook          = hook
     estimator.Seed          = config.Seed
     estimator.L1Reg         = config.Lambda
     estimator.Epsilon       = config.Epsilon
@@ -103,7 +117,7 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, balance bool, hook H
       estimator.MaxIterations = config.MaxEpochs
     }
     // alphabet parameters
-    return &KmerLrEstimator{*estimator, kmers, hook}
+    return &KmerLrEstimator{*estimator, kmers}
   }
 }
 
@@ -131,6 +145,7 @@ type Trace struct {
   Epoch   []int
   Nonzero []int
   Change  []float64
+  Loss    []float64
 }
 
 func (obj Trace) Export(filename string) error {
@@ -143,9 +158,16 @@ func (obj Trace) Export(filename string) error {
   w := bufio.NewWriter(f)
   defer w.Flush()
 
-  fmt.Fprintf(w, "%6s %12s %8s\n", "epoch", "change", "nonzero")
-  for i := 0; i < obj.Length(); i++ {
-    fmt.Fprintf(w, "%6d %12e %8d\n", obj.Epoch[i], obj.Change[i], obj.Nonzero[i])
+  if len(obj.Loss) > 0 {
+    fmt.Fprintf(w, "%6s %12s %8s %12s\n", "epoch", "change", "nonzero", "loss")
+    for i := 0; i < obj.Length(); i++ {
+      fmt.Fprintf(w, "%6d %12e %8d %12e\n", obj.Epoch[i], obj.Change[i], obj.Nonzero[i], obj.Loss[i])
+    }
+  } else {
+    fmt.Fprintf(w, "%6s %12s %8s\n", "epoch", "change", "nonzero")
+    for i := 0; i < obj.Length(); i++ {
+      fmt.Fprintf(w, "%6d %12e %8d\n", obj.Epoch[i], obj.Change[i], obj.Nonzero[i])
+    }
   }
   return nil
 }
@@ -154,10 +176,13 @@ func (obj Trace) Length() int {
   return len(obj.Epoch)
 }
 
-func (obj *Trace) Append(epoch, nonzero int, change float64) {
+func (obj *Trace) Append(epoch, nonzero int, change, loss float64) {
   obj.Epoch   = append(obj.Epoch  , epoch)
   obj.Nonzero = append(obj.Nonzero, nonzero)
   obj.Change  = append(obj.Change , change)
+  if !math.IsNaN(loss) {
+    obj.Loss  = append(obj.Loss   , loss)
+  }
 }
 
 func (obj Trace) CompVar(n int) float64 {

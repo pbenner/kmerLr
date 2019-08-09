@@ -41,6 +41,7 @@ type Config struct {
   EpsilonVar     float64
   Seed           int64
   SaveTrace      bool
+  EvalLoss       bool
   MaxEpochs      int
   Omp            int
   Pool           threadpool.ThreadPool
