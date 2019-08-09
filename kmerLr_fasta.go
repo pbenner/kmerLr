@@ -46,25 +46,27 @@ func import_fasta(config Config, filename string) []string {
 
 func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
   n := counts.Len()+1
+  m := counts.N  ()+1
   if label != -1 {
     n += 1
+    m += 1
   }
-  i := make([]int      , n)
-  v := make([]ConstReal, n)
+  i := make([]int      , m)
+  v := make([]ConstReal, m)
   i[0] = 0
   v[0] = 1.0
   // copy counts to (i, v)
   for j, it := 1, counts.Iterate(); it.Ok(); it.Next() {
     if c := it.GetCount(); c != 0 {
-      i[j] = j
+      i[j] = it.GetIndex()+1
       v[j] = ConstReal(c)
+      j++
     }
-    j++
   }
   if label != -1 {
     // append label to data vector
-    i[n-1] = n-1
-    v[n-1] = ConstReal(label)
+    i[m-1] = n-1
+    v[m-1] = ConstReal(label)
   }
   r := NilSparseConstRealVector(n)
   r.SetSparseIndices(i)
