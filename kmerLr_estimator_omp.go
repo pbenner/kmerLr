@@ -59,13 +59,47 @@ func (obj logisticRegression) LogPdf(v SparseConstRealVector, gamma []float64) f
   if index[i] == 0 {
     i++
   }
-  for ; i < n; i++ {
-    r += float64(x[i])/gamma[index[i]]*obj.Theta[index[i]]
+  if gamma != nil {
+    for ; i < n; i++ {
+      r += float64(x[i])/gamma[index[i]]*obj.Theta[index[i]]
+    }
+  } else {
+    for ; i < n; i++ {
+      r += float64(x[i])*obj.Theta[index[i]]
+    }
   }
   return -LogAdd(0.0, -r)
 }
 
-func (obj logisticRegression) gradient(data []ConstVector, gamma []float64) []float64 {
+func (obj logisticRegression) ClassLogPdf(v SparseConstRealVector, gamma []float64, y bool) float64 {
+  x     := v.GetSparseValues ()
+  index := v.GetSparseIndices()
+  // set r to first element of theta
+  r := obj.Theta[0]
+  // loop over x
+  i := 0
+  n := len(index)
+  // skip first element
+  if index[i] == 0 {
+    i++
+  }
+  if gamma != nil {
+    for ; i < n; i++ {
+      r += float64(x[i])/gamma[index[i]]*obj.Theta[index[i]]
+    }
+  } else {
+    for ; i < n; i++ {
+      r += float64(x[i])*obj.Theta[index[i]]
+    }
+  }
+  if y {
+    return -LogAdd(0.0, -r)
+  } else {
+    return -LogAdd(0.0,  r)
+  }
+}
+
+func (obj logisticRegression) Gradient(data []ConstVector, gamma []float64) []float64 {
   if len(data) == 0 {
     return nil
   }
@@ -89,6 +123,23 @@ func (obj logisticRegression) gradient(data []ConstVector, gamma []float64) []fl
     }
   }
   return g
+}
+
+func (obj logisticRegression) Loss(data []ConstVector, gamma []float64, lambda float64) float64 {
+  if len(data) == 0 {
+    return 0.0
+  }
+  n := len(data)
+  m := data[0].Dim()
+  r := 0.0
+
+  for i := 0; i < n; i++ {
+    r += obj.ClassLogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma, data[i].ValueAt(m-1) == 1.0)
+  }
+  for j := 1; j < m; j++ {
+    r += lambda*math.Abs(obj.Theta[j])
+  }
+  return r
 }
 
 /* -------------------------------------------------------------------------- */
@@ -228,7 +279,7 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
 
 func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, gamma []float64) []int {
   r := logisticRegression{obj.theta_, obj.ClassWeights}
-  g := r.gradient(data, gamma)
+  g := r.Gradient(data, gamma)
   k := make([]int, len(g))
   if len(g) != len(obj.Kmers) {
     panic("internal error")
