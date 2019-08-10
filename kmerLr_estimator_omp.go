@@ -111,7 +111,7 @@ func (obj logisticRegression) Gradient(data []ConstVector, gamma []float64) []fl
   for i := 0; i < n; i++ {
     r := obj.LogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma)
 
-    if data[i].ValueAt(m-1) == 1 {
+    if _, v := data[i].(SparseConstRealVector).Last(); v == 1 {
       w = obj.ClassWeights[1]*(math.Exp(r) - 1.0)
     } else {
       w = obj.ClassWeights[0]*(math.Exp(r))

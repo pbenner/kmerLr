@@ -78,12 +78,11 @@ func getLabels(data []ConstVector) []int {
   for i := 0; i < len(data); i++ {
     // do not use ValueAt to prevent that an index
     // for the sparse vector is constructed
-    j := data[i].(SparseConstRealVector).GetSparseIndices()
-    v := data[i].(SparseConstRealVector).GetSparseValues ()
-    if j[len(j)-1] != n-1 {
+    if j, v := data[i].(SparseConstRealVector).Last(); j != n-1 {
       panic("internal error")
+    } else {
+      r[i] = int(v)
     }
-    r[i] = int(v[len(v)-1])
   }
   return r
 }
