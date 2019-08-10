@@ -68,10 +68,7 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
     i[m-1] = n-1
     v[m-1] = ConstReal(label)
   }
-  r := NilSparseConstRealVector(n)
-  r.SetSparseIndices(i)
-  r.SetSparseValues (v)
-  return r
+  return UnsafeSparseConstRealVector(i, v, n)
 }
 
 func convert_counts_list(config Config, countsList *KmerCountsList, label int) []ConstVector {

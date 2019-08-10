@@ -134,8 +134,8 @@ func (obj logisticRegression) Loss(data []ConstVector, gamma []float64, lambda f
   r := 0.0
 
   for i := 0; i < n; i++ {
-    // TODO
-    c := data[i].ValueAt(m-1) == 1.0
+    _, v := data[i].(SparseConstRealVector).Last()
+       c := v == 1.0
     switch c {
     case true : r -= obj.ClassWeights[1]*obj.ClassLogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma, c)
     case false: r -= obj.ClassWeights[0]*obj.ClassLogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma, c)
@@ -346,13 +346,15 @@ func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float6
 
 func (obj *KmerLrOmpEstimator) computeClassWeights(data []ConstVector) {
   n  := len(data)
-  m  := data[0].Dim()
   n1 := 0
   n0 := 0
   for i := 0; i < n; i++ {
-    switch data[i].ValueAt(m-1) {
+    _, v := data[i].(SparseConstRealVector).Last()
+    switch v {
     case 1.0: n1++
     case 0.0: n0++
+    default:
+      panic("internal error")
     }
   }
   obj.ClassWeights[1] = float64(n0+n1)/float64(2*n1)
