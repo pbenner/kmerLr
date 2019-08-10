@@ -39,8 +39,6 @@ type KmerLrOmpEstimator struct {
   vectorEstimator.LogisticRegression
   // list of all features
   Kmers KmerClassList
-  // if true compute class weights to balance data set
-  balance  bool
   // full coefficients vector
   theta_ []float64
   // set of active features
