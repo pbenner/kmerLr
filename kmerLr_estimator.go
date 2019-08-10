@@ -58,7 +58,7 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
       }
     }
     if trace != nil {
-      trace.Append(epoch, n, change.GetValue(), l)
+      trace.Append(epoch+1, n, change.GetValue(), l)
     }
     if config.Verbose > 1 {
       if trace != nil {
