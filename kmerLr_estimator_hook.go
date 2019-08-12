@@ -35,6 +35,7 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
     lr := logisticRegression{}
     lr.Theta = x.GetValues()
     lr.ClassWeights = estimator.ClassWeights
+    data, _ := estimator.GetData()
     return lr.Loss(data, nil, estimator.L1Reg)
   }
   hook := func(x ConstVector, change ConstScalar, epoch int) bool {

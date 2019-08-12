@@ -158,7 +158,7 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
       indices = append(indices, n-1)
       values  = append(values , data[i].ValueAt(m-1))
     }
-    r[i] = NewSparseBareRealVector(indices, values, n)
+    r[i] = NewSparseConstRealVector(indices, values, n)
   }
   return r
 }
