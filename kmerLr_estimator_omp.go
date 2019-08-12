@@ -146,19 +146,22 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
   }
   r := make([]ConstVector, len(data))
   for i, _ := range data {
-    values  := []float64{1.0}
-    indices := []int    {0  }
+    values  := []ConstReal{1.0}
+    indices := []int      {0  }
     for l, j := range k {
       if v := data[i].ValueAt(j+1); b[j] && v != 0.0 {
         indices = append(indices, l+1)
-        values  = append(values , v)
+        values  = append(values , ConstReal(v))
       }
     }
-    { // append class label
+    if j, v := data[i].(SparseConstRealVector).Last(); j != m-1 {
+      panic("internal error")
+    } else {
+      // append class label
       indices = append(indices, n-1)
-      values  = append(values , data[i].ValueAt(m-1))
+      values  = append(values , v)
     }
-    r[i] = NewSparseConstRealVector(indices, values, n)
+    r[i] = UnsafeSparseConstRealVector(indices, values, n)
   }
   return r
 }

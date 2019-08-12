@@ -59,7 +59,7 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
         }
         fmt.Printf("epoch     : %d\n", epoch+1)
         fmt.Printf("change    : %v\n", change)
-        fmt.Printf("#ceof     : %d\n", n)
+        fmt.Printf("#ceof     : %d\n", n-1)
         fmt.Printf("var(#ceof): %f\n", trace.CompVar(10))
         if config.EvalLoss {
           fmt.Printf("loss      : %f\n", l)
@@ -70,9 +70,9 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
         }
         fmt.Printf("epoch : %d\n", epoch)
         fmt.Printf("change: %v\n", change)
-        fmt.Printf("#ceof : %d\n", n)
+        fmt.Printf("#ceof : %d\n", n-1)
         if config.EvalLoss {
-          fmt.Printf("loss      : %f\n", l)
+          fmt.Printf("loss  : %f\n", l)
         }
       }
       fmt.Println()
