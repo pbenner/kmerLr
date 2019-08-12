@@ -44,10 +44,11 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, balance bool) *KmerL
     log.Fatal(err)
     return nil
   } else {
-    estimator.Balance       = balance
-    estimator.Seed          = config.Seed
-    estimator.L1Reg         = config.Lambda
-    estimator.Epsilon       = config.Epsilon
+    estimator.Balance        = balance
+    estimator.Seed           = config.Seed
+    estimator.L1Reg          = config.Lambda
+    estimator.Epsilon        = config.Epsilon
+    estimator.StepSizeFactor = config.StepSizeFactor
     if config.MaxEpochs != 0 {
       estimator.MaxIterations = config.MaxEpochs
     }

@@ -94,22 +94,23 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
 func main_learn(config Config, args []string) {
   options := getopt.New()
 
-  optAlphabet     := options. StringLong("alphabet",      0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
-  optLambda       := options. StringLong("lambda",        0 ,        "0.0", "regularization strength (L1)")
-  optBalance      := options.   BoolLong("balance",       0 ,               "set class weights so that the data set is balanced")
-  optBinarize     := options.   BoolLong("binarize",      0 ,               "binarize k-mer counts")
-  optComplement   := options.   BoolLong("complement",    0 ,               "consider complement sequences")
-  optReverse      := options.   BoolLong("reverse",       0 ,               "consider reverse sequences")
-  optRevcomp      := options.   BoolLong("revcomp",       0 ,               "consider reverse complement sequences")
-  optMaxAmbiguous := options. StringLong("max-ambiguous", 0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
-  optMaxEpochs    := options.    IntLong("max-epochs",    0 ,            0, "maximum number of epochs")
-  optEpsilon      := options. StringLong("epsilon",       0 ,       "1e-4", "optimization tolerance level")
-  optEpsilonVar   := options. StringLong("epsilon-var",   0 ,       "0e-0", "optimization tolerance level for the variance of the number of components")
-  optSaveTrace    := options.   BoolLong("save-trace",    0 ,               "save trace to file")
-  optEvalLoss     := options.   BoolLong("eval-loss",     0 ,               "evaluate loss function after each epoch")
-  optKFoldCV      := options.    IntLong("k-fold-cv",     0 ,            1, "perform k-fold cross-validation")
-  optOmp          := options.    IntLong("omp",           0 ,            0, "use OMP to select subset of features")
-  optHelp         := options.   BoolLong("help",         'h',               "print help")
+  optAlphabet      := options. StringLong("alphabet",        0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
+  optLambda        := options. StringLong("lambda",          0 ,        "0.0", "regularization strength (L1)")
+  optBalance       := options.   BoolLong("balance",         0 ,               "set class weights so that the data set is balanced")
+  optBinarize      := options.   BoolLong("binarize",        0 ,               "binarize k-mer counts")
+  optComplement    := options.   BoolLong("complement",      0 ,               "consider complement sequences")
+  optReverse       := options.   BoolLong("reverse",         0 ,               "consider reverse sequences")
+  optRevcomp       := options.   BoolLong("revcomp",         0 ,               "consider reverse complement sequences")
+  optMaxAmbiguous  := options. StringLong("max-ambiguous",   0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
+  optMaxEpochs     := options.    IntLong("max-epochs",      0 ,            0, "maximum number of epochs")
+  optEpsilon       := options. StringLong("epsilon",         0 ,       "1e-4", "optimization tolerance level")
+  optEpsilonVar    := options. StringLong("epsilon-var",     0 ,       "0e-0", "optimization tolerance level for the variance of the number of components")
+  optSaveTrace     := options.   BoolLong("save-trace",      0 ,               "save trace to file")
+  optEvalLoss      := options.   BoolLong("eval-loss",       0 ,               "evaluate loss function after each epoch")
+  optKFoldCV       := options.    IntLong("k-fold-cv",       0 ,            1, "perform k-fold cross-validation")
+  optScaleStepSize := options. StringLong("scale-step-size", 0 ,        "1.0", "scale standard step-size")
+  optOmp           := options.    IntLong("omp",             0 ,            0, "use OMP to select subset of features")
+  optHelp          := options.   BoolLong("help",           'h',               "print help")
 
   options.SetParameters("<M> <N> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
   options.Parse(args)
@@ -159,6 +160,11 @@ func main_learn(config Config, args []string) {
     log.Fatal(err)
   } else {
     config.Lambda = v
+  }
+  if v, err := strconv.ParseFloat(*optScaleStepSize, 64); err != nil {
+    log.Fatal(err)
+  } else {
+    config.StepSizeFactor = v
   }
   if fields := strings.Split(*optMaxAmbiguous, ","); len(fields) == 1 || len(fields) == int(config.M-config.N+1) {
     config.MaxAmbiguous = make([]int, len(fields))
