@@ -88,9 +88,9 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
     obj.computeClassWeights(data)
   }
   gamma := obj.normalizationConstants(config, data)
-  for {
+  for i := 1; i < obj.n; i++ {
     // select a subset of features using OMP
-    features, ok := obj.selectFeatures(data, gamma); if !ok {
+    features, ok := obj.selectFeatures(data, gamma, i); if !ok {
       break
     }
     // get subset of data and coefficients for these features
@@ -192,7 +192,7 @@ func (obj *KmerLrOmpEstimator) setActive(k []int) {
   obj.active = k
 }
 
-func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64) ([]int, bool) {
+func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64, n int) ([]int, bool) {
   m := make(map[int]struct{})
   z := make(map[int]struct{})
   b := false
@@ -203,7 +203,7 @@ func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float6
     }
     z[j] = struct{}{}
   }
-  if len(m) < obj.n {
+  if len(m) < n {
     for _, j := range obj.rankFeatures(data, gamma) {
       if _, ok := m[j]; !ok {
         if _, ok := z[j]; !ok {
@@ -213,7 +213,7 @@ func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float6
         }
         m[j] = struct{}{}
       }
-      if len(m) >= obj.n {
+      if len(m) >= n {
         break
       }
     }
