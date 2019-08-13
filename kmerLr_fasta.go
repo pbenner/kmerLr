@@ -44,6 +44,27 @@ func import_fasta(config Config, filename string) []string {
 
 /* -------------------------------------------------------------------------- */
 
+func compute_class_weights(data []ConstVector) [2]float64 {
+  n  := len(data)
+  n1 := 0
+  n0 := 0
+  for i := 0; i < n; i++ {
+    _, v := data[i].(SparseConstRealVector).Last()
+    switch v {
+    case 1.0: n1++
+    case 0.0: n0++
+    default:
+      panic("internal error")
+    }
+  }
+  r := [2]float64{}
+  r[0] = float64(n0+n1)/float64(2*n0)
+  r[1] = float64(n0+n1)/float64(2*n1)
+  return r
+}
+
+/* -------------------------------------------------------------------------- */
+
 func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
   n := counts.Len()+1
   m := counts.N  ()+1

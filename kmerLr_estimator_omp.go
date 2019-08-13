@@ -18,7 +18,7 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
 import   "log"
 import   "math"
 import   "sort"
@@ -179,6 +179,10 @@ func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, gamma []float64)
     k[i] = i
   }
   FloatInt{g, k}.SortReverse()
+  fmt.Println("ranked k-mers:")
+  for i := 0; i < 20; i++ {
+    fmt.Printf("%4d %20e %s\n", k[i], g[i], obj.Kmers[k[i]])
+  }
 
   return k
 }
@@ -233,20 +237,7 @@ func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float6
 }
 
 func (obj *KmerLrOmpEstimator) computeClassWeights(data []ConstVector) {
-  n  := len(data)
-  n1 := 0
-  n0 := 0
-  for i := 0; i < n; i++ {
-    _, v := data[i].(SparseConstRealVector).Last()
-    switch v {
-    case 1.0: n1++
-    case 0.0: n0++
-    default:
-      panic("internal error")
-    }
-  }
-  obj.ClassWeights[1] = float64(n0+n1)/float64(2*n1)
-  obj.ClassWeights[0] = float64(n0+n1)/float64(2*n0)
+  obj.ClassWeights = compute_class_weights(data)
 }
 
 func (obj *KmerLrOmpEstimator) normalizationConstants(config Config, data []ConstVector) []float64 {
