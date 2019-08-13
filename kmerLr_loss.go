@@ -44,7 +44,12 @@ func loss(config Config, filename_json, filename_fg, filename_bg string) {
 
   lr := logisticRegression{}
   lr.Theta        = classifier.Theta.GetValues()
-  lr.ClassWeights = compute_class_weights(data)
+  if config.Balance {
+    lr.ClassWeights = compute_class_weights(data)
+  } else {
+    lr.ClassWeights[0] = 1.0
+    lr.ClassWeights[1] = 1.0
+  }
 
   fmt.Println(lr.Loss(data, nil, config.Lambda))
 }
@@ -54,8 +59,9 @@ func loss(config Config, filename_json, filename_fg, filename_bg string) {
 func main_loss(config Config, args []string) {
   options := getopt.New()
 
-  optLambda := options.StringLong("lambda",  0 , "0.0", "regularization strength (L1)")
-  optHelp   := options.  BoolLong("help",   'h',        "print help")
+  optBalance := options.  BoolLong("balance", 0 ,        "set class weights so that the data set is balanced")
+  optLambda  := options.StringLong("lambda",  0 , "0.0", "regularization strength (L1)")
+  optHelp    := options.  BoolLong("help",   'h',        "print help")
 
   options.SetParameters("<MODEL.json> <FOREGROUND.fa> <BACKGROUND.fa>")
   options.Parse(args)
@@ -77,6 +83,7 @@ func main_loss(config Config, args []string) {
   } else {
     config.Lambda = v
   }
+  config.Balance = *optBalance
 
   filename_json := options.Args()[0]
   filename_fg   := options.Args()[1]
