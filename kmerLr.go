@@ -79,6 +79,7 @@ func main() {
   options.SetParameters("<COMMAND>\n\n" +
     " Commands:\n" +
     "     learn        - estimate logistic regression parameters\n" +
+    "     loss         - compute logistic loss\n" +
     "     predict      - use an estimated model to predict labels\n" +
     "     combine      - combine estimated models\n" +
     "     coefficients - pretty-print coefficients\n")
@@ -114,6 +115,8 @@ func main() {
   switch command {
   case "learn":
     main_learn(config, options.Args())
+  case "loss":
+    main_loss(config, options.Args())
   case "predict":
     main_predict(config, options.Args())
   case "combine":

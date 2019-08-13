@@ -79,7 +79,7 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data, kmers := compile_training_data(config, kmersCounter, config.Binarize, filename_fg, filename_bg)
+  data, kmers := compile_training_data(config, kmersCounter, nil, config.Binarize, filename_fg, filename_bg)
   kmersCounter = nil
 
   if kfold <= 1 {

@@ -39,7 +39,7 @@ func loss(config Config, filename_json, filename_fg, filename_bg string) {
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data, _ := compile_training_data(config, kmersCounter, config.Binarize, filename_fg, filename_bg)
+  data, _ := compile_training_data(config, kmersCounter, classifier.Kmers, config.Binarize, filename_fg, filename_bg)
   kmersCounter = nil
 
   lr := logisticRegression{}
