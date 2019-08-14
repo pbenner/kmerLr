@@ -61,8 +61,8 @@ func SaveModel(config Config, filename string, classifier VectorPdf, z []float64
   if z != nil {
     PrintStderr(config, 1, "Scaling model parameters... ")
     theta := classifier.GetParameters()
-    for i, zi := range z {
-      theta.At(i).Mul(theta.ConstAt(i), ConstReal(zi))
+    for it := theta.Iterator(); it.Ok(); it.Next() {
+      it.Get().Mul(it.Get(), ConstReal(z[it.Index()]))
     }
     classifier.SetParameters(theta)
     PrintStderr(config, 1, "done\n")
