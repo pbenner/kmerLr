@@ -29,10 +29,51 @@ import . "github.com/pbenner/autodiff/statistics"
 import . "github.com/pbenner/gonetics"
 
 import   "github.com/pborman/getopt"
+import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, icv int, basename_out string) VectorPdf {
+func normalize_data(config Config, data []ConstVector) []float64 {
+  if len(data) == 0 {
+    return nil
+  }
+  n := len(data)
+  m := data[0].Dim()
+  z := make([]float64, m)
+  PrintStderr(config, 1, "Normalizing data... ")
+  if err := config.Pool.RangeJob(0, n, func(i int, pool threadpool.ThreadPool, erf func() error) error {
+    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
+      if j := it.Index(); j != 0 && j != m-1 {
+        z[j] += it.GetConst().GetValue()
+      }
+    }
+    return nil
+  }); err != nil {
+    PrintStderr(config, 1, "failed\n")
+    log.Fatal(err)
+  }
+  // do not change first entry and class label
+  z[0  ] = 1.0
+  z[m-1] = 1.0
+  if err := config.Pool.RangeJob(0, n, func(i int, pool threadpool.ThreadPool, erf func() error) error {
+    indices := data[i].(SparseConstRealVector).GetSparseIndices()
+    values  := data[i].(SparseConstRealVector).GetSparseValues ()
+    for j1, j2 := range indices {
+      values[j2] /= ConstReal(z[j1])
+    }
+    data[i] = UnsafeSparseConstRealVector(indices, values, m)
+    return nil
+  }); err != nil {
+    PrintStderr(config, 1, "failed\n")
+    log.Fatal(err)
+  }
+  PrintStderr(config, 1, "done\n")
+  return z[0:m-1]
+}
+
+/* -------------------------------------------------------------------------- */
+
+func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, icv int, z []float64, basename_out string) VectorPdf {
   var classifier VectorPdf
   // hook and trace
   var trace *Trace
@@ -55,17 +96,17 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
     SaveTrace(config, filename_trace, trace)
   }
   // export model
-  SaveModel(config, filename_json, classifier)
+  SaveModel(config, filename_json, classifier, z)
 
   return classifier
 }
 
-func learn_cv(config Config, data []ConstVector, kmers KmerClassList, kfold int, basename_out string) {
+func learn_cv(config Config, data []ConstVector, kmers KmerClassList, kfold int, z []float64, basename_out string) {
   labels := getLabels(data)
 
   learnClassifier := func(i int, data []ConstVector) VectorPdf {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_parameters(config, data, kmers, i, basename_out)
+    return learn_parameters(config, data, kmers, i, z, basename_out)
   }
   testClassifier := func(i int, data []ConstVector, classifier VectorPdf) []float64 {
     return predict_labeled(config, data, classifier)
@@ -82,10 +123,13 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
   data, kmers := compile_training_data(config, kmersCounter, nil, config.Binarize, filename_fg, filename_bg)
   kmersCounter = nil
 
+  // normalize data for faster convergence
+  z := normalize_data(config, data)
+
   if kfold <= 1 {
-    learn_parameters(config, data, kmers, -1, basename_out)
+    learn_parameters(config, data, kmers, -1, z, basename_out)
   } else {
-    learn_cv(config, data, kmers, kfold, basename_out)
+    learn_cv(config, data, kmers, kfold, z, basename_out)
   }
 }
 
