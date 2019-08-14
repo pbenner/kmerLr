@@ -44,7 +44,7 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
     estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
     classifier  = estimator.Estimate(config, data)
   } else {
-    estimator  := NewKmerLrOmpEstimator(config, kmers, config.Omp, config.Balance)
+    estimator  := NewKmerLrOmpEstimator(config, kmers, config.Omp, config.Balance, config.OmpIterations)
     estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
     classifier  = estimator.Estimate(config, data)
   }
@@ -110,6 +110,7 @@ func main_learn(config Config, args []string) {
   optKFoldCV       := options.    IntLong("k-fold-cv",       0 ,            1, "perform k-fold cross-validation")
   optScaleStepSize := options. StringLong("scale-step-size", 0 ,        "1.0", "scale standard step-size")
   optOmp           := options.    IntLong("omp",             0 ,            0, "use OMP to select subset of features")
+  optOmpIterations := options.    IntLong("omp-iterations",  0 ,            1, "number of OMP iterations")
   optHelp          := options.   BoolLong("help",           'h',               "print help")
 
   options.SetParameters("<M> <N> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
@@ -194,15 +195,20 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
   }
-  config.Balance    = *optBalance
-  config.Binarize   = *optBinarize
-  config.Complement = *optComplement
-  config.Reverse    = *optReverse
-  config.Revcomp    = *optRevcomp
-  config.EvalLoss   = *optEvalLoss
-  config.MaxEpochs  = *optMaxEpochs
-  config.SaveTrace  = *optSaveTrace
-  config.Omp        = *optOmp
+  if *optOmpIterations < 1 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(1)
+  }
+  config.Balance       = *optBalance
+  config.Binarize      = *optBinarize
+  config.Complement    = *optComplement
+  config.Reverse       = *optReverse
+  config.Revcomp       = *optRevcomp
+  config.EvalLoss      = *optEvalLoss
+  config.MaxEpochs     = *optMaxEpochs
+  config.SaveTrace     = *optSaveTrace
+  config.Omp           = *optOmp
+  config.OmpIterations = *optOmpIterations
 
   learn(config, *optKFoldCV, filename_fg, filename_bg, basename_out)
 }

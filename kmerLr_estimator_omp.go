@@ -45,11 +45,13 @@ type KmerLrOmpEstimator struct {
   active []int
   // maximal number of active features
   n    int
+  // number of omp iterations
+  OmpIterations int
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, balance bool) *KmerLrOmpEstimator {
+func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, balance bool, ompIterations int) *KmerLrOmpEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
@@ -64,9 +66,10 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, balance bo
     }
     r := KmerLrOmpEstimator{}
     r.LogisticRegression = *estimator
-    r.Kmers   = kmers
-    r.theta_  = make([]float64, kmers.Len()+1)
-    r.n       = n
+    r.Kmers         = kmers
+    r.theta_        = make([]float64, kmers.Len()+1)
+    r.OmpIterations = ompIterations
+    r.n             = n
     return &r
   }
 }
@@ -88,19 +91,25 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
     obj.computeClassWeights(data)
   }
   gamma := obj.normalizationConstants(config, data)
-  for i := 1; i < obj.n; i++ {
-    // select a subset of features using OMP
-    features, ok := obj.selectFeatures(data, gamma, i); if !ok {
-      break
+  for iOmp := 0; iOmp < obj.OmpIterations; iOmp++ {
+    for i := 1; i <= obj.n; i++ {
+      if len(obj.active) >= i {
+        // remove feature
+        obj.theta_[obj.active[i-1]+1] = 0
+        obj.active = append(obj.active[0:i-1], obj.active[i:]...)
+        obj.printActive()
+      }
+      // select a subset of features using OMP
+      features := obj.selectFeatures(data, gamma, len(obj.active)+1)
+      // get subset of data and coefficients for these features
+      features_data := obj.selectData(data, features)
+      // estimate reduced set of coefficients
+      if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, features_data); err != nil {
+        log.Fatal(err)
+      }
+      // copy coefficients to backup vector
+      obj.saveCoefficients(features)
     }
-    // get subset of data and coefficients for these features
-    features_data := obj.selectData(data, features)
-    // estimate reduced set of coefficients
-    if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, features_data); err != nil {
-      log.Fatal(err)
-    }
-    // copy coefficients to backup vector
-    obj.saveCoefficients(features)
   }
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
     log.Fatal(err)
@@ -118,6 +127,13 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) Vecto
 }
 
 /* -------------------------------------------------------------------------- */
+
+func (obj *KmerLrOmpEstimator) printActive() {
+  fmt.Println("Active features:")
+  for _, k := range obj.active {
+    fmt.Printf(": %e %s\n", obj.theta_[k+1], obj.Kmers[k])
+  }
+}
 
 func (obj *KmerLrOmpEstimator) saveCoefficients(k []int) {
   for j, _ := range obj.theta_ {
@@ -179,11 +195,6 @@ func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, gamma []float64)
     k[i] = i
   }
   FloatInt{g, k}.SortReverse()
-  fmt.Println("ranked k-mers:")
-  for i := 0; i < 20; i++ {
-    fmt.Printf("%4d %20e %s\n", k[i], g[i], obj.Kmers[k[i]])
-  }
-
   return k
 }
 
@@ -196,25 +207,15 @@ func (obj *KmerLrOmpEstimator) setActive(k []int) {
   obj.active = k
 }
 
-func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64, n int) ([]int, bool) {
+func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64, n int) []int {
   m := make(map[int]struct{})
-  z := make(map[int]struct{})
-  b := false
   // keep all features j with theta_j != 0
   for _, j := range obj.active {
-    if obj.theta_[j+1] != 0.0 {
-      m[j] = struct{}{}
-    }
-    z[j] = struct{}{}
+    m[j] = struct{}{}
   }
   if len(m) < n {
     for _, j := range obj.rankFeatures(data, gamma) {
       if _, ok := m[j]; !ok {
-        if _, ok := z[j]; !ok {
-          // found feature that was not considered
-          // in the previous iteration
-          b = true
-        }
         m[j] = struct{}{}
       }
       if len(m) >= n {
@@ -230,10 +231,8 @@ func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float6
   }
   sort.Ints(r)
   // set coefficients
-  if b {
-    obj.setActive(r)
-  }
-  return r, b
+  obj.setActive(r)
+  return r
 }
 
 func (obj *KmerLrOmpEstimator) computeClassWeights(data []ConstVector) {
