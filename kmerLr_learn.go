@@ -59,7 +59,7 @@ func normalize_data(config Config, data []ConstVector) []float64 {
     indices := data[i].(SparseConstRealVector).GetSparseIndices()
     values  := data[i].(SparseConstRealVector).GetSparseValues ()
     for j1, j2 := range indices {
-      values[j2] /= ConstReal(z[j1])
+      values[j1] /= ConstReal(z[j2])
     }
     data[i] = UnsafeSparseConstRealVector(indices, values, m)
     return nil
