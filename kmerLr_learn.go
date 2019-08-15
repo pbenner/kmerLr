@@ -29,7 +29,6 @@ import . "github.com/pbenner/autodiff/statistics"
 import . "github.com/pbenner/gonetics"
 
 import   "github.com/pborman/getopt"
-import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
 
@@ -39,36 +38,48 @@ func normalize_data(config Config, data []ConstVector) []float64 {
   }
   n := len(data)
   m := data[0].Dim()
-  z := make([]float64, m)
+  mu    := make([]float64, m)
+  sigma := make([]float64, m)
   PrintStderr(config, 1, "Normalizing data... ")
-  if err := config.Pool.RangeJob(0, n, func(i int, pool threadpool.ThreadPool, erf func() error) error {
+  // compute mu
+  for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      if j := it.Index(); j != 0 && j != m-1 {
-        z[j] += it.GetConst().GetValue()
-      }
+      mu[it.Index()] += it.GetConst().GetValue()
     }
-    return nil
-  }); err != nil {
-    PrintStderr(config, 1, "failed\n")
-    log.Fatal(err)
   }
-  // do not change first entry and class label
-  z[0  ] = 1.0
-  z[m-1] = 1.0
-  if err := config.Pool.RangeJob(0, n, func(i int, pool threadpool.ThreadPool, erf func() error) error {
+  for j := 1; j < m-1; j++ {
+    mu[j] /= float64(n)
+  }
+  mu[0  ] = 0.0
+  mu[m-1] = 0.0
+  // compute sigma
+  for i := 0; i < n; i++ {
+    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
+      j := it.Index()
+      v := it.GetConst().GetValue()
+      sigma[j] += (v-mu[j])*(v-mu[j])
+    }
+  }
+  for j := 1; j < m-1; j++ {
+    if sigma[j] == 0.0 {
+      sigma[j] = 1.0
+    } else {
+      sigma[j] /= float64(n-1)
+    }
+  }
+  sigma[0  ] = 1.0
+  sigma[m-1] = 1.0
+  // apply transform
+  for i := 0; i < n; i++ {
     indices := data[i].(SparseConstRealVector).GetSparseIndices()
     values  := data[i].(SparseConstRealVector).GetSparseValues ()
     for j1, j2 := range indices {
-      values[j1] /= ConstReal(z[j2])
+      values[j1] = (values[j1] - ConstReal(mu[j2]))/ConstReal(sigma[j2])
     }
     data[i] = UnsafeSparseConstRealVector(indices, values, m)
-    return nil
-  }); err != nil {
-    PrintStderr(config, 1, "failed\n")
-    log.Fatal(err)
   }
   PrintStderr(config, 1, "done\n")
-  return z[0:m-1]
+  return sigma[0:m-1]
 }
 
 /* -------------------------------------------------------------------------- */
