@@ -37,6 +37,9 @@ func combine(config Config, summary, filename_out string, filename_ins ...string
     if !classifiers[i].Binarize != classifiers[0].Binarize {
       log.Fatalf("data binarization is not consistent across classifiers")
     }
+    if !classifiers[i].Transform.TransformEquals(classifiers[0].Transform) {
+      log.Fatalf("data transform is not consistent across classifiers")
+    }
   }
   r := classifiers[0].Clone()
   switch strings.ToLower(summary) {
