@@ -20,6 +20,7 @@ package main
 
 import   "fmt"
 import   "log"
+import   "math"
 import   "os"
 import   "strconv"
 import   "strings"
@@ -64,7 +65,7 @@ func normalize_data(config Config, data []ConstVector) []float64 {
     if sigma[j] == 0.0 {
       sigma[j] = 1.0
     } else {
-      sigma[j] /= float64(n-1)
+      sigma[j] = math.Sqrt(sigma[j]/float64(n-1))
     }
   }
   sigma[0  ] = 1.0
