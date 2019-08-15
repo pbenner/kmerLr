@@ -50,7 +50,7 @@ func combine(config Config, summary, filename_out string, filename_ins ...string
     log.Fatalf("invalid summary statistic: %s", summary)
   }
   // export model
-  SaveModel(config, filename_out, r, nil)
+  SaveModel(config, filename_out, r)
 }
 
 /* -------------------------------------------------------------------------- */

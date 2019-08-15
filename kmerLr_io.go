@@ -22,7 +22,6 @@ import   "fmt"
 import   "log"
 import   "os"
 
-import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 
 /* -------------------------------------------------------------------------- */
@@ -57,16 +56,7 @@ func SaveTrace(config Config, filename string, trace *Trace) {
 
 /* -------------------------------------------------------------------------- */
 
-func SaveModel(config Config, filename string, classifier VectorPdf, z []float64) {
-  if z != nil {
-    PrintStderr(config, 1, "Scaling model parameters... ")
-    theta := classifier.GetParameters()
-    for it := theta.Iterator(); it.Ok(); it.Next() {
-      it.Get().Mul(it.Get(), ConstReal(z[it.Index()]))
-    }
-    classifier.SetParameters(theta)
-    PrintStderr(config, 1, "done\n")
-  }
+func SaveModel(config Config, filename string, classifier VectorPdf) {
   PrintStderr(config, 1, "Exporting model to `%s'... ", filename)
   if err := ExportDistribution(filename, classifier); err != nil {
     PrintStderr(config, 1, "failed\n")

@@ -85,7 +85,7 @@ func (obj *KmerLrOmpEstimator) CloneVectorEstimator() VectorEstimator {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) VectorPdf {
+func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) *KmerLr {
   if obj.Balance {
     obj.computeClassWeights(data)
   }

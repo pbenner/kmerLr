@@ -24,7 +24,6 @@ import   "log"
 import . "github.com/pbenner/ngstat/estimation"
 
 import . "github.com/pbenner/autodiff"
-import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
@@ -59,7 +58,7 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, balance bool) *KmerL
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) VectorPdf {
+func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) *KmerLr {
   if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, data); err != nil {
     log.Fatal(err)
   }

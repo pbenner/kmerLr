@@ -20,7 +20,6 @@ package main
 
 import   "fmt"
 import   "log"
-import   "math"
 import   "os"
 import   "strconv"
 import   "strings"
@@ -33,60 +32,19 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func normalize_data(config Config, data []ConstVector) []float64 {
-  if len(data) == 0 {
-    return nil
-  }
-  n := len(data)
-  m := data[0].Dim()
-  mu    := make([]float64, m)
-  sigma := make([]float64, m)
+func normalize_data(config Config, data []ConstVector) Transform {
   PrintStderr(config, 1, "Normalizing data... ")
-  // compute mu
-  for i := 0; i < n; i++ {
-    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      mu[it.Index()] += it.GetConst().GetValue()
-    }
-  }
-  for j := 1; j < m-1; j++ {
-    mu[j] /= float64(n)
-  }
-  mu[0  ] = 0.0
-  mu[m-1] = 0.0
-  // compute sigma
-  for i := 0; i < n; i++ {
-    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      j := it.Index()
-      v := it.GetConst().GetValue()
-      sigma[j] += (v-mu[j])*(v-mu[j])
-    }
-  }
-  for j := 1; j < m-1; j++ {
-    if sigma[j] == 0.0 {
-      sigma[j] = 1.0
-    } else {
-      sigma[j] = math.Sqrt(sigma[j]/float64(n-1))
-    }
-  }
-  sigma[0  ] = 1.0
-  sigma[m-1] = 1.0
-  // apply transform
-  for i := 0; i < n; i++ {
-    indices := data[i].(SparseConstRealVector).GetSparseIndices()
-    values  := data[i].(SparseConstRealVector).GetSparseValues ()
-    for j1, j2 := range indices {
-      values[j1] = (values[j1] - ConstReal(mu[j2]))/ConstReal(sigma[j2])
-    }
-    data[i] = UnsafeSparseConstRealVector(indices, values, m)
-  }
+  t := Transform{}
+  t.TransformFit  (data)
+  t.TransformApply(data)
   PrintStderr(config, 1, "done\n")
-  return sigma[0:m-1]
+  return t
 }
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, icv int, z []float64, basename_out string) VectorPdf {
-  var classifier VectorPdf
+func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, icv int, t Transform, basename_out string) VectorPdf {
+  var classifier *KmerLr
   // hook and trace
   var trace *Trace
   if config.SaveTrace || config.EpsilonVar != 0.0 {
@@ -107,18 +65,20 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
   if config.SaveTrace {
     SaveTrace(config, filename_trace, trace)
   }
+  // set transform
+  classifier.Transform = t
   // export model
-  SaveModel(config, filename_json, classifier, z)
+  SaveModel(config, filename_json, classifier)
 
   return classifier
 }
 
-func learn_cv(config Config, data []ConstVector, kmers KmerClassList, kfold int, z []float64, basename_out string) {
+func learn_cv(config Config, data []ConstVector, kmers KmerClassList, kfold int, t Transform, basename_out string) {
   labels := getLabels(data)
 
   learnClassifier := func(i int, data []ConstVector) VectorPdf {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_parameters(config, data, kmers, i, z, basename_out)
+    return learn_parameters(config, data, kmers, i, t, basename_out)
   }
   testClassifier := func(i int, data []ConstVector, classifier VectorPdf) []float64 {
     return predict_labeled(config, data, classifier)
@@ -136,12 +96,12 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
   kmersCounter = nil
 
   // normalize data for faster convergence
-  z := normalize_data(config, data)
+  t := normalize_data(config, data)
 
   if kfold <= 1 {
-    learn_parameters(config, data, kmers, -1, z, basename_out)
+    learn_parameters(config, data, kmers, -1, t, basename_out)
   } else {
-    learn_cv(config, data, kmers, kfold, z, basename_out)
+    learn_cv(config, data, kmers, kfold, t, basename_out)
   }
 }
 

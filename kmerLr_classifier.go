@@ -34,6 +34,7 @@ import . "github.com/pbenner/gonetics"
 type KmerLr struct {
   vectorDistribution.LogisticRegression
   KmerLrAlphabet
+  Transform
 }
 
 /* -------------------------------------------------------------------------- */
@@ -54,6 +55,20 @@ func (obj *KmerLr) Clone() *KmerLr {
   r.LogisticRegression = *obj.LogisticRegression.Clone()
   r.KmerLrAlphabet     =  obj.KmerLrAlphabet    .Clone()
   return &r
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj *KmerLr) Loss(data []ConstVector, lambda float64, balance bool) float64 {
+  lr := logisticRegression{}
+  lr.Theta = obj.Theta.GetValues()
+  if balance {
+    lr.ClassWeights = compute_class_weights(data)
+  } else {
+    lr.ClassWeights[0] = 1.0
+    lr.ClassWeights[1] = 1.0
+  }
+  return lr.Loss(data, nil, lambda)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -125,6 +140,9 @@ func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
   if err := obj.LogisticRegression.ImportConfig(config.Distributions[0], t); err != nil {
     return err
   }
+  if err := obj.Transform.ImportConfig(config.Distributions[1], t); err != nil {
+    return err
+  }
   return obj.KmerLrAlphabet.ImportConfig(config, t)
 }
 
@@ -132,7 +150,8 @@ func (obj *KmerLr) ExportConfig() ConfigDistribution {
   config := obj.KmerLrAlphabet.ExportConfig()
   config.Name          = "kmerLr"
   config.Distributions = []ConfigDistribution{
-    obj.LogisticRegression.ExportConfig() }
+    obj.LogisticRegression.ExportConfig(),
+    obj.Transform         .ExportConfig() }
 
   return config
 }
