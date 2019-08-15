@@ -87,6 +87,7 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
     log.Fatal(err)
   }
   data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, config.Binarize, filename_in)
+  data     = classifier.TransformApply(data)
 
   predictions := predict_unlabeled(config, data, classifier)
 

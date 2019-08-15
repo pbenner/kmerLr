@@ -40,18 +40,10 @@ func loss(config Config, filename_json, filename_fg, filename_bg string) {
     log.Fatal(err)
   }
   data, _ := compile_training_data(config, kmersCounter, classifier.Kmers, config.Binarize, filename_fg, filename_bg)
+  data     = classifier.TransformApply(data)
   kmersCounter = nil
 
-  lr := logisticRegression{}
-  lr.Theta        = classifier.Theta.GetValues()
-  if config.Balance {
-    lr.ClassWeights = compute_class_weights(data)
-  } else {
-    lr.ClassWeights[0] = 1.0
-    lr.ClassWeights[1] = 1.0
-  }
-
-  fmt.Println(lr.Loss(data, nil, config.Lambda))
+  fmt.Println(classifier.Loss(data, config.Lambda, config.Balance))
 }
 
 /* -------------------------------------------------------------------------- */
