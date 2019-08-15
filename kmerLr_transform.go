@@ -74,6 +74,12 @@ func (obj *Transform) TransformFit(data []ConstVector) {
 }
 
 func (obj Transform) TransformApply(data []ConstVector) []ConstVector {
+  if len(obj.Mu) != len(obj.Sigma) {
+    panic("internal error")
+  }
+  if len(obj.Mu) == 0 {
+    return data
+  }
   n := len(data)
   m := data[0].Dim()
   for i := 0; i < n; i++ {
