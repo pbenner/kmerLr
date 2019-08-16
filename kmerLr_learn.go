@@ -96,8 +96,10 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
   kmersCounter = nil
 
   // normalize data for faster convergence
-  t := normalize_data(config, data)
-
+  t := Transform{}
+  if !config.NoNormalization {
+    t = normalize_data(config, data)
+  }
   if kfold <= 1 {
     learn_parameters(config, data, kmers, -1, t, basename_out)
   } else {
@@ -110,24 +112,25 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
 func main_learn(config Config, args []string) {
   options := getopt.New()
 
-  optAlphabet      := options. StringLong("alphabet",        0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
-  optLambda        := options. StringLong("lambda",          0 ,        "0.0", "regularization strength (L1)")
-  optBalance       := options.   BoolLong("balance",         0 ,               "set class weights so that the data set is balanced")
-  optBinarize      := options.   BoolLong("binarize",        0 ,               "binarize k-mer counts")
-  optComplement    := options.   BoolLong("complement",      0 ,               "consider complement sequences")
-  optReverse       := options.   BoolLong("reverse",         0 ,               "consider reverse sequences")
-  optRevcomp       := options.   BoolLong("revcomp",         0 ,               "consider reverse complement sequences")
-  optMaxAmbiguous  := options. StringLong("max-ambiguous",   0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
-  optMaxEpochs     := options.    IntLong("max-epochs",      0 ,            0, "maximum number of epochs")
-  optEpsilon       := options. StringLong("epsilon",         0 ,       "1e-4", "optimization tolerance level")
-  optEpsilonVar    := options. StringLong("epsilon-var",     0 ,       "0e-0", "optimization tolerance level for the variance of the number of components")
-  optSaveTrace     := options.   BoolLong("save-trace",      0 ,               "save trace to file")
-  optEvalLoss      := options.   BoolLong("eval-loss",       0 ,               "evaluate loss function after each epoch")
-  optKFoldCV       := options.    IntLong("k-fold-cv",       0 ,            1, "perform k-fold cross-validation")
-  optScaleStepSize := options. StringLong("scale-step-size", 0 ,        "1.0", "scale standard step-size")
-  optOmp           := options.    IntLong("omp",             0 ,            0, "use OMP to select subset of features")
-  optOmpIterations := options.    IntLong("omp-iterations",  0 ,            1, "number of OMP iterations")
-  optHelp          := options.   BoolLong("help",           'h',               "print help")
+  optAlphabet        := options. StringLong("alphabet",         0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
+  optLambda          := options. StringLong("lambda",           0 ,        "0.0", "regularization strength (L1)")
+  optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
+  optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
+  optComplement      := options.   BoolLong("complement",       0 ,               "consider complement sequences")
+  optReverse         := options.   BoolLong("reverse",          0 ,               "consider reverse sequences")
+  optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
+  optMaxAmbiguous    := options. StringLong("max-ambiguous",    0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
+  optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
+  optEpsilon         := options. StringLong("epsilon",          0 ,       "1e-4", "optimization tolerance level")
+  optEpsilonVar      := options. StringLong("epsilon-var",      0 ,       "0e-0", "optimization tolerance level for the variance of the number of components")
+  optSaveTrace       := options.   BoolLong("save-trace",       0 ,               "save trace to file")
+  optEvalLoss        := options.   BoolLong("eval-loss",        0 ,               "evaluate loss function after each epoch")
+  optNoNormalization := options.   BoolLong("no-normalization", 0 ,               "do not normalize data")
+  optKFoldCV         := options.    IntLong("k-fold-cv",        0 ,            1, "perform k-fold cross-validation")
+  optScaleStepSize   := options. StringLong("scale-step-size",  0 ,        "1.0", "scale standard step-size")
+  optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
+  optOmpIterations   := options.    IntLong("omp-iterations",   0 ,            1, "number of OMP iterations")
+  optHelp            := options.   BoolLong("help",            'h',               "print help")
 
   options.SetParameters("<M> <N> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
   options.Parse(args)
@@ -215,16 +218,17 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
   }
-  config.Balance       = *optBalance
-  config.Binarize      = *optBinarize
-  config.Complement    = *optComplement
-  config.Reverse       = *optReverse
-  config.Revcomp       = *optRevcomp
-  config.EvalLoss      = *optEvalLoss
-  config.MaxEpochs     = *optMaxEpochs
-  config.SaveTrace     = *optSaveTrace
-  config.Omp           = *optOmp
-  config.OmpIterations = *optOmpIterations
+  config.Balance         = *optBalance
+  config.Binarize        = *optBinarize
+  config.Complement      = *optComplement
+  config.Reverse         = *optReverse
+  config.Revcomp         = *optRevcomp
+  config.EvalLoss        = *optEvalLoss
+  config.MaxEpochs       = *optMaxEpochs
+  config.SaveTrace       = *optSaveTrace
+  config.NoNormalization = *optNoNormalization
+  config.Omp             = *optOmp
+  config.OmpIterations   = *optOmpIterations
 
   learn(config, *optKFoldCV, filename_fg, filename_bg, basename_out)
 }

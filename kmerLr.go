@@ -34,19 +34,20 @@ import   "github.com/pborman/getopt"
 type Config struct {
   SessionConfig
   KmerEquivalence
-  Balance        bool
-  Binarize       bool
-  Lambda         float64
-  Epsilon        float64
-  EpsilonVar     float64
-  StepSizeFactor float64
-  Seed           int64
-  SaveTrace      bool
-  EvalLoss       bool
-  MaxEpochs      int
-  Omp            int
-  OmpIterations  int
-  Pool           threadpool.ThreadPool
+  Balance         bool
+  Binarize        bool
+  Lambda          float64
+  Epsilon         float64
+  EpsilonVar      float64
+  StepSizeFactor  float64
+  Seed            int64
+  SaveTrace       bool
+  EvalLoss        bool
+  MaxEpochs       int
+  NoNormalization bool
+  Omp             int
+  OmpIterations   int
+  Pool            threadpool.ThreadPool
 }
 
 

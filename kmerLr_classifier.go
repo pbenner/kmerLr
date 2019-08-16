@@ -134,7 +134,7 @@ func (obj *KmerLr) Min(classifiers []*KmerLr) error {
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
-  if len(config.Distributions) != 1 {
+  if len(config.Distributions) != 2 {
     return fmt.Errorf("invalid config file")
   }
   if err := obj.LogisticRegression.ImportConfig(config.Distributions[0], t); err != nil {

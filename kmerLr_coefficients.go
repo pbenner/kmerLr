@@ -75,15 +75,21 @@ func coefficients_format(kmers KmerClassList) string {
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients(config Config, filename string, related bool) {
+func coefficients(config Config, filename string, related, rescale bool) {
   classifier   := ImportKmerLr(config, filename)
   coefficients := make(map[KmerClassId]float64)
   kmers        := classifier.Kmers
   graph        := KmerGraph{}
 
   // insert coefficients into the map
-  for i, v := range classifier.Theta.GetValues()[1:] {
-    coefficients[kmers[i].KmerClassId] = v
+  if rescale && len(classifier.Transform.Sigma) > 0 {
+    for i, v := range classifier.Theta.GetValues()[1:] {
+      coefficients[kmers[i].KmerClassId] = v*classifier.Transform.Sigma[i+1]
+    }
+  } else {
+    for i, v := range classifier.Theta.GetValues()[1:] {
+      coefficients[kmers[i].KmerClassId] = v
+    }
   }
   // construct graph of related k-mers if required
   if related {
@@ -110,6 +116,7 @@ func main_coefficients(config Config, args []string) {
   options := getopt.New()
 
   optRelated := options.BoolLong("related",   0 ,  "print related coefficients")
+  optRescale := options.BoolLong("rescale",   0 ,  "rescale coefficients to untransform data")
   optHelp    := options.BoolLong("help",     'h',  "print help")
 
   options.SetParameters("<MODEL.json>")
@@ -129,5 +136,5 @@ func main_coefficients(config Config, args []string) {
   }
   filename := options.Args()[0]
 
-  coefficients(config, filename, *optRelated)
+  coefficients(config, filename, *optRelated, *optRescale)
 }
