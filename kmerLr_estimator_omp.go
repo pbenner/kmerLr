@@ -121,7 +121,7 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) *Kmer
     for l, j := range obj.active {
       r.KmerLrAlphabet.Kmers[l] = obj.Kmers[j]
     }
-    return r.Sparsify()
+    return r
   }
 }
 

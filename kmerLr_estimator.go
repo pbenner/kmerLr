@@ -70,6 +70,6 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) *KmerLr 
     r.KmerLrAlphabet.Binarize        = config.Binarize
     r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
     r.KmerLrAlphabet.Kmers           = obj   .Kmers
-    return r.Sparsify()
+    return r
   }
 }

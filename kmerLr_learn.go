@@ -68,7 +68,7 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
   // set transform
   classifier.Transform = t
   // export model
-  SaveModel(config, filename_json, classifier)
+  SaveModel(config, filename_json, classifier.Sparsify())
 
   return classifier
 }
