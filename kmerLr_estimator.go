@@ -24,6 +24,7 @@ import   "log"
 import . "github.com/pbenner/ngstat/estimation"
 
 import . "github.com/pbenner/autodiff"
+import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
@@ -54,6 +55,16 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, balance bool) *KmerL
     // alphabet parameters
     return &KmerLrEstimator{*estimator, kmers}
   }
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj *KmerLrEstimator) Clone() *KmerLrOmpEstimator {
+  panic("internal error")
+}
+
+func (obj *KmerLrEstimator) CloneVectorEstimator() VectorEstimator {
+  panic("internal error")
 }
 
 /* -------------------------------------------------------------------------- */
