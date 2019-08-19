@@ -24,6 +24,7 @@ import   "log"
 import . "github.com/pbenner/autodiff"
 import   "github.com/pbenner/autodiff/algorithm/rprop"
 import . "github.com/pbenner/autodiff/statistics"
+import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
 import . "github.com/pbenner/gonetics"
@@ -84,9 +85,23 @@ func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector) *Km
     obj.computeClassWeights(data)
   }
   obj.data = data
-  rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), 1e-8, []float64{0.5,1.1}, rprop.Epsilon{obj.Epsilon}, rprop.MaxIterations{obj.MaxIterations}, obj.Hook)
+  x, err := rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), 1e-8, []float64{0.5,1.1}, rprop.Epsilon{obj.Epsilon}, rprop.MaxIterations{obj.MaxIterations}, obj.Hook)
   obj.data = nil
-  return nil
+  if err != nil {
+    log.Fatal(err)
+    return nil
+  }
+  if lr, err := vectorDistribution.NewLogisticRegression(NewVector(BareRealType, x.GetValues())); err != nil {
+    log.Fatal(err)
+    return nil
+  } else {
+    r := KmerLr{}
+    r.LogisticRegression             = *lr
+    r.KmerLrAlphabet.Binarize        = config.Binarize
+    r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
+    r.KmerLrAlphabet.Kmers           = obj   .Kmers
+    return &r
+  }
 }
 
 /* -------------------------------------------------------------------------- */
