@@ -89,7 +89,7 @@ func (obj logisticRegression) ClassLogPdf(v SparseConstRealVector, gamma []float
   }
 }
 
-func (obj logisticRegression) Gradient(data []ConstVector, gamma []float64) []float64 {
+func (obj logisticRegression) Gradient(data []ConstVector, gamma []float64, lambda float64) []float64 {
   if len(data) == 0 {
     return nil
   }
@@ -112,6 +112,16 @@ func (obj logisticRegression) Gradient(data []ConstVector, gamma []float64) []fl
       }
     }
   }
+  if lambda != 0.0 {
+    for j := 1; j < m-1; j++ {
+      if obj.Theta[j] < 0 {
+        g[j] -= 1.0
+      } else
+      if obj.Theta[j] > 0 {
+        g[j] += 1.0
+      }
+    }
+  }
   return g
 }
 
@@ -131,8 +141,10 @@ func (obj logisticRegression) Loss(data []ConstVector, gamma []float64, lambda f
     case false: r -= obj.ClassWeights[0]*obj.ClassLogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma, c)
     }
   }
-  for j := 1; j < m-1; j++ {
-    r += lambda*math.Abs(obj.Theta[j])
+  if lambda != 0.0 {
+    for j := 1; j < m-1; j++ {
+      r += lambda*math.Abs(obj.Theta[j])
+    }
   }
   return r
 }

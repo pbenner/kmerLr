@@ -184,7 +184,7 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
 
 func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, gamma []float64) []int {
   r := logisticRegression{obj.theta_, obj.ClassWeights}
-  g := r.Gradient(data, gamma)
+  g := r.Gradient(data, gamma, 0.0)
   if len(g) != len(obj.Kmers)+1 {
     panic("internal error")
   }
