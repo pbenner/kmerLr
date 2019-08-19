@@ -61,14 +61,15 @@ func (obj *KmerLr) Clone() *KmerLr {
 
 func (obj *KmerLr) Loss(data []ConstVector, lambda float64, balance bool) float64 {
   lr := logisticRegression{}
-  lr.Theta = obj.Theta.GetValues()
+  lr.Theta  = obj.Theta.GetValues()
+  lr.Lambda = lambda
   if balance {
     lr.ClassWeights = compute_class_weights(data)
   } else {
     lr.ClassWeights[0] = 1.0
     lr.ClassWeights[1] = 1.0
   }
-  return lr.Loss(data, nil, lambda)
+  return lr.Loss(data, nil)
 }
 
 /* -------------------------------------------------------------------------- */

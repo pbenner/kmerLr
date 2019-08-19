@@ -33,10 +33,11 @@ type HookType func(x ConstVector, change ConstScalar, epoch int) bool
 func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator *vectorEstimator.LogisticRegression) HookType {
   loss := func(x ConstVector) float64 {
     lr := logisticRegression{}
-    lr.Theta = x.GetValues()
+    lr.Theta        = x.GetValues()
+    lr.Lambda       = estimator.L1Reg
     lr.ClassWeights = estimator.ClassWeights
     data, _ := estimator.GetData()
-    return lr.Loss(data, nil, estimator.L1Reg)
+    return lr.Loss(data, nil)
   }
   hook := func(x ConstVector, change ConstScalar, epoch int) bool {
     n := 0
