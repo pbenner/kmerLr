@@ -21,66 +21,80 @@ package main
 //import   "fmt"
 import   "log"
 
-import . "github.com/pbenner/ngstat/estimation"
-
 import . "github.com/pbenner/autodiff"
+import   "github.com/pbenner/autodiff/algorithm/rprop"
 import . "github.com/pbenner/autodiff/statistics"
-import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
 import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
-type KmerLrEstimator struct {
-  vectorEstimator.LogisticRegression
+type KmerLrRpropEstimator struct {
+  logisticRegression
+  Balance       bool
+  Epsilon       float64
+  MaxIterations int
+  data        []ConstVector
+  // list of all features
   Kmers KmerClassList
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, kmers KmerClassList) *KmerLrEstimator {
+func NewKmerLrRpropEstimator(config Config, kmers KmerClassList) *KmerLrRpropEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
     estimator.Balance        = config.Balance
-    estimator.Seed           = config.Seed
     estimator.L1Reg          = config.Lambda
     estimator.Epsilon        = config.Epsilon
     estimator.StepSizeFactor = config.StepSizeFactor
     if config.MaxEpochs != 0 {
       estimator.MaxIterations = config.MaxEpochs
     }
-    // alphabet parameters
-    return &KmerLrEstimator{*estimator, kmers}
+    r := KmerLrRpropEstimator{}
+    r.Balance       = config.Balance
+    r.Lambda        = config.Lambda
+    r.Epsilon       = config.Epsilon
+    r.MaxIterations = config.MaxEpochs
+    r.Kmers         = kmers
+    r.Theta         = make([]float64, kmers.Len()+1)
+    return &r
   }
 }
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) Clone() *KmerLrOmpEstimator {
+func (obj *KmerLrRpropEstimator) Clone() *KmerLrRpropEstimator {
   panic("internal error")
 }
 
-func (obj *KmerLrEstimator) CloneVectorEstimator() VectorEstimator {
+func (obj *KmerLrRpropEstimator) CloneVectorEstimator() VectorEstimator {
   panic("internal error")
 }
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) *KmerLr {
-  if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, data); err != nil {
-    log.Fatal(err)
+func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector) *KmerLr {
+  if obj.Balance {
+    obj.computeClassWeights(data)
   }
-  if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
-    log.Fatal(err)
-    return nil
-  } else {
-    r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
-    r.KmerLrAlphabet.Binarize        = config.Binarize
-    r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
-    r.KmerLrAlphabet.Kmers           = obj   .Kmers
-    return r
-  }
+  obj.data = data
+  rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), 1e-4, []float64{0.5,1.1}, rprop.Epsilon{obj.Epsilon}, rprop.MaxIterations{obj.MaxIterations})
+  obj.data = nil
+  return nil
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj *KmerLrRpropEstimator) objectiveGradient(theta, gradient DenseConstRealVector) error {
+  obj.Theta = theta
+  obj.Gradient(gradient, obj.data, nil)
+  return nil
+}
+
+func (obj *KmerLrRpropEstimator) computeClassWeights(data []ConstVector) {
+  obj.ClassWeights = compute_class_weights(data)
 }

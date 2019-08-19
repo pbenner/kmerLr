@@ -51,13 +51,18 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
     trace = &Trace{}
   }
   if config.Omp == 0 {
-    estimator  := NewKmerLrEstimator(config, kmers, config.Balance)
-    estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
-    classifier  = estimator.Estimate(config, data)
+    if config.Rprop {
+      estimator := NewKmerLrRpropEstimator(config, kmers)
+      classifier = estimator.Estimate(config, data)
+    } else {
+      estimator := NewKmerLrEstimator(config, kmers)
+      estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
+      classifier = estimator.Estimate(config, data)
+    }
   } else {
-    estimator  := NewKmerLrOmpEstimator(config, kmers, config.Omp, config.Balance, config.OmpIterations)
+    estimator := NewKmerLrOmpEstimator(config, kmers)
     estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
-    classifier  = estimator.Estimate(config, data)
+    classifier = estimator.Estimate(config, data)
   }
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   filename_json  := fmt.Sprintf("%s.json" , basename_out)
@@ -128,6 +133,7 @@ func main_learn(config Config, args []string) {
   optNoNormalization := options.   BoolLong("no-normalization", 0 ,               "do not normalize data")
   optKFoldCV         := options.    IntLong("k-fold-cv",        0 ,            1, "perform k-fold cross-validation")
   optScaleStepSize   := options. StringLong("scale-step-size",  0 ,        "1.0", "scale standard step-size")
+  optRprop           := options.   BoolLong("rprop",            0 ,               "use rprop for optimization")
   optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
   optOmpIterations   := options.    IntLong("omp-iterations",   0 ,            1, "number of OMP iterations")
   optHelp            := options.   BoolLong("help",            'h',               "print help")
@@ -229,6 +235,7 @@ func main_learn(config Config, args []string) {
   config.NoNormalization = *optNoNormalization
   config.Omp             = *optOmp
   config.OmpIterations   = *optOmpIterations
+  config.Rprop           = *optRprop
 
   learn(config, *optKFoldCV, filename_fg, filename_bg, basename_out)
 }

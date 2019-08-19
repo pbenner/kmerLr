@@ -50,12 +50,12 @@ type KmerLrOmpEstimator struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, balance bool, ompIterations int) *KmerLrOmpEstimator {
+func NewKmerLrOmpEstimator(config Config, kmers KmerClassList) *KmerLrOmpEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
-    estimator.Balance        = balance
+    estimator.Balance        = config.Balance
     estimator.Seed           = config.Seed
     estimator.L1Reg          = config.Lambda
     estimator.Epsilon        = config.Epsilon
@@ -67,8 +67,8 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, n int, balance bo
     r.LogisticRegression = *estimator
     r.Kmers         = kmers
     r.theta_        = make([]float64, kmers.Len()+1)
-    r.OmpIterations = ompIterations
-    r.n             = n
+    r.OmpIterations = config.OmpIterations
+    r.n             = config.Omp
     return &r
   }
 }

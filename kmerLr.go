@@ -45,6 +45,7 @@ type Config struct {
   EvalLoss        bool
   MaxEpochs       int
   NoNormalization bool
+  Rprop           bool
   Omp             int
   OmpIterations   int
   Pool            threadpool.ThreadPool
