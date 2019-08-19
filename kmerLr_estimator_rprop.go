@@ -57,6 +57,7 @@ func NewKmerLrRpropEstimator(config Config, kmers KmerClassList) *KmerLrRpropEst
     }
     r := KmerLrRpropEstimator{}
     r.Balance       = config.Balance
+    r.ClassWeights  = [2]float64{1, 1}
     r.Lambda        = config.Lambda
     r.Epsilon       = config.Epsilon
     r.MaxIterations = config.MaxEpochs
