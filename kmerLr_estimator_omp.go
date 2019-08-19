@@ -187,7 +187,7 @@ func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, gamma []float64)
   r.Theta        = obj.theta_
   r.Lambda       = 0.0
   r.ClassWeights = obj.ClassWeights
-  g := r.Gradient(data, gamma)
+  g := r.Gradient(nil, data, gamma)
   if len(g) != len(obj.Kmers)+1 {
     panic("internal error")
   }

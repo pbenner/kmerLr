@@ -90,14 +90,19 @@ func (obj logisticRegression) ClassLogPdf(v SparseConstRealVector, gamma []float
   }
 }
 
-func (obj logisticRegression) Gradient(data []ConstVector, gamma []float64) []float64 {
+func (obj logisticRegression) Gradient(g []float64, data []ConstVector, gamma []float64) []float64 {
   if len(data) == 0 {
     return nil
   }
   n := len(data)
   m := data[0].Dim()
   w := 0.0
-  g := make([]float64, m-1)
+  if len(g) == 0 {
+    g = make([]float64, m-1)
+  }
+  if len(g) != m-1 {
+    panic("internal error")
+  }
 
   for i := 0; i < n; i++ {
     r := obj.LogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma)
