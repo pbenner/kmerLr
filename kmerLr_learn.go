@@ -53,6 +53,7 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
   if config.Omp == 0 {
     if config.Rprop {
       estimator := NewKmerLrRpropEstimator(config, kmers)
+      estimator.Hook = NewRpropHook(config, trace, icv, data, nil)
       classifier = estimator.Estimate(config, data)
     } else {
       estimator := NewKmerLrEstimator(config, kmers)

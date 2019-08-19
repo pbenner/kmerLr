@@ -20,6 +20,7 @@ package main
 
 //import   "fmt"
 import   "log"
+import   "math"
 
 import . "github.com/pbenner/autodiff"
 import   "github.com/pbenner/autodiff/algorithm/rprop"
@@ -35,12 +36,28 @@ type KmerLrRpropEstimator struct {
   Balance       bool
   Epsilon       float64
   MaxIterations int
+  Hook          rprop.Hook
   data        []ConstVector
   // list of all features
   Kmers KmerClassList
 }
 
 /* -------------------------------------------------------------------------- */
+
+func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, estimator *vectorEstimator.LogisticRegression) rprop.Hook {
+  hook := NewHook(config, trace, icv, data, estimator)
+  k := 0
+  f := func(gradient []float64, step []float64, x ConstVector, y Scalar) bool {
+    k += 1
+    c := 0.0
+    for i := 0; i < len(gradient); i++ {
+      c += math.Abs(gradient[i])
+    }
+    hook(x, ConstReal(c), k)
+    return false
+  }
+  return rprop.Hook{f}
+}
 
 func NewKmerLrRpropEstimator(config Config, kmers KmerClassList) *KmerLrRpropEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
