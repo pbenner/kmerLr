@@ -22,6 +22,7 @@ import   "fmt"
 import   "math"
 
 import . "github.com/pbenner/autodiff"
+import   "github.com/pbenner/autodiff/algorithm/rprop"
 import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
 /* -------------------------------------------------------------------------- */
@@ -86,4 +87,63 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
     return false
   }
   return hook
+}
+
+func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, estimator *KmerLrRpropEstimator) rprop.Hook {
+  loss := func(x ConstVector) float64 {
+    return estimator.logisticRegression.Loss(estimator.data, nil)
+  }
+  k    := 0
+  hook := func(gradient []float64, step []float64, x ConstVector, y Scalar) bool {
+    k += 1
+    n := 0
+    c := 0.0
+    l := math.NaN()
+    if config.EvalLoss {
+      l = loss(x)
+    }
+    for i := 0; i < len(gradient); i++ {
+      c += math.Abs(gradient[i])
+    }
+    for it := x.ConstIterator(); it.Ok(); it.Next() {
+      if it.GetConst().GetValue() != 0.0 {
+        n += 1
+      }
+    }
+    if trace != nil {
+      trace.Append(k, n, c, l)
+    }
+    if config.Verbose > 1 {
+      if trace != nil {
+        if icv != -1 {
+          fmt.Printf("cv run    : %d\n", icv+1)
+        }
+        fmt.Printf("epoch     : %d\n", k)
+        fmt.Printf("change    : %v\n", c)
+        fmt.Printf("#ceof     : %d\n", n-1)
+        fmt.Printf("var(#ceof): %f\n", trace.CompVar(10))
+        if config.EvalLoss {
+          fmt.Printf("loss      : %f\n", l)
+        }
+      } else {
+        if icv != -1 {
+          fmt.Printf("cv run: %d\n", icv+1)
+        }
+        fmt.Printf("epoch : %d\n", k)
+        fmt.Printf("change: %v\n", c)
+        fmt.Printf("#ceof : %d\n", n-1)
+        if config.EvalLoss {
+          fmt.Printf("loss  : %f\n", l)
+        }
+      }
+      fmt.Println()
+    }
+    if trace != nil && config.EpsilonVar != 0.0 {
+      if r := trace.CompVar(10); r < config.EpsilonVar {
+        return true
+      }
+    }
+    return false
+  }
+  return rprop.Hook{hook}
 }
