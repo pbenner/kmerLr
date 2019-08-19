@@ -85,7 +85,7 @@ func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector) *Km
     obj.computeClassWeights(data)
   }
   obj.data = data
-  x, err := rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), 1e-8, []float64{0.5,1.1}, rprop.Epsilon{obj.Epsilon}, rprop.MaxIterations{obj.MaxIterations}, obj.Hook)
+  x, err := rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), 1e-8, []float64{1.2, 0.8}, rprop.Epsilon{obj.Epsilon}, rprop.MaxIterations{obj.MaxIterations}, obj.Hook)
   obj.data = nil
   if err != nil {
     log.Fatal(err)
