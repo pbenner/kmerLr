@@ -61,13 +61,27 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
     classifier = estimator.Estimate(config, data)
   } else
   if config.Hybrid != 0 {
+    maxEpochs := config.MaxEpochs
+    if config.MaxEpochs == 0 || config.MaxEpochs >= config.Hybrid {
+      config.MaxEpochs = config.Hybrid
+    }
     estimator1 := NewKmerLrRpropEstimator(config, kmers)
     estimator1.Hook = NewRpropHook(config, trace, icv, data, estimator1)
     classifier = estimator1.Estimate(config, data)
-    estimator2 := NewKmerLrEstimator(config, kmers)
-    estimator2.Hook = NewHook(config, trace, icv, data, &estimator2.LogisticRegression)
-    estimator2.SetParameters(classifier.Theta)
-    classifier = estimator2.Estimate(config, data)
+    if maxEpochs == 0 {
+      config.MaxEpochs = 0
+    } else {
+      config.MaxEpochs = maxEpochs - config.Hybrid
+      if config.MaxEpochs == 0 {
+        config.MaxEpochs = -1
+      }
+    }
+    if config.MaxEpochs >= 0 {
+      estimator2 := NewKmerLrEstimator(config, kmers)
+      estimator2.Hook = NewHook(config, trace, icv, data, &estimator2.LogisticRegression)
+      estimator2.SetParameters(classifier.Theta)
+      classifier = estimator2.Estimate(config, data)
+    }
   } else {
     estimator := NewKmerLrEstimator(config, kmers)
     estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
