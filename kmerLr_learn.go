@@ -50,18 +50,26 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
   if config.SaveTrace || config.EpsilonVar != 0.0 {
     trace = &Trace{}
   }
-  if config.Omp == 0 {
-    if config.Rprop {
-      estimator := NewKmerLrRpropEstimator(config, kmers)
-      estimator.Hook = NewRpropHook(config, trace, icv, data, estimator)
-      classifier = estimator.Estimate(config, data)
-    } else {
-      estimator := NewKmerLrEstimator(config, kmers)
-      estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
-      classifier = estimator.Estimate(config, data)
-    }
-  } else {
+  if config.Omp != 0 {
     estimator := NewKmerLrOmpEstimator(config, kmers)
+    estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
+    classifier = estimator.Estimate(config, data)
+  } else
+  if config.Rprop {
+    estimator := NewKmerLrRpropEstimator(config, kmers)
+    estimator.Hook = NewRpropHook(config, trace, icv, data, estimator)
+    classifier = estimator.Estimate(config, data)
+  } else
+  if config.Hybrid != 0 {
+    estimator1 := NewKmerLrRpropEstimator(config, kmers)
+    estimator1.Hook = NewRpropHook(config, trace, icv, data, estimator1)
+    classifier = estimator1.Estimate(config, data)
+    estimator2 := NewKmerLrEstimator(config, kmers)
+    estimator2.Hook = NewHook(config, trace, icv, data, &estimator2.LogisticRegression)
+    estimator2.SetParameters(classifier.Theta)
+    classifier = estimator2.Estimate(config, data)
+  } else {
+    estimator := NewKmerLrEstimator(config, kmers)
     estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
     classifier = estimator.Estimate(config, data)
   }
@@ -137,6 +145,7 @@ func main_learn(config Config, args []string) {
   optRprop           := options.   BoolLong("rprop",            0 ,               "use rprop for optimization")
   optRpropStepSize   := options. StringLong("rprop-step-size",  0 ,       "1e-4", "rprop initial step size")
   optRpropEta        := options. StringLong("rprop-eta",        0 ,    "1.2:0.8", "rprop eta parameter [default: 1.2:0.8]")
+  optHybrid          := options.    IntLong("hybrid",           0 ,            0, "use rprop for n iterations and then switch to saga")
   optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
   optOmpIterations   := options.    IntLong("omp-iterations",   0 ,            1, "number of OMP iterations")
   optHelp            := options.   BoolLong("help",            'h',               "print help")
@@ -256,6 +265,7 @@ func main_learn(config Config, args []string) {
   config.Omp             = *optOmp
   config.OmpIterations   = *optOmpIterations
   config.Rprop           = *optRprop
+  config.Hybrid          = *optHybrid
 
   learn(config, *optKFoldCV, filename_fg, filename_bg, basename_out)
 }
