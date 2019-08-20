@@ -88,8 +88,14 @@ func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector) *Km
   if obj.Balance {
     obj.computeClassWeights(data)
   }
+  args := []interface{}{}
+  args  = append(args, rprop.Epsilon{obj.Epsilon})
+  args  = append(args, obj.Hook)
+  if obj.MaxIterations > 0 {
+    args = append(args, rprop.MaxIterations{obj.MaxIterations})
+  }
   obj.data = data
-  x, err := rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), obj.StepSize, obj.Eta, rprop.Epsilon{obj.Epsilon}, rprop.MaxIterations{obj.MaxIterations}, obj.Hook)
+  x, err := rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), obj.StepSize, obj.Eta, args...)
   obj.data = nil
   if err != nil {
     log.Fatal(err)
