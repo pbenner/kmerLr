@@ -37,6 +37,8 @@ type KmerLrRpropEstimator struct {
   Epsilon       float64
   MaxIterations int
   Hook          rprop.Hook
+  StepSize      float64
+  Eta         []float64
   data        []ConstVector
   // list of all features
   Kmers KmerClassList
@@ -62,6 +64,8 @@ func NewKmerLrRpropEstimator(config Config, kmers KmerClassList) *KmerLrRpropEst
     r.Lambda        = config.Lambda
     r.Epsilon       = config.Epsilon
     r.MaxIterations = config.MaxEpochs
+    r.StepSize      = config.RpropStepSize
+    r.Eta           = config.RpropEta
     r.Kmers         = kmers
     r.Theta         = make([]float64, kmers.Len()+1)
     return &r
@@ -85,7 +89,7 @@ func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector) *Km
     obj.computeClassWeights(data)
   }
   obj.data = data
-  x, err := rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), 1e-8, []float64{1.2, 0.8}, rprop.Epsilon{obj.Epsilon}, rprop.MaxIterations{obj.MaxIterations}, obj.Hook)
+  x, err := rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), obj.StepSize, obj.Eta, rprop.Epsilon{obj.Epsilon}, rprop.MaxIterations{obj.MaxIterations}, obj.Hook)
   obj.data = nil
   if err != nil {
     log.Fatal(err)

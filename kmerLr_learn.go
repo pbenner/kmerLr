@@ -135,6 +135,8 @@ func main_learn(config Config, args []string) {
   optKFoldCV         := options.    IntLong("k-fold-cv",        0 ,            1, "perform k-fold cross-validation")
   optScaleStepSize   := options. StringLong("scale-step-size",  0 ,        "1.0", "scale standard step-size")
   optRprop           := options.   BoolLong("rprop",            0 ,               "use rprop for optimization")
+  optRpropStepSize   := options. StringLong("rprop-step-size",  0 ,       "1e-4", "rprop initial step size")
+  optRpropEta        := options. StringLong("rprop-eta",        0 ,    "1.2:0.8", "rprop eta parameter [default: 1.2:0.8]")
   optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
   optOmpIterations   := options.    IntLong("omp-iterations",   0 ,            1, "number of OMP iterations")
   optHelp            := options.   BoolLong("help",            'h',               "print help")
@@ -224,6 +226,23 @@ func main_learn(config Config, args []string) {
   if *optOmpIterations < 1 {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
+  }
+  if v, err := strconv.ParseFloat(*optRpropStepSize, 64); err != nil {
+    log.Fatal(err)
+  } else {
+    config.RpropStepSize = v
+  }
+  if eta := strings.Split(*optRpropEta, ":"); len(eta) != 2 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(1)
+  } else {
+    v1, err := strconv.ParseFloat(eta[0], 64); if err != nil {
+      log.Fatal(err)
+    }
+    v2, err := strconv.ParseFloat(eta[1], 64); if err != nil {
+      log.Fatal(err)
+    }
+    config.RpropEta = []float64{v1, v2}
   }
   config.Balance         = *optBalance
   config.Binarize        = *optBinarize
