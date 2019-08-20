@@ -52,19 +52,24 @@ func (obj *Transform) TransformFit(data []ConstVector) {
   }
   mu[0  ] = 0.0
   mu[m-1] = 0.0
+  k := make([]int, m)
   // compute sigma
   for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       j := it.Index()
       v := it.GetConst().GetValue()
+      k    [j] += 1
       sigma[j] += (v-mu[j])*(v-mu[j])
     }
+  }
+  for j := 1; j < m-1; j++ {
+    sigma[j] += float64(n-k[j])*mu[j]*mu[j]
   }
   for j := 1; j < m-1; j++ {
     if sigma[j] == 0.0 {
       sigma[j] = 1.0
     } else {
-      sigma[j] = math.Sqrt(sigma[j]/float64(n-1))
+      sigma[j] = math.Sqrt(sigma[j]/float64(n))
     }
   }
   sigma[0  ] = 1.0
