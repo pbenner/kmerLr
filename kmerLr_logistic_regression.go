@@ -103,7 +103,9 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, gamma []
   if len(g) != m-1 {
     panic("internal error")
   }
-
+  for j, _ := range g {
+    g[j] = 0
+  }
   for i := 0; i < n; i++ {
     r := obj.LogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma)
 
