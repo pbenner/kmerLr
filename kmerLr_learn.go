@@ -157,7 +157,7 @@ func main_learn(config Config, args []string) {
   optKFoldCV         := options.    IntLong("k-fold-cv",        0 ,            1, "perform k-fold cross-validation")
   optScaleStepSize   := options. StringLong("scale-step-size",  0 ,        "1.0", "scale standard step-size")
   optRprop           := options.   BoolLong("rprop",            0 ,               "use rprop for optimization")
-  optRpropStepSize   := options. StringLong("rprop-step-size",  0 ,       "1e-4", "rprop initial step size")
+  optRpropStepSize   := options. StringLong("rprop-step-size",  0 ,        "0.0", "rprop initial step size [default: 0.0 (auto)]")
   optRpropEta        := options. StringLong("rprop-eta",        0 ,    "1.2:0.8", "rprop eta parameter [default: 1.2:0.8]")
   optHybrid          := options.    IntLong("hybrid",           0 ,            0, "use rprop for n iterations and then switch to saga")
   optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
