@@ -20,12 +20,12 @@ package main
 
 //import   "fmt"
 import   "log"
+import   "math"
 
 import . "github.com/pbenner/autodiff"
 import   "github.com/pbenner/autodiff/algorithm/rprop"
 import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
-import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
 import . "github.com/pbenner/gonetics"
 
@@ -33,13 +33,14 @@ import . "github.com/pbenner/gonetics"
 
 type KmerLrRpropEstimator struct {
   logisticRegression
-  Balance       bool
-  Epsilon       float64
-  MaxIterations int
-  Hook          rprop.Hook
-  StepSize      float64
-  Eta         []float64
-  data        []ConstVector
+  Balance        bool
+  Epsilon        float64
+  MaxIterations  int
+  Hook           rprop.Hook
+  StepSize       float64
+  StepSizeFactor float64
+  Eta          []float64
+  data         []ConstVector
   // list of all features
   Kmers KmerClassList
 }
@@ -47,29 +48,18 @@ type KmerLrRpropEstimator struct {
 /* -------------------------------------------------------------------------- */
 
 func NewKmerLrRpropEstimator(config Config, kmers KmerClassList) *KmerLrRpropEstimator {
-  if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
-    log.Fatal(err)
-    return nil
-  } else {
-    estimator.Balance        = config.Balance
-    estimator.L1Reg          = config.Lambda
-    estimator.Epsilon        = config.Epsilon
-    estimator.StepSizeFactor = config.StepSizeFactor
-    if config.MaxEpochs != 0 {
-      estimator.MaxIterations = config.MaxEpochs
-    }
-    r := KmerLrRpropEstimator{}
-    r.Balance       = config.Balance
-    r.ClassWeights  = [2]float64{1, 1}
-    r.Lambda        = config.Lambda
-    r.Epsilon       = config.Epsilon
-    r.MaxIterations = config.MaxEpochs
-    r.StepSize      = config.RpropStepSize
-    r.Eta           = config.RpropEta
-    r.Kmers         = kmers
-    r.Theta         = make([]float64, kmers.Len()+1)
-    return &r
-  }
+  r := KmerLrRpropEstimator{}
+  r.Balance        = config.Balance
+  r.ClassWeights   = [2]float64{1, 1}
+  r.Lambda         = config.Lambda
+  r.Epsilon        = config.Epsilon
+  r.MaxIterations  = config.MaxEpochs
+  r.StepSize       = config.RpropStepSize
+  r.StepSizeFactor = config.StepSizeFactor
+  r.Eta            = config.RpropEta
+  r.Kmers          = kmers
+  r.Theta          = make([]float64, kmers.Len()+1)
+  return &r
 }
 
 /* -------------------------------------------------------------------------- */
@@ -93,6 +83,9 @@ func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector) *Km
   args  = append(args, obj.Hook)
   if obj.MaxIterations > 0 {
     args = append(args, rprop.MaxIterations{obj.MaxIterations})
+  }
+  if obj.StepSize == 0.0 {
+    obj.setStepSize(data)
   }
   obj.data = data
   x, err := rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), obj.StepSize, obj.Eta, args...)
@@ -124,4 +117,30 @@ func (obj *KmerLrRpropEstimator) objectiveGradient(theta, gradient DenseConstRea
 
 func (obj *KmerLrRpropEstimator) computeClassWeights(data []ConstVector) {
   obj.ClassWeights = compute_class_weights(data)
+}
+
+func (obj *KmerLrRpropEstimator) setStepSize(data []ConstVector) {
+  max_squared_sum := 0.0
+  for i, _ := range data {
+    r  := 0.0
+    it := data[i].ConstIterator()
+    // skip first element
+    if it.Ok() {
+      it.Next()
+    }
+    for ; it.Ok(); it.Next() {
+      // skip last element
+      if it.Index() == data[i].Dim()-1 {
+        break
+      }
+      r += it.GetConst().GetValue()*it.GetConst().GetValue()
+    }
+    if r > max_squared_sum {
+      max_squared_sum = r
+    }
+  }
+  L := 0.25*(max_squared_sum + 1.0)
+  L *= math.Max(obj.ClassWeights[0], obj.ClassWeights[1])
+  obj.StepSize  = 1.0/L
+  obj.StepSize *= obj.StepSizeFactor
 }
