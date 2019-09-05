@@ -71,18 +71,38 @@ func compute_similarity(config Config, theta ConstVector, x1, x2 ConstVector) fl
     r1 += v1*vt*v1
     r2 += v2*vt*v2
   }
-  return r0 / math.Sqrt(r1) / math.Sqrt(r2)
+  if r0 == 0.0 {
+    return 0.0
+  } else {
+    return r0 / math.Sqrt(r1) / math.Sqrt(r2)
+  }
 }
 
 /* -------------------------------------------------------------------------- */
 
-func similarity(config Config, filenameModel, filenameFasta, filenameOut string) {
+func similarity(config Config, filenameModel, filenameFasta, filenameOut string, negate bool) {
   classifier := ImportKmerLr(config, filenameModel)
 
   // copy config from classifier
   config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
   config.Binarize        = classifier.Binarize
 
+  // remove negative entries
+  if negate {
+    for i := 0; i < classifier.Theta.Dim(); i++ {
+      if v := classifier.Theta.ValueAt(i); v > 0 {
+        classifier.Theta.At(i).SetValue(0.0)
+      } else {
+        classifier.Theta.At(i).SetValue(-v)
+      }
+    }
+  } else {
+    for i := 0; i < classifier.Theta.Dim(); i++ {
+      if v := classifier.Theta.ValueAt(i); v < 0 {
+        classifier.Theta.At(i).SetValue(0.0)
+      }
+    }
+  }
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
@@ -91,9 +111,12 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string)
 
   // allocate result
   result := make([][]float64, len(data))
-
-  config.Pool.RangeJob(0, len(data), func(i int, pool threadpool.ThreadPool, erf func() error) error {
+  for i := 0; i < len(data); i++ {
     result[i] = make([]float64, len(data))
+    // create sparse vector index
+    data[i].ValueAt(1)
+  }
+  config.Pool.RangeJob(0, len(data), func(i int, pool threadpool.ThreadPool, erf func() error) error {
     for j := i; j < len(data); j++ {
       result[i][j] = compute_similarity(config, classifier.Theta, data[i], data[j])
       result[j][i] = result[i][j]
@@ -110,9 +133,8 @@ func main_similarity(config Config, args []string) {
 
   options := getopt.New()
 
-  optThreads      := options.    IntLong("threads",       0 ,  1,           "number of threads [default: 1]")
-  optVerbose      := options.CounterLong("verbose",      'v',               "verbose level [-v or -vv]")
-  optHelp         := options.   BoolLong("help",         'h',               "print help")
+  optNegate := options.BoolLong("negate",  0 , "take negative coefficients to form the inner product space")
+  optHelp   := options.BoolLong("help",   'h', "print help")
 
   options.SetParameters("<MODEL.json> [<INPUT.fasta> [OUTPUT.table]]")
   options.Parse(args)
@@ -125,8 +147,6 @@ func main_similarity(config Config, args []string) {
     options.PrintUsage(os.Stderr)
     os.Exit(1)
   }
-  config.Threads      = *optThreads
-  config.Verbose      = *optVerbose
 
   filenameModel := options.Args()[0]
   filenameFasta := ""
@@ -137,5 +157,5 @@ func main_similarity(config Config, args []string) {
   if len(options.Args()) == 3 {
     filenameOut   = options.Args()[2]
   }
-  similarity(config, filenameModel, filenameFasta, filenameOut)
+  similarity(config, filenameModel, filenameFasta, filenameOut, *optNegate)
 }

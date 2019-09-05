@@ -20,6 +20,7 @@ package main
 
 //import   "fmt"
 import   "log"
+import   "os"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
@@ -29,12 +30,21 @@ import   "github.com/pbenner/threadpool"
 
 func import_fasta(config Config, filename string) []string {
   s := OrderedStringSet{}
-  PrintStderr(config, 1, "Reading fasta file `%s'... ", filename)
-  if err := s.ImportFasta(filename); err != nil {
-    PrintStderr(config, 1, "failed\n")
-    log.Fatal(err)
+  if filename == "" {
+    PrintStderr(config, 1, "Reading fasta file from stdin... ")
+    if err := s.ReadFasta(os.Stdin); err != nil {
+      PrintStderr(config, 1, "failed\n")
+      log.Fatal(err)
+    }
+    PrintStderr(config, 1, "done\n")
+  } else {
+    PrintStderr(config, 1, "Reading fasta file `%s'... ", filename)
+    if err := s.ImportFasta(filename); err != nil {
+      PrintStderr(config, 1, "failed\n")
+      log.Fatal(err)
+    }
+    PrintStderr(config, 1, "done\n")
   }
-  PrintStderr(config, 1, "done\n")
   r := make([]string, len(s.Seqnames))
   for i, name := range s.Seqnames {
     r[i] = string(s.Sequences[name])
