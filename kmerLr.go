@@ -129,6 +129,8 @@ func main() {
     main_combine(config, options.Args())
   case "coefficients":
     main_coefficients(config, options.Args())
+  case "similarity":
+    main_similarity(config, options.Args())
   default:
     options.PrintUsage(os.Stderr)
     os.Exit(1)
