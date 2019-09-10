@@ -34,7 +34,7 @@ func combine(config Config, summary, filename_out string, filename_ins ...string
     if !classifiers[i].KmerLrAlphabet.KmerEquivalence.Equals(classifiers[0].KmerLrAlphabet.KmerEquivalence) {
       log.Fatalf("alphabet not consistent across classifiers")
     }
-    if !classifiers[i].Binarize != classifiers[0].Binarize {
+    if  classifiers[i].Binarize != classifiers[0].Binarize {
       log.Fatalf("data binarization is not consistent across classifiers")
     }
     if !classifiers[i].Transform.TransformEquals(classifiers[0].Transform) {

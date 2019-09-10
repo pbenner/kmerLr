@@ -23,9 +23,31 @@ import   "log"
 import   "math"
 import   "os"
 
+import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
 
 import   "github.com/pborman/getopt"
+
+/* -------------------------------------------------------------------------- */
+
+func kmer_abundance(data []ConstVector, kmer KmerClass, kmers KmerClassList, label int) float64 {
+  k := 0
+  n := 0
+  for i := 0; i < len(kmers); i++ {
+    if kmer.Equals(kmers[i]) {
+      for j := 0; j < len(data); j++ {
+        if data[j].ValueAt(data[j].Dim()-1) == float64(label) {
+          n += 1
+          if data[j].ValueAt(i+1) > 0.0 {
+            k += 1
+          }
+        }
+      }
+      return float64(k)/float64(n)
+    }
+  }
+  return 0.0
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -75,12 +97,23 @@ func coefficients_format(kmers KmerClassList) string {
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients(config Config, filename string, related, rescale bool) {
+func coefficients(config Config, filename, filename_fg, filename_bg string, related, rescale bool) {
   classifier   := ImportKmerLr(config, filename)
   coefficients := make(map[KmerClassId]float64)
   kmers        := classifier.Kmers
   graph        := KmerGraph{}
 
+  // copy config from classifier
+  config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
+  config.Binarize        = classifier.Binarize
+
+  data := []ConstVector{}
+  if filename_fg != "" && filename_bg != "" {
+    kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
+      log.Fatal(err)
+    }
+    data, kmers = compile_training_data(config, kmersCounter, classifier.Kmers, config.Binarize, filename_fg, filename_bg)
+  }
   // insert coefficients into the map
   if rescale && len(classifier.Transform.Sigma) > 0 {
     for i, v := range classifier.Theta.GetValues()[1:] {
@@ -102,6 +135,10 @@ func coefficients(config Config, filename string, related, rescale bool) {
   format := coefficients_format(kmers)
 
   for i, kmer := range coefficients_sort(kmers, coefficients) {
+    if len(data) > 0 {
+      fmt.Printf("%3.4f%% ", kmer_abundance(data, kmer, kmers, 1)*100.0)
+      fmt.Printf("%3.4f%% ", kmer_abundance(data, kmer, kmers, 0)*100.0)
+    }
     fmt.Printf(format, i+1, coefficients[kmer.KmerClassId], kmer.String())
     if related {
       coefficients_print_related(kmer, graph, coefficients)
@@ -119,7 +156,7 @@ func main_coefficients(config Config, args []string) {
   optRescale := options.BoolLong("rescale",   0 ,  "rescale coefficients to untransform data")
   optHelp    := options.BoolLong("help",     'h',  "print help")
 
-  options.SetParameters("<MODEL.json>")
+  options.SetParameters("<MODEL.json> [<FOREGROUND.fa> <BACKGROUND.fa>]")
   options.Parse(args)
 
   // parse options
@@ -130,11 +167,17 @@ func main_coefficients(config Config, args []string) {
   }
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
-  if len(options.Args()) != 1 {
+  if len(options.Args()) != 1 && len(options.Args()) != 3 {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  filename := options.Args()[0]
+  filename    := options.Args()[0]
+  filename_fg := ""
+  filename_bg := ""
+  if len(options.Args()) == 3 {
+    filename_fg = options.Args()[1]
+    filename_bg = options.Args()[2]
+  }
 
-  coefficients(config, filename, *optRelated, *optRescale)
+  coefficients(config, filename, filename_fg, filename_bg, *optRelated, *optRescale)
 }
