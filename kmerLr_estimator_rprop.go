@@ -74,6 +74,17 @@ func (obj *KmerLrRpropEstimator) CloneVectorEstimator() VectorEstimator {
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrRpropEstimator) GetParameters() Vector {
+  return NewDenseBareRealVector(obj.Theta)
+}
+
+func (obj *KmerLrRpropEstimator) SetParameters(x Vector) error {
+  obj.Theta = x.GetValues()
+  return nil
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector) *KmerLr {
   if obj.Balance {
     obj.computeClassWeights(data)

@@ -43,8 +43,7 @@ func normalize_data(config Config, data []ConstVector) Transform {
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, icv int, t Transform, basename_out string) VectorPdf {
-  var classifier *KmerLr
+func learn_parameters(config Config, data []ConstVector, classifier *KmerLr, kmers KmerClassList, icv int, t Transform, basename_out string) VectorPdf {
   // hook and trace
   var trace *Trace
   if config.SaveTrace || config.EpsilonVar != 0.0 {
@@ -53,11 +52,17 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
   if config.Omp != 0 {
     estimator := NewKmerLrOmpEstimator(config, kmers)
     estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
+    if classifier != nil {
+      estimator.SetParameters(classifier.GetParameters())
+    }
     classifier = estimator.Estimate(config, data)
   } else
   if config.Rprop {
     estimator := NewKmerLrRpropEstimator(config, kmers)
     estimator.Hook = NewRpropHook(config, trace, icv, data, estimator)
+    if classifier != nil {
+      estimator.SetParameters(classifier.GetParameters())
+    }
     classifier = estimator.Estimate(config, data)
   } else
   if config.Hybrid != 0 {
@@ -67,6 +72,9 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
     }
     estimator1 := NewKmerLrRpropEstimator(config, kmers)
     estimator1.Hook = NewRpropHook(config, trace, icv, data, estimator1)
+    if classifier != nil {
+      estimator1.SetParameters(classifier.GetParameters())
+    }
     classifier = estimator1.Estimate(config, data)
     if maxEpochs == 0 {
       config.MaxEpochs = 0
@@ -101,12 +109,12 @@ func learn_parameters(config Config, data []ConstVector, kmers KmerClassList, ic
   return classifier
 }
 
-func learn_cv(config Config, data []ConstVector, kmers KmerClassList, kfold int, t Transform, basename_out string) {
+func learn_cv(config Config, data []ConstVector, classifier *KmerLr, kmers KmerClassList, kfold int, t Transform, basename_out string) {
   labels := getLabels(data)
 
   learnClassifier := func(i int, data []ConstVector) VectorPdf {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_parameters(config, data, kmers, i, t, basename_out)
+    return learn_parameters(config, data, classifier, kmers, i, t, basename_out)
   }
   testClassifier := func(i int, data []ConstVector, classifier VectorPdf) []float64 {
     return predict_labeled(config, data, classifier)
@@ -116,11 +124,20 @@ func learn_cv(config Config, data []ConstVector, kmers KmerClassList, kfold int,
   SaveCrossvalidation(config, fmt.Sprintf("%s.table", basename_out), predictions, labels)
 }
 
-func learn(config Config, kfold int, filename_fg, filename_bg, basename_out string) {
+func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, basename_out string) {
+  var classifier *KmerLr
+  var kmers       KmerClassList
+  if filename_json != "" {
+    classifier = ImportKmerLr(config, filename_json)
+    kmers      = classifier.Kmers
+    // copy config from classifier
+    config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
+    config.Binarize        = classifier.Binarize
+  }
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data, kmers := compile_training_data(config, kmersCounter, nil, config.Binarize, filename_fg, filename_bg)
+  data, kmers := compile_training_data(config, kmersCounter, kmers, config.Binarize, filename_fg, filename_bg)
   kmersCounter = nil
 
   // normalize data for faster convergence
@@ -129,9 +146,9 @@ func learn(config Config, kfold int, filename_fg, filename_bg, basename_out stri
     t = normalize_data(config, data)
   }
   if kfold <= 1 {
-    learn_parameters(config, data, kmers, -1, t, basename_out)
+    learn_parameters(config, data, classifier, kmers, -1, t, basename_out)
   } else {
-    learn_cv(config, data, kmers, kfold, t, basename_out)
+    learn_cv(config, data, classifier, kmers, kfold, t, basename_out)
   }
 }
 
@@ -162,6 +179,7 @@ func main_learn(config Config, args []string) {
   optHybrid          := options.    IntLong("hybrid",           0 ,            0, "use rprop for n iterations and then switch to saga")
   optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
   optOmpIterations   := options.    IntLong("omp-iterations",   0 ,            1, "number of OMP iterations")
+  optLoad            := options. StringLong("load",             0 ,           "", "use model as initial condition")
   optHelp            := options.   BoolLong("help",            'h',               "print help")
 
   options.SetParameters("<M> <N> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
@@ -281,5 +299,5 @@ func main_learn(config Config, args []string) {
   config.Rprop           = *optRprop
   config.Hybrid          = *optHybrid
 
-  learn(config, *optKFoldCV, filename_fg, filename_bg, basename_out)
+  learn(config, *optKFoldCV, *optLoad, filename_fg, filename_bg, basename_out)
 }
