@@ -179,37 +179,47 @@ func main_learn(config Config, args []string) {
   optHybrid          := options.    IntLong("hybrid",           0 ,            0, "use rprop for n iterations and then switch to saga")
   optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
   optOmpIterations   := options.    IntLong("omp-iterations",   0 ,            1, "number of OMP iterations")
-  optLoad            := options. StringLong("load",             0 ,           "", "use model as initial condition")
   optHelp            := options.   BoolLong("help",            'h',               "print help")
 
-  options.SetParameters("<M> <N> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
+  options.SetParameters("<<M> <N>|<MODEL.json>> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
   options.Parse(args)
 
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
-  if len(options.Args()) != 5 {
+  if len(options.Args()) != 4 && len(options.Args()) != 5 {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  if m, err := strconv.ParseInt(options.Args()[0], 10, 64); err != nil {
-    options.PrintUsage(os.Stderr)
-    os.Exit(1)
+  filename_in  := ""
+  filename_fg  := ""
+  filename_bg  := ""
+  basename_out := ""
+  if len(options.Args()) == 5 {
+    if m, err := strconv.ParseInt(options.Args()[0], 10, 64); err != nil {
+      options.PrintUsage(os.Stderr)
+      os.Exit(1)
+    } else {
+      config.M = int(m)
+    }
+    if n, err := strconv.ParseInt(options.Args()[1], 10, 64); err != nil {
+      options.PrintUsage(os.Stderr)
+      os.Exit(1)
+    } else {
+      config.N = int(n)
+    }
+    if config.M < 1 || config.N < config.M {
+      options.PrintUsage(os.Stderr)
+      os.Exit(1)
+    }
+    filename_fg  = options.Args()[2]
+    filename_bg  = options.Args()[3]
+    basename_out = options.Args()[4]
   } else {
-    config.M = int(m)
+    filename_in  = options.Args()[0]
+    filename_fg  = options.Args()[1]
+    filename_bg  = options.Args()[2]
+    basename_out = options.Args()[3]
   }
-  if n, err := strconv.ParseInt(options.Args()[1], 10, 64); err != nil {
-    options.PrintUsage(os.Stderr)
-    os.Exit(1)
-  } else {
-    config.N = int(n)
-  }
-  if config.M < 1 || config.N < config.M {
-    options.PrintUsage(os.Stderr)
-    os.Exit(1)
-  }
-  filename_fg  := options.Args()[2]
-  filename_bg  := options.Args()[3]
-  basename_out := options.Args()[4]
   // parse options
   //////////////////////////////////////////////////////////////////////////////
   if *optHelp {
@@ -299,5 +309,5 @@ func main_learn(config Config, args []string) {
   config.Rprop           = *optRprop
   config.Hybrid          = *optHybrid
 
-  learn(config, *optKFoldCV, *optLoad, filename_fg, filename_bg, basename_out)
+  learn(config, *optKFoldCV, filename_in, filename_fg, filename_bg, basename_out)
 }
