@@ -103,8 +103,8 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
     j := counts.N()+1
     for j1 := 1; j1 <= counts.N(); j1++ {
       for j2 := j1+1; j2 <= counts.N(); j2++ {
-        i1   := i[j1]
-        i2   := i[j2]
+        i1   := i[j1]-1
+        i2   := i[j2]-1
         i[j]  = p + (p*(p-1)/2) - (p-i1)*((p-i1)-1)/2 + i2 - i1
         v[j]  = v[j1]*v[j2]
         j++

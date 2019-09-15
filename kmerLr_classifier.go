@@ -77,10 +77,45 @@ func (obj *KmerLr) Loss(data []ConstVector, lambda float64, balance bool) float6
 func (obj *KmerLr) Sparsify() *KmerLr {
   theta := []float64{obj.Theta.ValueAt(0)}
   kmers := KmerClassList{}
-  for i := 1; i < obj.Theta.Dim(); i++ {
-    if obj.Theta.ValueAt(i) != 0.0 {
-      theta = append(theta, obj.Theta.ValueAt(i))
-      kmers = append(kmers, obj.Kmers[i-1])
+  if obj.Theta.Dim() == len(obj.Kmers)+1 {
+    // no co-occurrences
+    for i := 0; i < len(obj.Kmers); i++ {
+      if obj.Theta.ValueAt(i+1) != 0.0 {
+        theta = append(theta, obj.Theta.ValueAt(i+1))
+        kmers = append(kmers, obj.Kmers[i])
+      }
+    }
+  } else {
+    // with co-occurrences
+    p  := len(obj.Kmers)
+    nz := make([]bool, len(obj.Kmers))
+    for i := 0; i < len(obj.Kmers); i++ {
+      if obj.Theta.ValueAt(i+1) != 0.0 {
+        nz[i] = true
+      }
+    }
+    for i1 := 0; i1 < len(obj.Kmers); i1++ {
+      for i2 := i1+1; i2 < len(obj.Kmers); i2++ {
+        i := p + (p*(p-1)/2) - (p-i1)*((p-i1)-1)/2 + i2 - i1
+        if obj.Theta.ValueAt(i+1) != 0.0 {
+          nz[i1] = true
+          nz[i2] = true
+        }
+      }
+    }
+    for i := 0; i < len(obj.Kmers); i++ {
+      if nz[i] {
+        theta = append(theta, obj.Theta.ValueAt(i+1))
+        kmers = append(kmers, obj.Kmers[i])
+      }
+    }
+    for i1 := 0; i1 < len(obj.Kmers); i1++ {
+      for i2 := i1+1; i2 < len(obj.Kmers); i2++ {
+        i := p + (p*(p-1)/2) - (p-i1)*((p-i1)-1)/2 + i2 - i1
+        if nz[i1] || nz[i2] {
+          theta = append(theta, obj.Theta.ValueAt(i+1))
+        }
+      }
     }
   }
   alphabet := obj.KmerLrAlphabet.Clone()
