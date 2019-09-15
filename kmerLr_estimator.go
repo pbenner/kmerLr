@@ -40,7 +40,11 @@ type KmerLrEstimator struct {
 /* -------------------------------------------------------------------------- */
 
 func NewKmerLrEstimator(config Config, kmers KmerClassList) *KmerLrEstimator {
-  if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
+  n := kmers.Len()
+  if config.Cooccurrence {
+    n = (kmers.Len()+1)*kmers.Len()/2 + 1
+  }
+  if estimator, err := vectorEstimator.NewLogisticRegression(n, true); err != nil {
     log.Fatal(err)
     return nil
   } else {

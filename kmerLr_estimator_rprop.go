@@ -48,6 +48,10 @@ type KmerLrRpropEstimator struct {
 /* -------------------------------------------------------------------------- */
 
 func NewKmerLrRpropEstimator(config Config, kmers KmerClassList) *KmerLrRpropEstimator {
+  n := kmers.Len()
+  if config.Cooccurrence {
+    n = (kmers.Len()+1)*kmers.Len()/2 + 1
+  }
   r := KmerLrRpropEstimator{}
   r.Balance        = config.Balance
   r.ClassWeights   = [2]float64{1, 1}
@@ -58,7 +62,7 @@ func NewKmerLrRpropEstimator(config Config, kmers KmerClassList) *KmerLrRpropEst
   r.StepSizeFactor = config.StepSizeFactor
   r.Eta            = config.RpropEta
   r.Kmers          = kmers
-  r.Theta          = make([]float64, kmers.Len()+1)
+  r.Theta          = make([]float64, n)
   return &r
 }
 

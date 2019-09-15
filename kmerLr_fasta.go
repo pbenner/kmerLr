@@ -78,6 +78,10 @@ func compute_class_weights(data []ConstVector) [2]float64 {
 func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
   n := counts.Len()+1
   m := counts.N  ()+1
+  if config.Cooccurrence {
+    n = (counts.Len()+1)*counts.Len()/2 + 1
+    m = (counts.N  ()+1)*counts.N  ()/2 + 1
+  }
   if label != -1 {
     n += 1
     m += 1
@@ -92,6 +96,19 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
       i[j] = it.GetIndex()+1
       v[j] = ConstReal(c)
       j++
+    }
+  }
+  if config.Cooccurrence {
+    p := counts.N()
+    j := counts.N()+1
+    for j1 := 1; j1 <= counts.N(); j1++ {
+      for j2 := j1+1; j2 <= counts.N(); j2++ {
+        i1   := i[j1]
+        i2   := i[j2]
+        i[j]  = p + (p*(p-1)/2) - (p-i1)*((p-i1)-1)/2 + i2 - i1
+        v[j]  = v[j1]*v[j2]
+        j++
+      }
     }
   }
   if label != -1 {
