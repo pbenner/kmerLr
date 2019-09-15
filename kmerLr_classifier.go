@@ -96,7 +96,7 @@ func (obj *KmerLr) Sparsify() *KmerLr {
     }
     for i1 := 0; i1 < len(obj.Kmers); i1++ {
       for i2 := i1+1; i2 < len(obj.Kmers); i2++ {
-        i := p + (p*(p-1)/2) - (p-i1)*((p-i1)-1)/2 + i2 - i1
+        i := p + (p*(p-1)/2) - (p-i1)*((p-i1)-1)/2 + i2 - i1 - 1
         if obj.Theta.ValueAt(i+1) != 0.0 {
           nz[i1] = true
           nz[i2] = true
@@ -111,7 +111,7 @@ func (obj *KmerLr) Sparsify() *KmerLr {
     }
     for i1 := 0; i1 < len(obj.Kmers); i1++ {
       for i2 := i1+1; i2 < len(obj.Kmers); i2++ {
-        i := p + (p*(p-1)/2) - (p-i1)*((p-i1)-1)/2 + i2 - i1
+        i := p + (p*(p-1)/2) - (p-i1)*((p-i1)-1)/2 + i2 - i1 - 1
         if nz[i1] || nz[i2] {
           theta = append(theta, obj.Theta.ValueAt(i+1))
         }
