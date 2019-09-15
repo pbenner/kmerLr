@@ -29,8 +29,9 @@ import . "github.com/pbenner/gonetics"
 
 type KmerLrAlphabet struct {
   KmerEquivalence
-  Kmers    KmerClassList
-  Binarize bool
+  Kmers        KmerClassList
+  Cooccurrence bool
+  Binarize     bool
 }
 
 /* -------------------------------------------------------------------------- */
@@ -38,6 +39,7 @@ type KmerLrAlphabet struct {
 func (obj KmerLrAlphabet) Clone() KmerLrAlphabet {
   r := KmerLrAlphabet{}
   r.Binarize        = obj.Binarize
+  r.Cooccurrence    = obj.Cooccurrence
   r.KmerEquivalence = obj.KmerEquivalence
   r.Kmers           = obj.Kmers.Clone()
   return r
@@ -50,6 +52,9 @@ func (a KmerLrAlphabet) Equals(b KmerLrAlphabet) bool {
     return false
   }
   if a.Binarize != b.Binarize {
+    return false
+  }
+  if a.Cooccurrence != b.Cooccurrence {
     return false
   }
   return a.Kmers.Equals(b.Kmers)
@@ -69,6 +74,10 @@ func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType)
   }
   complement, ok := config.GetNamedParameterAsBool("Complement"); if !ok {
     return fmt.Errorf("invalid config file")
+  }
+  cooccurrence, ok := config.GetNamedParameterAsBool("Cooccurrence"); if !ok {
+    // backward compatibility
+    cooccurrence = false
   }
   reverse, ok := config.GetNamedParameterAsBool("Reverse"); if !ok {
     return fmt.Errorf("invalid config file")
@@ -101,6 +110,7 @@ func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType)
   obj.M, obj.N     = m, n
   obj.Binarize     = binarize
   obj.Complement   = complement
+  obj.Cooccurrence = cooccurrence
   obj.Reverse      = reverse
   obj.Revcomp      = revcomp
   obj.MaxAmbiguous = maxAmbiguous
@@ -112,6 +122,7 @@ func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
     M, N           int
     Binarize       bool
     Complement     bool
+    Cooccurrence   bool
     Reverse        bool
     Revcomp        bool
     MaxAmbiguous []int
@@ -121,6 +132,7 @@ func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
   config.M, config.N  = obj.M, obj.N
   config.Binarize     = obj.Binarize
   config.Complement   = obj.Complement
+  config.Cooccurrence = obj.Cooccurrence
   config.Reverse      = obj.Reverse
   config.Revcomp      = obj.Revcomp
   config.MaxAmbiguous = obj.MaxAmbiguous
