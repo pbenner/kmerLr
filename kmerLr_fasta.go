@@ -99,7 +99,7 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
     }
   }
   if config.Cooccurrence {
-    p := counts.N()
+    p := counts.Len()
     j := counts.N()+1
     for j1 := 1; j1 <= counts.N(); j1++ {
       for j2 := j1+1; j2 <= counts.N(); j2++ {
