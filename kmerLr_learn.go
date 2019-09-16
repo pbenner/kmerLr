@@ -93,6 +93,9 @@ func learn_parameters(config Config, data []ConstVector, classifier *KmerLr, kme
   } else {
     estimator := NewKmerLrEstimator(config, kmers)
     estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
+    if classifier != nil {
+      estimator.SetParameters(classifier.GetParameters())
+    }
     classifier = estimator.Estimate(config, data)
   }
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
@@ -133,6 +136,17 @@ func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, ba
     // copy config from classifier
     config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
     config.Binarize        = classifier.Binarize
+    if !config.Cooccurrence && classifier.Cooccurrence {
+      config.Cooccurrence = classifier.Cooccurrence
+    }
+    if config.Cooccurrence && !classifier.Cooccurrence {
+      PrintStderr(config, 1, "Extending parameter vector to model co-occurrence\n")
+      theta := make([]float64, (kmers.Len()+1)*kmers.Len()/2 + 1)
+      for i := 0; i < kmers.Len()+1; i++ {
+        theta[i] = classifier.Theta.ValueAt(i)
+      }
+      classifier.Theta = NewDenseBareRealVector(theta)
+    }
   }
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
