@@ -30,28 +30,23 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func kmer_abundance(data []ConstVector, kmer KmerClass, kmers KmerClassList, label int) float64 {
+func kmer_abundance(data []ConstVector, i, label int) float64 {
   k := 0
   n := 0
-  for i := 0; i < len(kmers); i++ {
-    if kmer.Equals(kmers[i]) {
-      for j := 0; j < len(data); j++ {
-        if data[j].ValueAt(data[j].Dim()-1) == float64(label) {
-          n += 1
-          if data[j].ValueAt(i+1) > 0.0 {
-            k += 1
-          }
-        }
+  for j := 0; j < len(data); j++ {
+    if data[j].ValueAt(data[j].Dim()-1) == float64(label) {
+      n += 1
+      if data[j].ValueAt(i+1) > 0.0 {
+        k += 1
       }
-      return float64(k)/float64(n)
     }
   }
-  return 0.0
+  return float64(k)/float64(n)
 }
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients_sort(kmers KmerClassList, coefficients map[KmerClassId]float64) []KmerClass {
+func coefficients_sort_map(kmers KmerClassList, coefficients map[KmerClassId]float64) []KmerClass {
   r  := FloatKmer{}
   r.a = []float64  (nil)
   r.b = []KmerClass(nil)
@@ -63,11 +58,9 @@ func coefficients_sort(kmers KmerClassList, coefficients map[KmerClassId]float64
   return r.b
 }
 
-/* -------------------------------------------------------------------------- */
-
 func coefficients_related(kmer KmerClass, graph KmerGraph, coefficients map[KmerClassId]float64) []KmerClass {
   related := graph.RelatedKmers(kmer.Elements[0])
-  return coefficients_sort(related, coefficients)
+  return coefficients_sort_map(related, coefficients)
 }
 
 func coefficients_print_related(kmer KmerClass, graph KmerGraph, coefficients map[KmerClassId]float64) {
@@ -92,14 +85,15 @@ func coefficients_format(kmers KmerClassList) string {
       n = r
     }
   }
-  return fmt.Sprintf("%%6d %%14e %%%ds ", n)
+  return fmt.Sprintf("%%6d %%14e %%%dv ", n)
 }
 
 /* -------------------------------------------------------------------------- */
 
 func coefficients(config Config, filename, filename_fg, filename_bg string, related, rescale bool) {
   classifier   := ImportKmerLr(config, filename)
-  coefficients := make(map[KmerClassId]float64)
+  coefficients := NewAbsFloatInt(len(classifier.Kmers))
+  coeffmap     := make(map[KmerClassId]float64)
   kmers        := classifier.Kmers
   graph        := KmerGraph{}
 
@@ -114,18 +108,26 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
     }
     data, kmers = compile_training_data(config, kmersCounter, classifier.Kmers, config.Binarize, filename_fg, filename_bg)
   }
+
   // insert coefficients into the map
   if rescale && len(classifier.Transform.Sigma) > 0 {
     for i, v := range classifier.Theta.GetValues()[1:] {
-      coefficients[kmers[i].KmerClassId] = v*classifier.Transform.Sigma[i+1]
+      coefficients.a[i] = v*classifier.Transform.Sigma[i+1]
+      coefficients.b[i] = i
     }
   } else {
     for i, v := range classifier.Theta.GetValues()[1:] {
-      coefficients[kmers[i].KmerClassId] = v
+      coefficients.a[i] = v
+      coefficients.b[i] = i
     }
   }
+  coefficients.SortReverse()
+
   // construct graph of related k-mers if required
   if related {
+    for i := 0; i < coefficients.Len(); i++ {
+      coeffmap[kmers[coefficients.b[i]].KmerClassId] = coefficients.a[i]
+    }
     if rel, err := NewKmerEquivalenceRelation(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); err != nil {
       log.Fatal(err)
     } else {
@@ -134,14 +136,16 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
   }
   format := coefficients_format(kmers)
 
-  for i, kmer := range coefficients_sort(kmers, coefficients) {
+  for i := 0; i < coefficients.Len(); i++ {
+    v := coefficients.a[i]
+    k := coefficients.b[i]
     if len(data) > 0 {
-      fmt.Printf("%3.4f%% ", kmer_abundance(data, kmer, kmers, 1)*100.0)
-      fmt.Printf("%3.4f%% ", kmer_abundance(data, kmer, kmers, 0)*100.0)
+      fmt.Printf("%3.4f%% ", kmer_abundance(data, k, 1)*100.0)
+      fmt.Printf("%3.4f%% ", kmer_abundance(data, k, 0)*100.0)
     }
-    fmt.Printf(format, i+1, coefficients[kmer.KmerClassId], kmer.String())
+    fmt.Printf(format, i+1, v, kmers[k])
     if related {
-      coefficients_print_related(kmer, graph, coefficients)
+      coefficients_print_related(kmers[k], graph, coeffmap)
     }
     fmt.Println()
   }

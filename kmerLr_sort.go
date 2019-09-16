@@ -19,6 +19,7 @@ package main
 /* -------------------------------------------------------------------------- */
 
 //import   "fmt"
+import   "math"
 import   "sort"
 
 import . "github.com/pbenner/gonetics"
@@ -76,5 +77,40 @@ func (obj FloatInt) Sort() {
 }
 
 func (obj FloatInt) SortReverse() {
+  sort.Sort(sort.Reverse(obj))
+}
+
+/* -------------------------------------------------------------------------- */
+
+type AbsFloatInt struct {
+  a []float64
+  b []int
+}
+
+func NewAbsFloatInt(n int) AbsFloatInt {
+  r  := AbsFloatInt{}
+  r.a = make([]float64, n)
+  r.b = make([]int    , n)
+  return r
+}
+
+func (obj AbsFloatInt) Len() int {
+  return len(obj.a)
+}
+
+func (obj AbsFloatInt) Swap(i, j int) {
+  obj.a[i], obj.a[j] = obj.a[j], obj.a[i]
+  obj.b[i], obj.b[j] = obj.b[j], obj.b[i]
+}
+
+func (obj AbsFloatInt) Less(i, j int) bool {
+  return math.Abs(obj.a[i]) < math.Abs(obj.a[j])
+}
+
+func (obj AbsFloatInt) Sort() {
+  sort.Sort(obj)
+}
+
+func (obj AbsFloatInt) SortReverse() {
   sort.Sort(sort.Reverse(obj))
 }
