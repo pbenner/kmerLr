@@ -109,6 +109,7 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
   // copy config from classifier
   config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
   config.Binarize        = classifier.Binarize
+  config.Cooccurrence    = classifier.Cooccurrence
 
   data := []ConstVector{}
   if filename_fg != "" && filename_bg != "" {

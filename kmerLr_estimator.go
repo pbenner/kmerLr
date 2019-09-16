@@ -83,6 +83,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) *KmerLr 
   } else {
     r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
     r.KmerLrAlphabet.Binarize        = config.Binarize
+    r.KmerLrAlphabet.Cooccurrence    = config.Cooccurrence
     r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
     r.KmerLrAlphabet.Kmers           = obj   .Kmers
     return r
