@@ -33,11 +33,9 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 func normalize_data(config Config, data []ConstVector) Transform {
-  PrintStderr(config, 1, "Normalizing data... ")
   t := Transform{}
-  t.TransformFit  (data)
-  t.TransformApply(data)
-  PrintStderr(config, 1, "done\n")
+  t.TransformFit  (config, data)
+  t.TransformApply(config, data)
   return t
 }
 

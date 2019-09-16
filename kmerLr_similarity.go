@@ -108,9 +108,7 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
     log.Fatal(err)
   }
   data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, filenameFasta)
-  PrintStderr(config, 1, "Normalizing data... ")
-  data     = classifier.TransformApply(data)
-  PrintStderr(config, 1, "done\n")
+  data     = classifier.TransformApply(config, data)
 
   // allocate result
   result := make([][]float64, len(data))

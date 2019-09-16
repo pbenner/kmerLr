@@ -33,10 +33,11 @@ type Transform struct {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *Transform) TransformFit(data []ConstVector) {
+func (obj *Transform) TransformFit(config Config, data []ConstVector) {
   if len(data) == 0 {
     return
   }
+  PrintStderr(config, 1, "Fitting data transform... ")
   n := len(data)
   m := data[0].Dim()
   mu    := make([]float64, m-1)
@@ -77,9 +78,11 @@ func (obj *Transform) TransformFit(data []ConstVector) {
   sigma[0]  = 1.0
   obj.Sigma = sigma
   obj.Mu    = mu
+  PrintStderr(config, 1, "done\n")
 }
 
-func (obj Transform) TransformApply(data []ConstVector) []ConstVector {
+func (obj Transform) TransformApply(config Config, data []ConstVector) []ConstVector {
+  PrintStderr(config, 1, "Normalizing data... ")
   if len(obj.Mu) != len(obj.Sigma) {
     panic("internal error")
   }
@@ -101,6 +104,7 @@ func (obj Transform) TransformApply(data []ConstVector) []ConstVector {
     }
     data[i] = UnsafeSparseConstRealVector(indices, values, m)
   }
+  PrintStderr(config, 1, "done\n")
   return data
 }
 

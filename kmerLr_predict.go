@@ -95,9 +95,7 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
     log.Fatal(err)
   }
   data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, filename_in)
-  PrintStderr(config, 1, "Normalizing data... ")
-  data     = classifier.TransformApply(data)
-  PrintStderr(config, 1, "done\n")
+  data     = classifier.TransformApply(config, data)
 
   predictions := predict_unlabeled(config, data, classifier)
 
