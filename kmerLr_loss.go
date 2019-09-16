@@ -35,6 +35,7 @@ func loss(config Config, filename_json, filename_fg, filename_bg string) {
   // copy config from classifier
   config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
   config.Binarize        = classifier.Binarize
+  config.Cooccurrence    = classifier.Cooccurrence
 
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
