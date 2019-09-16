@@ -156,8 +156,8 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
       break
     }
     if len(data) > 0 {
-      fmt.Printf("%3.4f%% ", kmer_abundance(data, k, 1)*100.0)
-      fmt.Printf("%3.4f%% ", kmer_abundance(data, k, 0)*100.0)
+      fmt.Printf("%6.2f%% ", kmer_abundance(data, k, 1)*100.0)
+      fmt.Printf("%6.2f%% ", kmer_abundance(data, k, 0)*100.0)
     }
     k1, k2 := CoeffIndex(len(kmers)).Sub2Ind(k)
     if k1 == k2 {
