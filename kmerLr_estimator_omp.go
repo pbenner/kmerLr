@@ -51,7 +51,7 @@ type KmerLrOmpEstimator struct {
 /* -------------------------------------------------------------------------- */
 
 func NewKmerLrOmpEstimator(config Config, kmers KmerClassList) *KmerLrOmpEstimator {
-  n := kmers.Len()
+  n := kmers.Len() + 1
   if config.Cooccurrence {
     n = (kmers.Len()+1)*kmers.Len()/2 + 1
   }

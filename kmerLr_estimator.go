@@ -40,7 +40,7 @@ type KmerLrEstimator struct {
 /* -------------------------------------------------------------------------- */
 
 func NewKmerLrEstimator(config Config, kmers KmerClassList) *KmerLrEstimator {
-  n := kmers.Len()
+  n := kmers.Len() + 1
   if config.Cooccurrence {
     n = (kmers.Len()+1)*kmers.Len()/2 + 1
   }
