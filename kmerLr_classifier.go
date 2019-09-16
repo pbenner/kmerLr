@@ -112,7 +112,7 @@ func (obj *KmerLr) Sparsify() *KmerLr {
     for i1 := 0; i1 < len(obj.Kmers); i1++ {
       for i2 := i1+1; i2 < len(obj.Kmers); i2++ {
         i := CoeffIndex(p).Ind2Sub(i1, i2)
-        if nz[i1] || nz[i2] {
+        if nz[i1] && nz[i2] {
           theta = append(theta, obj.Theta.ValueAt(i))
         }
       }
