@@ -144,8 +144,12 @@ func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, ba
 
   // normalize data for faster convergence
   t := Transform{}
-  if !config.NoNormalization {
-    t = normalize_data(config, data)
+  if classifier == nil {
+    if !config.NoNormalization {
+      t = normalize_data(config, data)
+    }
+  } else {
+    t = classifier.Transform
   }
   if kfold <= 1 {
     learn_parameters(config, data, classifier, kmers, -1, t, basename_out)
