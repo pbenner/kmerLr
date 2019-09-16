@@ -51,10 +51,9 @@ func loss(config Config, filename_json, filename_fg, filename_bg string) {
 func main_loss(config Config, args []string) {
   options := getopt.New()
 
-  optBalance  := options.  BoolLong("balance",  0 ,        "set class weights so that the data set is balanced")
-  optBinarize := options.  BoolLong("binarize", 0 ,        "binarize k-mer counts")
-  optLambda   := options.StringLong("lambda",   0 , "0.0", "regularization strength (L1)")
-  optHelp     := options.  BoolLong("help",    'h',        "print help")
+  optBalance := options.  BoolLong("balance", 0 ,        "set class weights so that the data set is balanced")
+  optLambda  := options.StringLong("lambda",  0 , "0.0", "regularization strength (L1)")
+  optHelp    := options.  BoolLong("help",   'h',        "print help")
 
   options.SetParameters("<MODEL.json> <FOREGROUND.fa> <BACKGROUND.fa>")
   options.Parse(args)
@@ -76,8 +75,7 @@ func main_loss(config Config, args []string) {
   } else {
     config.Lambda = v
   }
-  config.Balance  = *optBalance
-  config.Binarize = *optBinarize
+  config.Balance = *optBalance
 
   filename_json := options.Args()[0]
   filename_fg   := options.Args()[1]
