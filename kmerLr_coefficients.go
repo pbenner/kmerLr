@@ -143,6 +143,9 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
   for i := 0; i < coefficients.Len(); i++ {
     v := coefficients.a[i]
     k := coefficients.b[i]
+    if v == 0.0 {
+      break
+    }
     if len(data) > 0 {
       fmt.Printf("%3.4f%% ", kmer_abundance(data, k, 1)*100.0)
       fmt.Printf("%3.4f%% ", kmer_abundance(data, k, 0)*100.0)
@@ -150,6 +153,11 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
     if k < len(kmers) {
       fmt.Printf(format, i+1, v, kmers[k])
     } else {
+      n  := len(kmers)
+      j  := k - n
+      k1 := n - 2 - int(math.Floor(math.Sqrt(float64(-8*j + 4*n*(n-1)-7))/2.0 - 0.5))
+      k2 := j + k1 + 1 - n*(n-1)/2 + (n-k1)*((n-k1)-1)/2
+      fmt.Printf(format, i+1, v, fmt.Sprintf("%s & %s", kmers[k1], kmers[k2]))
     }
     if related && k < len(kmers) {
       coefficients_print_related(kmers[k], graph, coeffmap)
