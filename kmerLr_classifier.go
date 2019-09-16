@@ -96,24 +96,24 @@ func (obj *KmerLr) Sparsify() *KmerLr {
     }
     for i1 := 0; i1 < len(obj.Kmers); i1++ {
       for i2 := i1+1; i2 < len(obj.Kmers); i2++ {
-        i := p + (p*(p-1)/2) - (p-i1)*((p-i1)-1)/2 + i2 - i1 - 1
-        if obj.Theta.ValueAt(i+1) != 0.0 {
+        i := CoeffIndex(p).Ind2Sub(i1, i2)
+        if obj.Theta.ValueAt(i) != 0.0 {
           nz[i1] = true
           nz[i2] = true
         }
       }
     }
-    for i := 0; i < len(obj.Kmers); i++ {
+    for i := 1; i <= len(obj.Kmers); i++ {
       if nz[i] {
-        theta = append(theta, obj.Theta.ValueAt(i+1))
-        kmers = append(kmers, obj.Kmers[i])
+        theta = append(theta, obj.Theta.ValueAt(i))
+        kmers = append(kmers, obj.Kmers[i-1])
       }
     }
     for i1 := 0; i1 < len(obj.Kmers); i1++ {
       for i2 := i1+1; i2 < len(obj.Kmers); i2++ {
-        i := p + (p*(p-1)/2) - (p-i1)*((p-i1)-1)/2 + i2 - i1 - 1
+        i := CoeffIndex(p).Ind2Sub(i1, i2)
         if nz[i1] || nz[i2] {
-          theta = append(theta, obj.Theta.ValueAt(i+1))
+          theta = append(theta, obj.Theta.ValueAt(i))
         }
       }
     }
