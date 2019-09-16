@@ -203,6 +203,16 @@ func ImportKmerLr(config Config, filename string) *KmerLr {
     log.Fatal(err)
   }
   PrintStderr(config, 1, "done\n")
+  if config.Cooccurrence && !classifier.Cooccurrence {
+    PrintStderr(config, 1, "Extending parameter vector to model co-occurrence\n")
+    n     := classifier.Theta.Dim()-1
+    theta := make([]float64, (n+1)*n/2 + 1)
+    for i := 0; i < n+1; i++ {
+      theta[i] = classifier.Theta.ValueAt(i)
+    }
+    classifier.Theta        = NewDenseBareRealVector(theta)
+    classifier.Cooccurrence = config.Cooccurrence
+  }
   return classifier
 }
 

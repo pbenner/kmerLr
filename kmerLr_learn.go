@@ -136,17 +136,7 @@ func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, ba
     // copy config from classifier
     config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
     config.Binarize        = classifier.Binarize
-    if !config.Cooccurrence && classifier.Cooccurrence {
-      config.Cooccurrence = classifier.Cooccurrence
-    }
-    if config.Cooccurrence && !classifier.Cooccurrence {
-      PrintStderr(config, 1, "Extending parameter vector to model co-occurrence\n")
-      theta := make([]float64, (kmers.Len()+1)*kmers.Len()/2 + 1)
-      for i := 0; i < kmers.Len()+1; i++ {
-        theta[i] = classifier.Theta.ValueAt(i)
-      }
-      classifier.Theta = NewDenseBareRealVector(theta)
-    }
+    config.Cooccurrence    = classifier.Cooccurrence
   }
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
