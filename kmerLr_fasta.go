@@ -86,12 +86,13 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
     n += 1
     m += 1
   }
+  j := 1
   i := make([]int      , m)
   v := make([]ConstReal, m)
   i[0] = 0
   v[0] = 1.0
   // copy counts to (i, v)
-  for j, it := 1, counts.Iterate(); it.Ok(); it.Next() {
+  for it := counts.Iterate(); it.Ok(); it.Next() {
     if c := it.GetCount(); c != 0 {
       i[j] = it.GetIndex()+1
       v[j] = ConstReal(c)
@@ -100,9 +101,9 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
   }
   if config.Cooccurrence {
     p := counts.Len()
-    j := counts.N()+1
-    for j1 := 1; j1 <= counts.N(); j1++ {
-      for j2 := j1+1; j2 <= counts.N(); j2++ {
+    q := j
+    for j1 := 1; j1 < q; j1++ {
+      for j2 := j1+1; j2 < q; j2++ {
         i1   := i[j1]-1
         i2   := i[j2]-1
         i[j]  = CoeffIndex(p).Ind2Sub(i1, i2)
@@ -113,10 +114,10 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
   }
   if label != -1 {
     // append label to data vector
-    i[m-1] = n-1
-    v[m-1] = ConstReal(label)
+    i[j] = n-1
+    v[j] = ConstReal(label)
   }
-  return UnsafeSparseConstRealVector(i, v, n)
+  return UnsafeSparseConstRealVector(i[0:j+1], v[0:j+1], n)
 }
 
 func convert_counts_list(config Config, countsList *KmerCountsList, label int) []ConstVector {
