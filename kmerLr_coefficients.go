@@ -79,13 +79,10 @@ func coefficients_print_related(kmer KmerClass, graph KmerGraph, coefficients ma
 /* -------------------------------------------------------------------------- */
 
 func coefficients_print(kmers KmerClassList, k int) string {
-  if k < len(kmers) {
-    return fmt.Sprintf("%v", kmers[k])
+  k1, k2 := CoeffIndex(len(kmers)).Sub2Ind(k)
+  if k1 == k2 {
+    return fmt.Sprintf("%v", kmers[k1])
   } else {
-    n  := len(kmers)
-    j  := k - n
-    k1 := n - 2 - int(math.Floor(math.Sqrt(float64(-8*j + 4*n*(n-1)-7))/2.0 - 0.5))
-    k2 := j + k1 + 1 - n*(n-1)/2 + (n-k1)*((n-k1)-1)/2
     return fmt.Sprintf("%v & %v", kmers[k1], kmers[k2])
   }
 }
@@ -162,13 +159,10 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
       fmt.Printf("%3.4f%% ", kmer_abundance(data, k, 1)*100.0)
       fmt.Printf("%3.4f%% ", kmer_abundance(data, k, 0)*100.0)
     }
-    if k < len(kmers) {
-      fmt.Printf(format, i+1, v, kmers[k])
+    k1, k2 := CoeffIndex(len(kmers)).Sub2Ind(k)
+    if k1 == k2 {
+      fmt.Printf(format, i+1, v, kmers[k1])
     } else {
-      n  := len(kmers)
-      j  := k - n
-      k1 := n - 2 - int(math.Floor(math.Sqrt(float64(-8*j + 4*n*(n-1)-7))/2.0 - 0.5))
-      k2 := j + k1 + 1 - n*(n-1)/2 + (n-k1)*((n-k1)-1)/2
       fmt.Printf(format, i+1, v, fmt.Sprintf("%s & %s", kmers[k1], kmers[k2]))
     }
     if related && k < len(kmers) {
