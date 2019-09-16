@@ -78,14 +78,26 @@ func coefficients_print_related(kmer KmerClass, graph KmerGraph, coefficients ma
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients_format(kmers KmerClassList) string {
-  n := 0
-  for _, kmer := range kmers {
-    if r := len(kmer.String()); r > n {
-      n = r
+func coefficients_print(kmers KmerClassList, k int) string {
+  if k < len(kmers) {
+    return fmt.Sprintf("%v", kmers[k])
+  } else {
+    n  := len(kmers)
+    j  := k - n
+    k1 := n - 2 - int(math.Floor(math.Sqrt(float64(-8*j + 4*n*(n-1)-7))/2.0 - 0.5))
+    k2 := j + k1 + 1 - n*(n-1)/2 + (n-k1)*((n-k1)-1)/2
+    return fmt.Sprintf("%v & %v", kmers[k1], kmers[k2])
+  }
+}
+
+func coefficients_format(kmers KmerClassList, n int) string {
+  m := 0
+  for k := 0; k < n; k++ {
+    if r := len(coefficients_print(kmers, k)); r > m {
+      m = r
     }
   }
-  return fmt.Sprintf("%%6d %%14e %%%dv ", n)
+  return fmt.Sprintf("%%6d %%14e %%%dv ", m)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -138,7 +150,7 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
       graph = NewKmerGraph(kmers, rel)
     }
   }
-  format := coefficients_format(kmers)
+  format := coefficients_format(kmers, coefficients.Len())
 
   for i := 0; i < coefficients.Len(); i++ {
     v := coefficients.a[i]
