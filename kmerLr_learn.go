@@ -141,7 +141,7 @@ func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, ba
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data, kmers := compile_training_data(config, kmersCounter, kmers, config.Binarize, filename_fg, filename_bg)
+  data, kmers := compile_training_data(config, kmersCounter, kmers, filename_fg, filename_bg)
   kmersCounter = nil
 
   // normalize data for faster convergence

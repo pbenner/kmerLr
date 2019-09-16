@@ -86,6 +86,7 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
   // copy config from classifier
   config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
   config.Binarize        = classifier.Binarize
+  config.Cooccurrence    = classifier.Cooccurrence
 
   // remove negative entries
   if negate {
@@ -106,8 +107,10 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, config.Binarize, filenameFasta)
+  data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, filenameFasta)
+  PrintStderr(config, 1, "Normalizing data... ")
   data     = classifier.TransformApply(data)
+  PrintStderr(config, 1, "done\n")
 
   // allocate result
   result := make([][]float64, len(data))

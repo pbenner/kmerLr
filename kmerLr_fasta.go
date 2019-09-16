@@ -139,15 +139,15 @@ func convert_counts_list(config Config, countsList *KmerCountsList, label int) [
 
 /* -------------------------------------------------------------------------- */
 
-func scan_sequence(config Config, kmersCounter *KmerCounter, binarize bool, sequence []byte) KmerCounts {
-  if binarize {
+func scan_sequence(config Config, kmersCounter *KmerCounter, sequence []byte) KmerCounts {
+  if config.Binarize {
     return kmersCounter.IdentifyKmers(sequence)
   } else {
     return kmersCounter.CountKmers(sequence)
   }
 }
 
-func scan_sequences(config Config, kmersCounter *KmerCounter, binarize bool, sequences []string) []KmerCounts {
+func scan_sequences(config Config, kmersCounter *KmerCounter, sequences []string) []KmerCounts {
   r := make([]KmerCounts, len(sequences))
   // create one counter for each thread
   counters := make([]*KmerCounter, config.Pool.NumberOfThreads())
@@ -156,7 +156,7 @@ func scan_sequences(config Config, kmersCounter *KmerCounter, binarize bool, seq
   }
   PrintStderr(config, 1, "Counting kmers... ")
   if err := config.Pool.RangeJob(0, len(sequences), func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    r[i] = scan_sequence(config, counters[pool.GetThreadId()], binarize, []byte(sequences[i]))
+    r[i] = scan_sequence(config, counters[pool.GetThreadId()], []byte(sequences[i]))
     return nil
   }); err != nil {
     PrintStderr(config, 1, "failed\n")
@@ -168,11 +168,11 @@ func scan_sequences(config Config, kmersCounter *KmerCounter, binarize bool, seq
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, binarize bool, filename_fg, filename_bg string) ([]ConstVector, KmerClassList) {
+func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, filename_fg, filename_bg string) ([]ConstVector, KmerClassList) {
   fg := import_fasta(config, filename_fg)
   bg := import_fasta(config, filename_bg)
-  counts_fg   := scan_sequences(config, kmersCounter, binarize, fg)
-  counts_bg   := scan_sequences(config, kmersCounter, binarize, bg)
+  counts_fg   := scan_sequences(config, kmersCounter, fg)
+  counts_bg   := scan_sequences(config, kmersCounter, bg)
   counts_list := NewKmerCountsList(append(counts_fg, counts_bg...)...)
   if len(kmers) != 0 {
     counts_list.Kmers = kmers
@@ -184,9 +184,9 @@ func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerC
   return append(r_fg, r_bg...), counts_list.Kmers
 }
 
-func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, binarize bool, filename string) ([]ConstVector, KmerClassList) {
+func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, filename string) ([]ConstVector, KmerClassList) {
   sequences   := import_fasta(config, filename)
-  counts      := scan_sequences(config, kmersCounter, binarize, sequences)
+  counts      := scan_sequences(config, kmersCounter, sequences)
   counts_list := NewKmerCountsList(counts...)
   // set counts_list.Kmers to the set of kmers on which the
   // classifier was trained on

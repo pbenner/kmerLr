@@ -116,7 +116,7 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
     kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
       log.Fatal(err)
     }
-    data, kmers = compile_training_data(config, kmersCounter, classifier.Kmers, config.Binarize, filename_fg, filename_bg)
+    data, kmers = compile_training_data(config, kmersCounter, classifier.Kmers, filename_fg, filename_bg)
   }
 
   // insert coefficients into the map
