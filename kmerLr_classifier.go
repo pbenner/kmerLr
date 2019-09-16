@@ -104,7 +104,7 @@ func (obj *KmerLr) Sparsify() *KmerLr {
       }
     }
     for i := 1; i <= len(obj.Kmers); i++ {
-      if nz[i] {
+      if nz[i-1] {
         theta = append(theta, obj.Theta.ValueAt(i))
         kmers = append(kmers, obj.Kmers[i-1])
       }
