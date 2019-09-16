@@ -40,7 +40,9 @@ func loss(config Config, filename_json, filename_fg, filename_bg string) {
     log.Fatal(err)
   }
   data, _ := compile_training_data(config, kmersCounter, classifier.Kmers, config.Binarize, filename_fg, filename_bg)
+  PrintStderr(config, 1, "Normalizing data... ")
   data     = classifier.TransformApply(data)
+  PrintStderr(config, 1, "done\n")
   kmersCounter = nil
 
   fmt.Println(classifier.Loss(data, config.Lambda, config.Balance))

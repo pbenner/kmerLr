@@ -116,8 +116,9 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
     // append label to data vector
     i[j] = n-1
     v[j] = ConstReal(label)
+    j++
   }
-  return UnsafeSparseConstRealVector(i[0:j+1], v[0:j+1], n)
+  return UnsafeSparseConstRealVector(i[0:j], v[0:j], n)
 }
 
 func convert_counts_list(config Config, countsList *KmerCountsList, label int) []ConstVector {

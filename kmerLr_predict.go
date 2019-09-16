@@ -20,6 +20,7 @@ package main
 
 import   "fmt"
 import   "bufio"
+import   "io"
 import   "log"
 import   "os"
 
@@ -32,18 +33,24 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 func savePredictions(filename string, predictions []float64) {
-  f, err := os.Create(filename)
-  if err != nil {
-    panic(err)
+  var writer io.Writer
+  if filename == "" {
+    writer = os.Stdout
+  } else {
+    f, err := os.Create(filename)
+    if err != nil {
+      panic(err)
+    }
+    defer f.Close()
+
+    w := bufio.NewWriter(f)
+    defer w.Flush()
+
+    writer = w
   }
-  defer f.Close()
-
-  w := bufio.NewWriter(f)
-  defer w.Flush()
-
-  fmt.Fprintf(w, "%15s\n", "prediction")
+  fmt.Fprintf(writer, "%15s\n", "prediction")
   for i := 0; i < len(predictions); i++ {
-    fmt.Fprintf(w, "%15e\n", predictions[i])
+    fmt.Fprintf(writer, "%15e\n", predictions[i])
   }
 }
 
@@ -88,7 +95,9 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
     log.Fatal(err)
   }
   data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, config.Binarize, filename_in)
+  PrintStderr(config, 1, "Normalizing data... ")
   data     = classifier.TransformApply(data)
+  PrintStderr(config, 1, "done\n")
 
   predictions := predict_unlabeled(config, data, classifier)
 
@@ -102,7 +111,7 @@ func main_predict(config Config, args []string) {
 
   optHelp   := options.BoolLong("help", 'h', "print help")
 
-  options.SetParameters("<MODEL.json> <SEQUENCES.fa> <RESULT.table>")
+  options.SetParameters("<MODEL.json> <SEQUENCES.fa> [RESULT.table]")
   options.Parse(args)
 
   // parse options
@@ -113,13 +122,15 @@ func main_predict(config Config, args []string) {
   }
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
-  if len(options.Args()) != 3 {
+  if len(options.Args()) != 2 && len(options.Args()) != 3 {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
   filename_json := options.Args()[0]
   filename_in   := options.Args()[1]
-  filename_out  := options.Args()[2]
-
+  filename_out  := ""
+  if len(options.Args()) == 3 {
+    filename_out = options.Args()[2]
+  }
   predict(config, filename_json, filename_in, filename_out)
 }

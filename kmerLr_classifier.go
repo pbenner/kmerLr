@@ -77,12 +77,23 @@ func (obj *KmerLr) Loss(data []ConstVector, lambda float64, balance bool) float6
 func (obj *KmerLr) Sparsify() *KmerLr {
   theta := []float64{obj.Theta.ValueAt(0)}
   kmers := KmerClassList{}
+  tr    := Transform{}
   if obj.Theta.Dim() == len(obj.Kmers)+1 {
     // no co-occurrences
     for i := 0; i < len(obj.Kmers); i++ {
       if obj.Theta.ValueAt(i+1) != 0.0 {
         theta = append(theta, obj.Theta.ValueAt(i+1))
         kmers = append(kmers, obj.Kmers[i])
+      }
+    }
+    if len(obj.Transform.Mu) > 0 {
+      tr.Mu    = append(tr.Mu   , obj.Transform.Mu   [0])
+      tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[0])
+      for i := 0; i < len(obj.Kmers); i++ {
+        if obj.Theta.ValueAt(i+1) != 0.0 {
+          tr.Mu    = append(tr.Mu   , obj.Transform.Mu   [i+1])
+          tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[i+1])
+        }
       }
     }
   } else {
@@ -117,10 +128,31 @@ func (obj *KmerLr) Sparsify() *KmerLr {
         }
       }
     }
+    if len(obj.Transform.Mu) > 0 {
+      tr.Mu    = append(tr.Mu   , obj.Transform.Mu   [0])
+      tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[0])
+      for i := 0; i < len(obj.Kmers); i++ {
+        if nz[i] {
+          tr.Mu    = append(tr.Mu   , obj.Transform.Mu   [i+1])
+          tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[i+1])
+        }
+      }
+      for i1 := 0; i1 < len(obj.Kmers); i1++ {
+        for i2 := i1+1; i2 < len(obj.Kmers); i2++ {
+          i := CoeffIndex(p).Ind2Sub(i1, i2)
+          if nz[i1] && nz[i2] {
+            tr.Mu    = append(tr.Mu   , obj.Transform.Mu   [i])
+            tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[i])
+          }
+        }
+      }
+    }
   }
   alphabet := obj.KmerLrAlphabet.Clone()
   alphabet.Kmers = kmers
-  return NewKmerLr(NewDenseBareRealVector(theta), alphabet)
+  r := NewKmerLr(NewDenseBareRealVector(theta), alphabet)
+  r.Transform = tr
+  return r
 }
 
 /* -------------------------------------------------------------------------- */

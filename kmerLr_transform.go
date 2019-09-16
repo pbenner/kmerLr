@@ -39,27 +39,28 @@ func (obj *Transform) TransformFit(data []ConstVector) {
   }
   n := len(data)
   m := data[0].Dim()
-  mu    := make([]float64, m)
-  sigma := make([]float64, m)
+  mu    := make([]float64, m-1)
+  sigma := make([]float64, m-1)
   // compute mu
   for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      mu[it.Index()] += it.GetConst().GetValue()
+      if j := it.Index(); j > 0 && j < m-1 {
+        mu[j] += it.GetConst().GetValue()
+      }
     }
   }
   for j := 1; j < m-1; j++ {
     mu[j] /= float64(n)
   }
-  mu[0  ] = 0.0
-  mu[m-1] = 0.0
   k := make([]int, m)
   // compute sigma
   for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      j := it.Index()
-      v := it.GetConst().GetValue()
-      k    [j] += 1
-      sigma[j] += (v-mu[j])*(v-mu[j])
+      if j := it.Index(); j > 0 && j < m-1 {
+        v := it.GetConst().GetValue()
+        k    [j] += 1
+        sigma[j] += (v-mu[j])*(v-mu[j])
+      }
     }
   }
   for j := 1; j < m-1; j++ {
@@ -72,8 +73,8 @@ func (obj *Transform) TransformFit(data []ConstVector) {
       sigma[j] = math.Sqrt(sigma[j]/float64(n))
     }
   }
-  sigma[0  ] = 1.0
-  sigma[m-1] = 1.0
+  mu   [0]  = 0.0
+  sigma[0]  = 1.0
   obj.Sigma = sigma
   obj.Mu    = mu
 }
@@ -94,7 +95,9 @@ func (obj Transform) TransformApply(data []ConstVector) []ConstVector {
     indices := data[i].(SparseConstRealVector).GetSparseIndices()
     values  := data[i].(SparseConstRealVector).GetSparseValues ()
     for j1, j2 := range indices {
-      values[j1] = (values[j1] - ConstReal(obj.Mu[j2]))/ConstReal(obj.Sigma[j2])
+      if j2 < len(obj.Mu) {
+        values[j1] = (values[j1] - ConstReal(obj.Mu[j2]))/ConstReal(obj.Sigma[j2])
+      }
     }
     data[i] = UnsafeSparseConstRealVector(indices, values, m)
   }
