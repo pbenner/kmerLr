@@ -118,7 +118,10 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
     v[j] = ConstReal(label)
     j++
   }
-  return UnsafeSparseConstRealVector(i[0:j], v[0:j], n)
+  // resize slice and restrict capacity
+  i = append([]int      {}, i[0:j]...)
+  v = append([]ConstReal{}, v[0:j]...)
+  return UnsafeSparseConstRealVector(i, v, n)
 }
 
 func convert_counts_list(config Config, countsList *KmerCountsList, label int) []ConstVector {
@@ -175,7 +178,7 @@ func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerC
   counts_bg   := scan_sequences(config, kmersCounter, bg)
   counts_list := NewKmerCountsList(append(counts_fg, counts_bg...)...)
   if len(kmers) != 0 {
-    counts_list.Kmers = kmers
+    counts_list.SetKmers(kmers)
   }
   counts_list_fg := counts_list.Slice(      0, len(fg))
   counts_list_bg := counts_list.Slice(len(fg), len(fg)+len(bg))
@@ -190,6 +193,6 @@ func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClass
   counts_list := NewKmerCountsList(counts...)
   // set counts_list.Kmers to the set of kmers on which the
   // classifier was trained on
-  counts_list.Kmers = kmers
+  counts_list.SetKmers(kmers)
   return convert_counts_list(config, &counts_list, -1), counts_list.Kmers
 }
