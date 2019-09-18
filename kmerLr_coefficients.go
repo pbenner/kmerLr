@@ -87,10 +87,13 @@ func coefficients_print(kmers KmerClassList, k int) string {
   }
 }
 
-func coefficients_format(kmers KmerClassList, n int) string {
+func coefficients_format(kmers KmerClassList, coefficients AbsFloatInt) string {
   m := 0
-  for k := 0; k < n; k++ {
-    if r := len(coefficients_print(kmers, k)); r > m {
+  for k := 0; k < coefficients.Len(); k++ {
+    if coefficients.a[k] == 0.0 {
+      break
+    }
+    if r := len(coefficients_print(kmers, coefficients.b[k])); r > m {
       m = r
     }
   }
@@ -148,7 +151,7 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
       graph = NewKmerGraph(kmers, rel)
     }
   }
-  format := coefficients_format(kmers, coefficients.Len())
+  format := coefficients_format(kmers, coefficients)
 
   for i := 0; i < coefficients.Len(); i++ {
     v := coefficients.a[i]
