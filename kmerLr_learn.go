@@ -51,7 +51,7 @@ func learn_parameters(config Config, data []ConstVector, classifier *KmerLr, kme
     estimator := NewKmerLrOmpEstimator(config, kmers)
     estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
     if classifier != nil {
-      estimator.SetParameters(classifier.GetParameters())
+      estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
     classifier = estimator.Estimate(config, data)
   } else
@@ -59,7 +59,7 @@ func learn_parameters(config Config, data []ConstVector, classifier *KmerLr, kme
     estimator := NewKmerLrRpropEstimator(config, kmers)
     estimator.Hook = NewRpropHook(config, trace, icv, data, estimator)
     if classifier != nil {
-      estimator.SetParameters(classifier.GetParameters())
+      estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
     classifier = estimator.Estimate(config, data)
   } else
@@ -71,7 +71,7 @@ func learn_parameters(config Config, data []ConstVector, classifier *KmerLr, kme
     estimator1 := NewKmerLrRpropEstimator(config, kmers)
     estimator1.Hook = NewRpropHook(config, trace, icv, data, estimator1)
     if classifier != nil {
-      estimator1.SetParameters(classifier.GetParameters())
+      estimator1.SetParameters(classifier.GetParameters().CloneVector())
     }
     classifier = estimator1.Estimate(config, data)
     if maxEpochs == 0 {
@@ -85,14 +85,14 @@ func learn_parameters(config Config, data []ConstVector, classifier *KmerLr, kme
     if config.MaxEpochs >= 0 {
       estimator2 := NewKmerLrEstimator(config, kmers)
       estimator2.Hook = NewHook(config, trace, icv, data, &estimator2.LogisticRegression)
-      estimator2.SetParameters(classifier.Theta)
+      estimator2.SetParameters(classifier.GetParameters().CloneVector())
       classifier = estimator2.Estimate(config, data)
     }
   } else {
     estimator := NewKmerLrEstimator(config, kmers)
     estimator.Hook = NewHook(config, trace, icv, data, &estimator.LogisticRegression)
     if classifier != nil {
-      estimator.SetParameters(classifier.GetParameters())
+      estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
     classifier = estimator.Estimate(config, data)
   }
