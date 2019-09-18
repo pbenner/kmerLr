@@ -82,13 +82,13 @@ func (obj *Transform) TransformFit(config Config, data []ConstVector) {
 }
 
 func (obj Transform) TransformApply(config Config, data []ConstVector) []ConstVector {
-  PrintStderr(config, 1, "Normalizing data... ")
   if len(obj.Mu) != len(obj.Sigma) {
     panic("internal error")
   }
   if len(obj.Mu) == 0 {
     return data
   }
+  PrintStderr(config, 1, "Normalizing data... ")
   n := len(data)
   m := data[0].Dim()
   for i := 0; i < n; i++ {
