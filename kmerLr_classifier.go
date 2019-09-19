@@ -21,7 +21,6 @@ package main
 import   "fmt"
 import   "log"
 import   "math"
-import   "sort"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -159,9 +158,18 @@ func (obj *KmerLr) Sparsify() *KmerLr {
 
 func (obj *KmerLr) GetCoefficients() *KmerLrCoefficients {
   r := NewKmerLrCoefficients()
+  p := obj.Kmers.Len()
   r.Offset = obj.Theta.ValueAt(0)
-  for i := 1; i < obj.Theta.Dim(); i++ {
-    r.Set(obj.Kmers[i-1], obj.Theta.ValueAt(i))
+  for i, kmer := range obj.Kmers {
+    r.Set(kmer, obj.Theta.ValueAt(i+1))
+  }
+  if obj.Theta.Dim() > p+1 {
+    for k1, kmer1 := range obj.Kmers {
+      for k2 := k1+1; k2 < p; k2++ {
+        kmer2 := obj.Kmers[k2]
+        r.SetPair(kmer1, kmer2, obj.Theta.ValueAt(CoeffIndex(p).Ind2Sub(k1, k2)))
+      }
+    }
   }
   return r
 }
@@ -174,7 +182,6 @@ func (obj *KmerLr) Mean(classifiers []*KmerLr) error {
     c.AddCoefficients(classifiers[i].GetCoefficients())
   }
   c.DivAll(float64(len(classifiers)))
-  c.Sort()
   *obj = *c.AsKmerLr(obj.KmerLrAlphabet.Clone())
   return nil
 }
@@ -184,7 +191,6 @@ func (obj *KmerLr) Max(classifiers []*KmerLr) error {
   for i := 1; i < len(classifiers); i++ {
     c.MaxCoefficients(classifiers[i].GetCoefficients())
   }
-  c.Sort()
   *obj = *c.AsKmerLr(obj.KmerLrAlphabet.Clone())
   return nil
 }
@@ -194,7 +200,6 @@ func (obj *KmerLr) Min(classifiers []*KmerLr) error {
   for i := 1; i < len(classifiers); i++ {
     c.MinCoefficients(classifiers[i].GetCoefficients())
   }
-  c.Sort()
   *obj = *c.AsKmerLr(obj.KmerLrAlphabet.Clone())
   return nil
 }
@@ -250,21 +255,41 @@ func ImportKmerLr(config Config, filename string) *KmerLr {
 
 /* -------------------------------------------------------------------------- */
 
+type KmerClassIdPair struct {
+  Kmer1 KmerClassId
+  Kmer2 KmerClassId
+}
+
+func NewKmerClassIdPair(kmer1, kmer2 KmerClass) KmerClassIdPair {
+  if kmer1.Less(kmer2) {
+    return KmerClassIdPair{kmer1.KmerClassId, kmer2.KmerClassId}
+  } else {
+    return KmerClassIdPair{kmer2.KmerClassId, kmer1.KmerClassId}
+  }
+}
+
 type KmerLrCoefficients struct {
-  Coefficients []float64
   Offset         float64
-  Kmers          KmerClassList
-  Index          map[KmerClassId]int
+  Coefficients []float64
+  Kmers          KmerClassSet
+  Index          map[KmerClassId    ]int
+  IndexPairs     map[KmerClassIdPair]int
 }
 
 func NewKmerLrCoefficients() *KmerLrCoefficients {
   r := KmerLrCoefficients{}
-  r.Index = make(map[KmerClassId]int)
+  r.Kmers      = make(KmerClassSet)
+  r.Index      = make(map[KmerClassId]int)
+  r.IndexPairs = make(map[KmerClassIdPair]int)
   return &r
 }
 
 func (obj *KmerLrCoefficients) Add(kmer KmerClass, value float64) {
   obj.Set(kmer, obj.Get(kmer) + value)
+}
+
+func (obj *KmerLrCoefficients) AddPair(kmer1, kmer2 KmerClass, value float64) {
+  obj.SetPair(kmer1, kmer2, obj.GetPair(kmer1, kmer2) + value)
 }
 
 func (obj *KmerLrCoefficients) DivAll(value float64) {
@@ -279,9 +304,31 @@ func (obj *KmerLrCoefficients) Set(kmer KmerClass, value float64) {
     obj.Coefficients[i] = value
   } else {
     if value != 0.0 {
-      obj.Index[kmer.KmerClassId] = len(obj.Kmers)
+      obj.Kmers[kmer.KmerClassId] = kmer.Elements
+      obj.Index[kmer.KmerClassId] = len(obj.Coefficients)
       obj.Coefficients = append(obj.Coefficients, value)
-      obj.Kmers        = append(obj.Kmers       , kmer)
+    }
+  }
+}
+
+func (obj *KmerLrCoefficients) SetPair(kmer1, kmer2 KmerClass, value float64) {
+  pair := NewKmerClassIdPair(kmer1, kmer2)
+  if i, ok := obj.IndexPairs[pair]; ok {
+    obj.Coefficients[i] = value
+  } else {
+    if value != 0.0 {
+      if _, ok := obj.Index[kmer1.KmerClassId]; !ok {
+        obj.Kmers[kmer1.KmerClassId] = kmer1.Elements
+        obj.Index[kmer1.KmerClassId] = len(obj.Coefficients)
+        obj.Coefficients = append(obj.Coefficients, 0.0)
+      }
+      if _, ok := obj.Index[kmer2.KmerClassId]; !ok {
+        obj.Kmers[kmer2.KmerClassId] = kmer2.Elements
+        obj.Index[kmer2.KmerClassId] = len(obj.Coefficients)
+        obj.Coefficients = append(obj.Coefficients, 0.0)
+      }
+      obj.IndexPairs[pair] = len(obj.Coefficients)
+      obj.Coefficients     = append(obj.Coefficients, value)
     }
   }
 }
@@ -294,10 +341,25 @@ func (obj *KmerLrCoefficients) Get(kmer KmerClass) float64 {
   }
 }
 
+func (obj *KmerLrCoefficients) GetPair(kmer1, kmer2 KmerClass) float64 {
+  pair := NewKmerClassIdPair(kmer1, kmer2)
+  if i, ok := obj.IndexPairs[pair]; ok {
+    return obj.Coefficients[i]
+  } else {
+    return 0.0
+  }
+}
+
 func (obj *KmerLrCoefficients) AddCoefficients(b *KmerLrCoefficients) {
   obj.Offset += b.Offset
-  for i, kmer := range b.Kmers {
+  for id, i := range b.Index {
+    kmer := KmerClass{id, b.Kmers[id]}
     obj.Add(kmer, b.Coefficients[i])
+  }
+  for pair, i := range b.IndexPairs {
+    kmer1 := KmerClass{pair.Kmer1, b.Kmers[pair.Kmer1]}
+    kmer2 := KmerClass{pair.Kmer2, b.Kmers[pair.Kmer2]}
+    obj.AddPair(kmer1, kmer2, b.Coefficients[i])
   }
 }
 
@@ -305,9 +367,17 @@ func (obj *KmerLrCoefficients) MaxCoefficients(b *KmerLrCoefficients) {
   if math.Abs(obj.Offset) < math.Abs(b.Offset) {
     obj.Offset = b.Offset
   }
-  for i, kmer := range b.Kmers {
+  for id, i := range b.Index {
+    kmer := KmerClass{id, b.Kmers[id]}
     if v := obj.Get(kmer); math.Abs(v) < math.Abs(b.Coefficients[i]) {
       obj.Set(kmer, b.Coefficients[i])
+    }
+  }
+  for pair, i := range b.IndexPairs {
+    kmer1 := KmerClass{pair.Kmer1, b.Kmers[pair.Kmer1]}
+    kmer2 := KmerClass{pair.Kmer2, b.Kmers[pair.Kmer2]}
+    if v := obj.GetPair(kmer1, kmer2); math.Abs(v) < math.Abs(b.Coefficients[i]) {
+      obj.SetPair(kmer1, kmer2, b.Coefficients[i])
     }
   }
 }
@@ -316,38 +386,39 @@ func (obj *KmerLrCoefficients) MinCoefficients(b *KmerLrCoefficients) {
   if math.Abs(obj.Offset) > math.Abs(b.Offset) {
     obj.Offset = b.Offset
   }
-  for i, kmer := range obj.Kmers {
+  for id, i := range obj.Index {
+    kmer := KmerClass{id, obj.Kmers[id]}
     if v := b.Get(kmer); math.Abs(obj.Coefficients[i]) > math.Abs(v) {
       obj.Set(kmer, v)
     }
   }
-}
-
-func (obj *KmerLrCoefficients) Len() int {
-  return len(obj.Kmers)
-}
-
-func (obj *KmerLrCoefficients) Less(i, j int) bool {
-  if obj.Kmers[i].K != obj.Kmers[j].K {
-    return obj.Kmers[i].K < obj.Kmers[j].K
-  } else {
-    return obj.Kmers[i].I < obj.Kmers[j].I
+  for pair, i := range obj.IndexPairs {
+    kmer1 := KmerClass{pair.Kmer1, obj.Kmers[pair.Kmer1]}
+    kmer2 := KmerClass{pair.Kmer2, obj.Kmers[pair.Kmer2]}
+    if v := b.GetPair(kmer1, kmer2); math.Abs(obj.Coefficients[i]) > math.Abs(v) {
+      obj.SetPair(kmer1, kmer2, v)
+    }
   }
 }
 
-func (obj *KmerLrCoefficients) Swap(i, j int) {
-  obj.Index[obj.Kmers[i].KmerClassId] = j
-  obj.Index[obj.Kmers[j].KmerClassId] = i
-  obj.Kmers       [i], obj.Kmers       [j] = obj.Kmers       [j], obj.Kmers       [i]
-  obj.Coefficients[i], obj.Coefficients[j] = obj.Coefficients[j], obj.Coefficients[i]
-}
-
-func (obj *KmerLrCoefficients) Sort() {
-  sort.Sort(obj)
-}
-
 func (obj *KmerLrCoefficients) AsKmerLr(alphabet KmerLrAlphabet) *KmerLr {
-  alphabet.Kmers = obj.Kmers
-  coefficients  := NewDenseBareRealVector(append([]float64{obj.Offset}, obj.Coefficients...))
-  return NewKmerLr(coefficients, alphabet).Sparsify()
+  alphabet.Kmers = obj.Kmers.AsList()
+  p := alphabet.Kmers.Len()
+  n := alphabet.Kmers.Len()+1
+  if len(obj.IndexPairs) > 0 {
+    n = (alphabet.Kmers.Len()+1)*alphabet.Kmers.Len()/2 + 1
+  }
+  v := NullDenseBareRealVector(n)
+  for k, kmer := range alphabet.Kmers {
+    v[k+1] = ConstReal(obj.Get(kmer))
+  }
+  if len(obj.IndexPairs) > 0 {
+    for k1, kmer1 := range alphabet.Kmers {
+      for k2 := k1+1; k2 < alphabet.Kmers.Len(); k2++ {
+        kmer2 := alphabet.Kmers[k2]
+        v[CoeffIndex(p).Ind2Sub(k1, k2)] = ConstReal(obj.GetPair(kmer1, kmer2))
+      }
+    }
+  }
+  return NewKmerLr(v, alphabet).Sparsify()
 }
