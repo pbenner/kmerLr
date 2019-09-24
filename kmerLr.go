@@ -49,7 +49,6 @@ type Config struct {
   Rprop           bool
   RpropEta      []float64
   RpropStepSize   float64
-  Hybrid          int
   Omp             int
   OmpIterations   int
   Pool            threadpool.ThreadPool
