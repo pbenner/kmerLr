@@ -165,6 +165,7 @@ func main_learn(config Config, args []string) {
 
   optAlphabet        := options. StringLong("alphabet",         0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
   optLambda          := options. StringLong("lambda",           0 ,        "0.0", "regularization strength (L1)")
+  optLambdaAuto      := options.    IntLong("lambda-auto",      0 ,            0, "automatic regularization strength")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model k-mer co-occurrences")
@@ -306,6 +307,7 @@ func main_learn(config Config, args []string) {
   config.Binarize        = *optBinarize
   config.Complement      = *optComplement
   config.Cooccurrence    = *optCooccurrence
+  config.LambdaAuto      = *optLambdaAuto
   config.Reverse         = *optReverse
   config.Revcomp         = *optRevcomp
   config.EvalLoss        = *optEvalLoss

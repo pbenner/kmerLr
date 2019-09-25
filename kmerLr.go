@@ -38,6 +38,7 @@ type Config struct {
   Binarize        bool
   Cooccurrence    bool
   Lambda          float64
+  LambdaAuto      int
   Epsilon         float64
   EpsilonVar      float64
   StepSizeFactor  float64

@@ -61,8 +61,8 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
         }
         fmt.Printf("epoch     : %d\n", epoch+1)
         fmt.Printf("change    : %v\n", change)
-        fmt.Printf("#ceof     : %d\n", n-1)
-        fmt.Printf("var(#ceof): %f\n", trace.CompVar(10))
+        fmt.Printf("#coef     : %d\n", n-1)
+        fmt.Printf("var(#coef): %f\n", trace.CompVar(10))
         if config.EvalLoss {
           fmt.Printf("loss      : %f\n", l)
         }
@@ -72,7 +72,7 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
         }
         fmt.Printf("epoch : %d\n", epoch)
         fmt.Printf("change: %v\n", change)
-        fmt.Printf("#ceof : %d\n", n-1)
+        fmt.Printf("#coef : %d\n", n-1)
         if config.EvalLoss {
           fmt.Printf("loss  : %f\n", l)
         }
@@ -120,8 +120,8 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, esti
         }
         fmt.Printf("epoch     : %d\n", k)
         fmt.Printf("change    : %v\n", c)
-        fmt.Printf("#ceof     : %d\n", n-1)
-        fmt.Printf("var(#ceof): %f\n", trace.CompVar(10))
+        fmt.Printf("#coef     : %d\n", n-1)
+        fmt.Printf("var(#coef): %f\n", trace.CompVar(10))
         if config.EvalLoss {
           fmt.Printf("loss      : %f\n", l)
         }
@@ -131,7 +131,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, esti
         }
         fmt.Printf("epoch : %d\n", k)
         fmt.Printf("change: %v\n", c)
-        fmt.Printf("#ceof : %d\n", n-1)
+        fmt.Printf("#coef : %d\n", n-1)
         if config.EvalLoss {
           fmt.Printf("loss  : %f\n", l)
         }
