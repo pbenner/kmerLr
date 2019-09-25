@@ -32,6 +32,8 @@ type HookType func(x ConstVector, change ConstScalar, epoch int) bool
 /* -------------------------------------------------------------------------- */
 
 func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator *vectorEstimator.LogisticRegression) HookType {
+  loss_old := math.NaN()
+  loss_new := math.NaN()
   loss := func(x ConstVector) float64 {
     lr := logisticRegression{}
     lr.Theta        = x.GetValues()
@@ -41,10 +43,10 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
     return lr.Loss(data, nil)
   }
   hook := func(x ConstVector, change ConstScalar, epoch int) bool {
+    loss_old, loss_new = loss_new, loss_old
     n := 0
-    l := math.NaN()
     if config.EvalLoss {
-      l = loss(x)
+      loss_new = loss(x)
     }
     for it := x.ConstIterator(); it.Ok(); it.Next() {
       if it.GetConst().GetValue() != 0.0 {
@@ -52,7 +54,7 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
       }
     }
     if trace != nil {
-      trace.Append(epoch+1, n, change.GetValue(), l)
+      trace.Append(epoch+1, n, change.GetValue(), loss_new)
     }
     if config.Verbose > 1 {
       if trace != nil {
@@ -64,7 +66,7 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
         fmt.Printf("#coef     : %d\n", n-1)
         fmt.Printf("var(#coef): %f\n", trace.CompVar(10))
         if config.EvalLoss {
-          fmt.Printf("loss      : %f\n", l)
+          fmt.Printf("loss      : %f\n", loss_new)
         }
       } else {
         if icv != -1 {
@@ -74,7 +76,7 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
         fmt.Printf("change: %v\n", change)
         fmt.Printf("#coef : %d\n", n-1)
         if config.EvalLoss {
-          fmt.Printf("loss  : %f\n", l)
+          fmt.Printf("loss  : %f\n", loss_new)
         }
       }
       fmt.Println()
@@ -84,23 +86,29 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
         return true
       }
     }
-    return false
+    if config.EpsilonLoss == 0.0 {
+      return false
+    } else {
+      return math.Abs(loss_old - loss_new) < config.EpsilonLoss
+    }
   }
   return hook
 }
 
 func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, estimator *KmerLrRpropEstimator) rprop.Hook {
+  loss_old := math.NaN()
+  loss_new := math.NaN()
   loss := func(x ConstVector) float64 {
     return estimator.logisticRegression.Loss(estimator.data, nil)
   }
   k    := 0
   hook := func(gradient []float64, step []float64, x ConstVector, y Scalar) bool {
+    loss_old, loss_new = loss_new, loss_old
     k += 1
     n := 0
     c := 0.0
-    l := math.NaN()
     if config.EvalLoss {
-      l = loss(x)
+      loss_new = loss(x)
     }
     for i := 0; i < len(gradient); i++ {
       c += math.Abs(gradient[i])
@@ -111,7 +119,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, esti
       }
     }
     if trace != nil {
-      trace.Append(k, n, c, l)
+      trace.Append(k, n, c, loss_new)
     }
     if config.Verbose > 1 {
       if trace != nil {
@@ -123,7 +131,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, esti
         fmt.Printf("#coef     : %d\n", n-1)
         fmt.Printf("var(#coef): %f\n", trace.CompVar(10))
         if config.EvalLoss {
-          fmt.Printf("loss      : %f\n", l)
+          fmt.Printf("loss      : %f\n", loss_new)
         }
       } else {
         if icv != -1 {
@@ -133,7 +141,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, esti
         fmt.Printf("change: %v\n", c)
         fmt.Printf("#coef : %d\n", n-1)
         if config.EvalLoss {
-          fmt.Printf("loss  : %f\n", l)
+          fmt.Printf("loss  : %f\n", loss_new)
         }
       }
       fmt.Println()
@@ -143,7 +151,11 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, esti
         return true
       }
     }
-    return false
+    if config.EpsilonLoss == 0.0 {
+      return false
+    } else {
+      return math.Abs(loss_old - loss_new) < config.EpsilonLoss
+    }
   }
   return rprop.Hook{hook}
 }

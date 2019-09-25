@@ -148,8 +148,9 @@ func main_learn(config Config, args []string) {
   optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
   optMaxAmbiguous    := options. StringLong("max-ambiguous",    0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
   optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
-  optEpsilon         := options. StringLong("epsilon",          0 ,       "1e-4", "optimization tolerance level")
-  optEpsilonVar      := options. StringLong("epsilon-var",      0 ,       "0e-0", "optimization tolerance level for the variance of the number of components")
+  optEpsilon         := options. StringLong("epsilon",          0 ,       "1e-4", "optimization tolerance level for parameters")
+  optEpsilonLoss     := options. StringLong("epsilon-loss",     0 ,       "0e-0", "optimization tolerance level for loss function")
+  optEpsilonVar      := options. StringLong("epsilon-var",      0 ,       "0e-0", "optimization tolerance level for variance of the number of components")
   optSaveTrace       := options.   BoolLong("save-trace",       0 ,               "save trace to file")
   optEvalLoss        := options.   BoolLong("eval-loss",        0 ,               "evaluate loss function after each epoch")
   optNoNormalization := options.   BoolLong("no-normalization", 0 ,               "do not normalize data")
@@ -211,6 +212,11 @@ func main_learn(config Config, args []string) {
     log.Fatal(err)
   } else {
     config.Epsilon = s
+  }
+  if s, err := strconv.ParseFloat(*optEpsilonLoss, 64); err != nil {
+    log.Fatal(err)
+  } else {
+    config.EpsilonLoss = s
   }
   if s, err := strconv.ParseFloat(*optEpsilonVar, 64); err != nil {
     log.Fatal(err)
@@ -290,6 +296,9 @@ func main_learn(config Config, args []string) {
   config.Omp             = *optOmp
   config.OmpIterations   = *optOmpIterations
   config.Rprop           = *optRprop
+  if config.EpsilonLoss != 0.0 {
+    config.EvalLoss = true
+  }
 
   learn(config, *optKFoldCV, filename_in, filename_fg, filename_bg, basename_out)
 }

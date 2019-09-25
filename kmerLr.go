@@ -40,6 +40,7 @@ type Config struct {
   Lambda          float64
   LambdaAuto      int
   Epsilon         float64
+  EpsilonLoss     float64
   EpsilonVar      float64
   StepSizeFactor  float64
   Seed            int64
