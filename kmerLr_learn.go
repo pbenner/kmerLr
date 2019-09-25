@@ -139,7 +139,7 @@ func main_learn(config Config, args []string) {
 
   optAlphabet        := options. StringLong("alphabet",         0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
   optLambda          := options. StringLong("lambda",           0 ,        "0.0", "regularization strength (L1)")
-  optLambdaAuto      := options.    IntLong("lambda-auto",      0 ,            0, "automatic regularization strength")
+  optLambdaAuto      := options.    IntLong("lambda-auto",      0 ,            0, "select lambda automatically so that [value] coefficients are non-zero")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model k-mer co-occurrences")
@@ -207,6 +207,9 @@ func main_learn(config Config, args []string) {
   if *optHelp {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
+  }
+  if *optLambdaAuto != 0 && *optRprop {
+    log.Fatal("rprop does not support automatic regularization strength")
   }
   if s, err := strconv.ParseFloat(*optEpsilon, 64); err != nil {
     log.Fatal(err)
