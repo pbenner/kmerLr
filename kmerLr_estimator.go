@@ -51,7 +51,7 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList) *KmerLrEstimator {
     estimator.Balance        = config.Balance
     estimator.Seed           = config.Seed
     estimator.L1Reg          = config.Lambda
-    estimator.L1Auto         = config.LambdaAuto
+    estimator.AutoReg        = config.LambdaAuto
     estimator.Epsilon        = config.Epsilon
     estimator.StepSizeFactor = config.StepSizeFactor
     if config.MaxEpochs != 0 {
