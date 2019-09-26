@@ -20,6 +20,7 @@ package main
 
 import   "fmt"
 import   "math"
+import   "time"
 
 import . "github.com/pbenner/autodiff"
 import   "github.com/pbenner/autodiff/algorithm/rprop"
@@ -42,6 +43,7 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
     data, _ := estimator.GetData()
     return lr.Loss(data, nil)
   }
+  t := time.Now()
   hook := func(x ConstVector, change ConstScalar, epoch int) bool {
     loss_old, loss_new = loss_new, loss_old
     n := 0
@@ -68,6 +70,7 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
         if config.EvalLoss {
           fmt.Printf("loss      : %f\n", loss_new)
         }
+        fmt.Printf("time      : %v\n", time.Since(t))
       } else {
         if icv != -1 {
           fmt.Printf("cv run: %d\n", icv+1)
@@ -78,9 +81,11 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
         if config.EvalLoss {
           fmt.Printf("loss  : %f\n", loss_new)
         }
+        fmt.Printf("time  : %v\n", time.Since(t))
       }
       fmt.Println()
     }
+    t = time.Now()
     if trace != nil && config.EpsilonVar != 0.0 {
       if r := trace.CompVar(10); r < config.EpsilonVar {
         return true
@@ -101,7 +106,8 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, esti
   loss := func(x ConstVector) float64 {
     return estimator.logisticRegression.Loss(estimator.data, nil)
   }
-  k    := 0
+  k := 0
+  t := time.Now()
   hook := func(gradient []float64, step []float64, x ConstVector, y Scalar) bool {
     loss_old, loss_new = loss_new, loss_old
     k += 1
@@ -133,6 +139,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, esti
         if config.EvalLoss {
           fmt.Printf("loss      : %f\n", loss_new)
         }
+        fmt.Printf("time      : %v\n", time.Since(t))
       } else {
         if icv != -1 {
           fmt.Printf("cv run: %d\n", icv+1)
@@ -143,9 +150,11 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, esti
         if config.EvalLoss {
           fmt.Printf("loss  : %f\n", loss_new)
         }
+        fmt.Printf("time  : %v\n", time.Since(t))
       }
       fmt.Println()
     }
+    t = time.Now()
     if trace != nil && config.EpsilonVar != 0.0 {
       if r := trace.CompVar(10); r < config.EpsilonVar {
         return true
