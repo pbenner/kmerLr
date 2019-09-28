@@ -116,8 +116,11 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector, labels [
       if obj.iterations < i || (config.MaxEpochs > 0 && obj.iterations >= config.MaxEpochs) {
         return r.Sparsify(nil)
       }
-      // copy parameters
+      // sparsify parameters and data
       r = r.Sparsify(data)
+      // copy parameters
+      obj.Kmers                    = r.KmerLrAlphabet.Kmers
+      obj.LogisticRegression.Theta = r.Theta.(DenseBareRealVector)
     }
     return r
   } else {
