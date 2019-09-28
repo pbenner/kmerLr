@@ -56,24 +56,11 @@ func savePredictions(filename string, predictions []float64) {
 
 /* -------------------------------------------------------------------------- */
 
-func predict_unlabeled(config Config, data []ConstVector, classifier VectorPdf) []float64 {
+func predict_data(config Config, data []ConstVector, classifier VectorPdf) []float64 {
   r := make([]float64, len(data))
   t := BareReal(0.0)
   for i, _ := range data {
     if err := classifier.LogPdf(&t, data[i]); err != nil {
-      log.Fatal(err)
-    }
-    r[i] = t.GetValue()
-  }
-  return r
-}
-
-func predict_labeled(config Config, data []ConstVector, classifier VectorPdf) []float64 {
-  r := make([]float64, len(data))
-  t := BareReal(0.0)
-  for i, _ := range data {
-    // drop label, i.e. first component
-    if err := classifier.LogPdf(&t, data[i].ConstSlice(0, data[i].Dim()-1)); err != nil {
       log.Fatal(err)
     }
     r[i] = t.GetValue()
@@ -97,7 +84,7 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
   data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, filename_in)
   data     = classifier.TransformApply(config, data)
 
-  predictions := predict_unlabeled(config, data, classifier)
+  predictions := predict_data(config, data, classifier)
 
   savePredictions(filename_out, predictions)
 }

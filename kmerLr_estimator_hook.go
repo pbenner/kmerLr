@@ -32,7 +32,7 @@ type HookType func(x ConstVector, change ConstScalar, epoch int) bool
 
 /* -------------------------------------------------------------------------- */
 
-func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator *vectorEstimator.LogisticRegression) HookType {
+func NewHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool, estimator *vectorEstimator.LogisticRegression) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
   loss := func(x ConstVector) float64 {
@@ -40,9 +40,9 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
     lr.Theta        = x.GetValues()
     lr.Lambda       = estimator.L1Reg
     lr.ClassWeights = estimator.ClassWeights
-    data, _ := estimator.GetData()
-    return lr.Loss(data, nil)
+    return lr.Loss(data, c, nil)
   }
+  positive := []bool{}
   t := time.Now()
   hook := func(x ConstVector, change ConstScalar, epoch int) bool {
     loss_old, loss_new = loss_new, loss_old
@@ -53,6 +53,16 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
     for it := x.ConstIterator(); it.Ok(); it.Next() {
       if it.GetConst().GetValue() != 0.0 {
         n += 1
+      }
+    }
+    if config.Prune > 0 {
+      if len(positive) == 0 {
+        positive = make([]bool, x.Dim())
+      }
+      for it := x.ConstIterator(); it.Ok(); it.Next() {
+        if it.GetConst().GetValue() != 0.0 {
+          positive[it.Index()] = true
+        }
       }
     }
     if trace != nil {
@@ -100,11 +110,11 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, estimator
   return hook
 }
 
-func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, estimator *KmerLrRpropEstimator) rprop.Hook {
+func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool, estimator *KmerLrRpropEstimator) rprop.Hook {
   loss_old := math.NaN()
   loss_new := math.NaN()
   loss := func(x ConstVector) float64 {
-    return estimator.logisticRegression.Loss(estimator.data, nil)
+    return estimator.logisticRegression.Loss(data, c, nil)
   }
   k := 0
   t := time.Now()

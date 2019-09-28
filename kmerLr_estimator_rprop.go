@@ -41,6 +41,7 @@ type KmerLrRpropEstimator struct {
   StepSizeFactor float64
   Eta          []float64
   data         []ConstVector
+  labels       []bool
   // list of all features
   Kmers KmerClassList
 }
@@ -89,9 +90,9 @@ func (obj *KmerLrRpropEstimator) SetParameters(x Vector) error {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector) *KmerLr {
+func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
   if obj.Balance {
-    obj.computeClassWeights(data)
+    obj.computeClassWeights(labels)
   }
   args := []interface{}{}
   args  = append(args, rprop.Epsilon{obj.Epsilon})
@@ -102,7 +103,8 @@ func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector) *Km
   if obj.StepSize == 0.0 {
     obj.setStepSize(data)
   }
-  obj.data = data
+  obj.data   = data
+  obj.labels = labels
   x, err := rprop.RunGradient(rprop.DenseGradientF(obj.objectiveGradient), DenseConstRealVector(obj.Theta), obj.StepSize, obj.Eta, args...)
   obj.data = nil
   if err != nil {
@@ -126,12 +128,12 @@ func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector) *Km
 
 func (obj *KmerLrRpropEstimator) objectiveGradient(theta, gradient DenseConstRealVector) error {
   obj.Theta = theta
-  obj.Gradient(gradient, obj.data, nil)
+  obj.Gradient(gradient, obj.data, obj.labels, nil)
   return nil
 }
 
-func (obj *KmerLrRpropEstimator) computeClassWeights(data []ConstVector) {
-  obj.ClassWeights = compute_class_weights(data)
+func (obj *KmerLrRpropEstimator) computeClassWeights(labels []bool) {
+  obj.ClassWeights = compute_class_weights(labels)
 }
 
 func (obj *KmerLrRpropEstimator) setStepSize(data []ConstVector) {

@@ -23,8 +23,6 @@ import   "log"
 import   "math"
 import   "sort"
 
-import . "github.com/pbenner/ngstat/estimation"
-
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
@@ -89,9 +87,9 @@ func (obj *KmerLrOmpEstimator) CloneVectorEstimator() VectorEstimator {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) *KmerLr {
+func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
   if obj.Balance {
-    obj.computeClassWeights(data)
+    obj.computeClassWeights(labels)
   }
   gamma := obj.normalizationConstants(config, data)
   for iOmp := 0; iOmp < obj.OmpIterations; iOmp++ {
@@ -103,11 +101,14 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector) *Kmer
         obj.printActive()
       }
       // select a subset of features using OMP
-      features := obj.selectFeatures(data, gamma, len(obj.active)+1)
+      features := obj.selectFeatures(data, labels, gamma, len(obj.active)+1)
       // get subset of data and coefficients for these features
       features_data := obj.selectData(data, features)
       // estimate reduced set of coefficients
-      if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, features_data); err != nil {
+      if err := obj.LogisticRegression.SetSparseData(features_data, labels, len(features_data)); err != nil {
+        log.Fatal(err)
+      }
+      if err := obj.LogisticRegression.Estimate(nil, config.Pool); err != nil {
         log.Fatal(err)
       }
       // copy coefficients to backup vector
@@ -186,12 +187,12 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
   return r
 }
 
-func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, gamma []float64) []int {
+func (obj *KmerLrOmpEstimator) rankFeatures(data []ConstVector, labels []bool, gamma []float64) []int {
   r := logisticRegression{}
   r.Theta        = obj.theta_
   r.Lambda       = 0.0
   r.ClassWeights = obj.ClassWeights
-  g := r.Gradient(nil, data, gamma)
+  g := r.Gradient(nil, data, labels, gamma)
   if len(g) != len(obj.Kmers)+1 {
     panic("internal error")
   }
@@ -214,14 +215,14 @@ func (obj *KmerLrOmpEstimator) setActive(k []int) {
   obj.active = k
 }
 
-func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float64, n int) []int {
+func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, labels []bool, gamma []float64, n int) []int {
   m := make(map[int]struct{})
   // keep all features j with theta_j != 0
   for _, j := range obj.active {
     m[j] = struct{}{}
   }
   if len(m) < n {
-    for _, j := range obj.rankFeatures(data, gamma) {
+    for _, j := range obj.rankFeatures(data, labels, gamma) {
       if _, ok := m[j]; !ok {
         m[j] = struct{}{}
       }
@@ -242,8 +243,8 @@ func (obj *KmerLrOmpEstimator) selectFeatures(data []ConstVector, gamma []float6
   return r
 }
 
-func (obj *KmerLrOmpEstimator) computeClassWeights(data []ConstVector) {
-  obj.ClassWeights = compute_class_weights(data)
+func (obj *KmerLrOmpEstimator) computeClassWeights(labels []bool) {
+  obj.ClassWeights = compute_class_weights(labels)
 }
 
 func (obj *KmerLrOmpEstimator) normalizationConstants(config Config, data []ConstVector) []float64 {

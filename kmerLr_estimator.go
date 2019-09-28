@@ -21,8 +21,6 @@ package main
 //import   "fmt"
 import   "log"
 
-import . "github.com/pbenner/ngstat/estimation"
-
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
@@ -74,8 +72,11 @@ func (obj *KmerLrEstimator) CloneVectorEstimator() VectorEstimator {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector) *KmerLr {
-  if err := EstimateOnSingleTrackConstData(config.SessionConfig, &obj.LogisticRegression, data); err != nil {
+func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
+  if err := obj.LogisticRegression.SetSparseData(data, labels, len(data)); err != nil {
+    log.Fatal(err)
+  }
+  if err := obj.LogisticRegression.Estimate(nil, config.Pool); err != nil {
     log.Fatal(err)
   }
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {

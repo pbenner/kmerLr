@@ -52,11 +52,11 @@ func getCvGroups(n, fold int, seed int64) []int {
   return groups
 }
 
-func filterCvGroup(data []ConstVector, labels []int, groups []int, i int) ([]ConstVector, []int, []ConstVector, []int) {
+func filterCvGroup(data []ConstVector, labels []bool, groups []int, i int) ([]ConstVector, []bool, []ConstVector, []bool) {
   r_test         := []ConstVector{}
-  r_test_labels  := []int{}
+  r_test_labels  := []bool{}
   r_train        := []ConstVector{}
-  r_train_labels := []int{}
+  r_train_labels := []bool{}
   for j := 0; j < len(data); j++ {
     if groups[j] == i {
       r_test         = append(r_test        , data[j])
@@ -69,27 +69,9 @@ func filterCvGroup(data []ConstVector, labels []int, groups []int, i int) ([]Con
   return r_test, r_test_labels, r_train, r_train_labels
 }
 
-func getLabels(data []ConstVector) []int {
-  if len(data) == 0 {
-    return nil
-  }
-  n := data[0].Dim()
-  r := make([]int, len(data))
-  for i := 0; i < len(data); i++ {
-    // do not use ValueAt to prevent that an index
-    // for the sparse vector is constructed
-    if j, v := data[i].(SparseConstRealVector).Last(); j != n-1 {
-      panic("internal error")
-    } else {
-      r[i] = int(v)
-    }
-  }
-  return r
-}
-
 /* -------------------------------------------------------------------------- */
 
-func saveCrossvalidation(filename string, predictions []float64, labels []int) error {
+func saveCrossvalidation(filename string, predictions []float64, labels []bool) error {
   f, err := os.Create(filename)
   if err != nil {
     return err
@@ -101,24 +83,28 @@ func saveCrossvalidation(filename string, predictions []float64, labels []int) e
 
   fmt.Fprintf(w, "%15s\t%6s\n", "prediction", "labels")
   for i := 0; i < len(predictions); i++ {
-    fmt.Fprintf(w, "%15e\t%6d\n", predictions[i], labels[i])
+    if labels[i] {
+      fmt.Fprintf(w, "%15e\t%6d\n", predictions[i], 1)
+    } else {
+      fmt.Fprintf(w, "%15e\t%6d\n", predictions[i], 0)
+    }
   }
   return nil
 }
 
 /* -------------------------------------------------------------------------- */
 
-func crossvalidation(config Config, data []ConstVector, labels []int, kfold int,
-  learnClassifier func(i int, data []ConstVector) VectorPdf,
-   testClassifier func(i int, data []ConstVector, classifier VectorPdf) []float64) ([]float64, []int) {
+func crossvalidation(config Config, data []ConstVector, labels []bool, kfold int,
+  learnClassifier func(i int, data []ConstVector, c []bool) VectorPdf,
+   testClassifier func(i int, data []ConstVector, classifier VectorPdf) []float64) ([]float64, []bool) {
   groups := getCvGroups(len(data), kfold, config.Seed)
 
   r_predictions := make([][]float64, kfold)
-  r_labels      := make([][]int,     kfold)
+  r_labels      := make([][]bool,    kfold)
   config.Pool.RangeJob(0, kfold, func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    data_test, labels_test, data_train, _ := filterCvGroup(data, labels, groups, i)
+    data_test, labels_test, data_train, labels_train := filterCvGroup(data, labels, groups, i)
 
-    classifier := learnClassifier(i, data_train)
+    classifier := learnClassifier(i, data_train, labels_train)
 
     r_predictions[i] = testClassifier(i, data_test, classifier)
     r_labels     [i] = labels_test
@@ -126,7 +112,7 @@ func crossvalidation(config Config, data []ConstVector, labels []int, kfold int,
   })
   // join results
   predictions := []float64{}
-  labels       = []int    {}
+  labels       = []bool   {}
   for i := 0; i < kfold; i++ {
     predictions = append(predictions, r_predictions[i]...)
     labels      = append(labels     , r_labels     [i]...)

@@ -30,11 +30,11 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func kmer_abundance(data []ConstVector, i, label int) float64 {
+func kmer_abundance(data []ConstVector, c []bool, i int, label bool) float64 {
   k := 0
   n := 0
   for j := 0; j < len(data); j++ {
-    if data[j].ValueAt(data[j].Dim()-1) == float64(label) {
+    if c[j] == label {
       n += 1
       if data[j].ValueAt(i+1) > 0.0 {
         k += 1
@@ -115,11 +115,12 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
   config.Cooccurrence    = classifier.Cooccurrence
 
   data := []ConstVector{}
+  c    := []bool{}
   if filename_fg != "" && filename_bg != "" {
     kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
       log.Fatal(err)
     }
-    data, kmers = compile_training_data(config, kmersCounter, classifier.Kmers, filename_fg, filename_bg)
+    data, c, kmers = compile_training_data(config, kmersCounter, classifier.Kmers, filename_fg, filename_bg)
   }
 
   // insert coefficients into the map
@@ -160,8 +161,8 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
       break
     }
     if len(data) > 0 {
-      fmt.Printf("%6.2f%% ", kmer_abundance(data, k, 1)*100.0)
-      fmt.Printf("%6.2f%% ", kmer_abundance(data, k, 0)*100.0)
+      fmt.Printf("%6.2f%% ", kmer_abundance(data, c, k, true )*100.0)
+      fmt.Printf("%6.2f%% ", kmer_abundance(data, c, k, false)*100.0)
     }
     k1, k2 := CoeffIndex(len(kmers)).Sub2Ind(k)
     if k1 == k2 {

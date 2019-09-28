@@ -40,34 +40,34 @@ func (obj *Transform) TransformFit(config Config, data []ConstVector) {
   PrintStderr(config, 1, "Fitting data transform... ")
   n := len(data)
   m := data[0].Dim()
-  mu    := make([]float64, m-1)
-  sigma := make([]float64, m-1)
+  mu    := make([]float64, m)
+  sigma := make([]float64, m)
   // compute mu
   for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      if j := it.Index(); j > 0 && j < m-1 {
+      if j := it.Index(); j > 0 {
         mu[j] += it.GetConst().GetValue()
       }
     }
   }
-  for j := 1; j < m-1; j++ {
+  for j := 1; j < m; j++ {
     mu[j] /= float64(n)
   }
   k := make([]int, m)
   // compute sigma
   for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      if j := it.Index(); j > 0 && j < m-1 {
+      if j := it.Index(); j > 0 {
         v := it.GetConst().GetValue()
         k    [j] += 1
         sigma[j] += (v-mu[j])*(v-mu[j])
       }
     }
   }
-  for j := 1; j < m-1; j++ {
+  for j := 1; j < m; j++ {
     sigma[j] += float64(n-k[j])*mu[j]*mu[j]
   }
-  for j := 1; j < m-1; j++ {
+  for j := 1; j < m; j++ {
     if sigma[j] == 0.0 {
       sigma[j] = 1.0
     } else {

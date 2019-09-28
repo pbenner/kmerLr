@@ -53,6 +53,7 @@ type Config struct {
   RpropStepSize   float64
   Omp             int
   OmpIterations   int
+  Prune           int
   Pool            threadpool.ThreadPool
 }
 

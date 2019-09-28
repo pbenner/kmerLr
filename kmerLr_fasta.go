@@ -54,17 +54,15 @@ func import_fasta(config Config, filename string) []string {
 
 /* -------------------------------------------------------------------------- */
 
-func compute_class_weights(data []ConstVector) [2]float64 {
-  n  := len(data)
+func compute_class_weights(c []bool) [2]float64 {
+  n  := len(c)
   n1 := 0
   n0 := 0
   for i := 0; i < n; i++ {
-    _, v := data[i].(SparseConstRealVector).Last()
-    switch v {
-    case 1.0: n1++
-    case 0.0: n0++
-    default:
-      panic("internal error")
+    if c[i] {
+      n1++
+    } else {
+      n0++
     }
   }
   r := [2]float64{}
@@ -75,16 +73,12 @@ func compute_class_weights(data []ConstVector) [2]float64 {
 
 /* -------------------------------------------------------------------------- */
 
-func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
+func convert_counts(config Config, counts KmerCounts) ConstVector {
   n := counts.Len()+1
   m := counts.N  ()+1
   if config.Cooccurrence {
     n = (counts.Len()+1)*counts.Len()/2 + 1
     m = (counts.N  ()+1)*counts.N  ()/2 + 1
-  }
-  if label != -1 {
-    n += 1
-    m += 1
   }
   j := 1
   i := make([]int      , m)
@@ -112,23 +106,17 @@ func convert_counts(config Config, counts KmerCounts, label int) ConstVector {
       }
     }
   }
-  if label != -1 {
-    // append label to data vector
-    i[j] = n-1
-    v[j] = ConstReal(label)
-    j++
-  }
   // resize slice and restrict capacity
   i = append([]int      {}, i[0:j]...)
   v = append([]ConstReal{}, v[0:j]...)
   return UnsafeSparseConstRealVector(i, v, n)
 }
 
-func convert_counts_list(config Config, countsList *KmerCountsList, label int) []ConstVector {
+func convert_counts_list(config Config, countsList *KmerCountsList) []ConstVector {
   r := make([]ConstVector, countsList.Len())
   PrintStderr(config, 1, "Converting kmer counts... ")
   if err := config.Pool.RangeJob(0, countsList.Len(), func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    r[i] = convert_counts(config, countsList.At(i), label)
+    r[i] = convert_counts(config, countsList.At(i))
     // free memory
     countsList.Counts[i] = nil
     return nil
@@ -171,9 +159,13 @@ func scan_sequences(config Config, kmersCounter *KmerCounter, sequences []string
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, filename_fg, filename_bg string) ([]ConstVector, KmerClassList) {
+func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, filename_fg, filename_bg string) ([]ConstVector, []bool, KmerClassList) {
   fg := import_fasta(config, filename_fg)
   bg := import_fasta(config, filename_bg)
+  labels := make([]bool, len(fg)+len(bg))
+  for i := 0; i < len(fg); i++ {
+    labels[i] = true
+  }
   counts_fg   := scan_sequences(config, kmersCounter, fg)
   counts_bg   := scan_sequences(config, kmersCounter, bg)
   counts_list := NewKmerCountsList(append(counts_fg, counts_bg...)...)
@@ -182,9 +174,9 @@ func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerC
   }
   counts_list_fg := counts_list.Slice(      0, len(fg))
   counts_list_bg := counts_list.Slice(len(fg), len(fg)+len(bg))
-  r_fg := convert_counts_list(config, &counts_list_fg, 1)
-  r_bg := convert_counts_list(config, &counts_list_bg, 0)
-  return append(r_fg, r_bg...), counts_list.Kmers
+  r_fg := convert_counts_list(config, &counts_list_fg)
+  r_bg := convert_counts_list(config, &counts_list_bg)
+  return append(r_fg, r_bg...), labels, counts_list.Kmers
 }
 
 func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, filename string) ([]ConstVector, KmerClassList) {
@@ -194,5 +186,5 @@ func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClass
   // set counts_list.Kmers to the set of kmers on which the
   // classifier was trained on
   counts_list.SetKmers(kmers)
-  return convert_counts_list(config, &counts_list, -1), counts_list.Kmers
+  return convert_counts_list(config, &counts_list), counts_list.Kmers
 }

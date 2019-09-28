@@ -90,7 +90,7 @@ func (obj logisticRegression) ClassLogPdf(v SparseConstRealVector, gamma []float
   }
 }
 
-func (obj logisticRegression) Gradient(g []float64, data []ConstVector, gamma []float64) []float64 {
+func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels []bool, gamma []float64) []float64 {
   if len(data) == 0 {
     return nil
   }
@@ -98,30 +98,28 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, gamma []
   m := data[0].Dim()
   w := 0.0
   if len(g) == 0 {
-    g = make([]float64, m-1)
+    g = make([]float64, m)
   }
-  if len(g) != m-1 {
+  if len(g) != m {
     panic("internal error")
   }
   for j, _ := range g {
     g[j] = 0
   }
   for i := 0; i < n; i++ {
-    r := obj.LogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma)
+    r := obj.LogPdf(data[i].(SparseConstRealVector), gamma)
 
-    if _, v := data[i].(SparseConstRealVector).Last(); v == 1 {
+    if labels[i] {
       w = obj.ClassWeights[1]*(math.Exp(r) - 1.0)
     } else {
       w = obj.ClassWeights[0]*(math.Exp(r))
     }
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      if j := it.Index(); j != m-1 {
-        g[j] += w*it.GetConst().GetValue()
-      }
+      g[it.Index()] += w*it.GetConst().GetValue()
     }
   }
   if obj.Lambda != 0.0 {
-    for j := 1; j < m-1; j++ {
+    for j := 1; j < m; j++ {
       if obj.Theta[j] < 0 {
         g[j] -= obj.Lambda
       } else
@@ -133,7 +131,7 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, gamma []
   return g
 }
 
-func (obj logisticRegression) Loss(data []ConstVector, gamma []float64) float64 {
+func (obj logisticRegression) Loss(data []ConstVector, c []bool, gamma []float64) float64 {
   if len(data) == 0 {
     return 0.0
   }
@@ -142,15 +140,10 @@ func (obj logisticRegression) Loss(data []ConstVector, gamma []float64) float64 
   r := 0.0
 
   for i := 0; i < n; i++ {
-    _, v := data[i].(SparseConstRealVector).Last()
-       c := v == 1.0
-    switch c {
-    case true : r -= obj.ClassWeights[1]*obj.ClassLogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma, c)
-    case false: r -= obj.ClassWeights[0]*obj.ClassLogPdf(data[i].ConstSlice(0, m-1).(SparseConstRealVector), gamma, c)
-    }
+    r -= obj.ClassWeights[1]*obj.ClassLogPdf(data[i].(SparseConstRealVector), gamma, c[i])
   }
   if obj.Lambda != 0.0 {
-    for j := 1; j < m-1; j++ {
+    for j := 1; j < m; j++ {
       r += obj.Lambda*math.Abs(obj.Theta[j])
     }
   }
