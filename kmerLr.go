@@ -24,7 +24,6 @@ import   "log"
 import   "os"
 
 import . "github.com/pbenner/gonetics"
-import . "github.com/pbenner/ngstat/config"
 import   "github.com/pbenner/threadpool"
 
 import   "github.com/pborman/getopt"
@@ -32,7 +31,6 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 type Config struct {
-  SessionConfig
   KmerEquivalence
   Balance         bool
   Binarize        bool
@@ -55,6 +53,7 @@ type Config struct {
   OmpIterations   int
   Prune           int
   Pool            threadpool.ThreadPool
+  Verbose         int
 }
 
 
@@ -76,7 +75,7 @@ func printVersion(writer io.Writer) {
 func main() {
   log.SetFlags(0)
 
-  config  := Config{SessionConfig: DefaultSessionConfig()}
+  config  := Config{}
   options := getopt.New()
 
   optThreads := options.    IntLong("threads",  0 ,  1, "number of threads")
@@ -112,8 +111,7 @@ func main() {
   if *optThreads > 1 {
     config.Pool = threadpool.New(*optThreads, 100)
   }
-  config.Seed    = int64(*optSeed)
-  config.Threads = *optThreads
+  config.Seed = int64(*optSeed)
   // command arguments
   if len(options.Args()) == 0 {
     options.PrintUsage(os.Stderr)
