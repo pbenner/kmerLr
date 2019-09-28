@@ -43,12 +43,13 @@ type KmerLrRpropEstimator struct {
   data         []ConstVector
   labels       []bool
   // list of all features
-  Kmers KmerClassList
+  Kmers     KmerClassList
+  Transform Transform
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrRpropEstimator(config Config, kmers KmerClassList) *KmerLrRpropEstimator {
+func NewKmerLrRpropEstimator(config Config, kmers KmerClassList, t Transform) *KmerLrRpropEstimator {
   n := kmers.Len() + 1
   if config.Cooccurrence {
     n = (kmers.Len()+1)*kmers.Len()/2 + 1
@@ -63,6 +64,7 @@ func NewKmerLrRpropEstimator(config Config, kmers KmerClassList) *KmerLrRpropEst
   r.StepSizeFactor = config.StepSizeFactor
   r.Eta            = config.RpropEta
   r.Kmers          = kmers
+  r.Transform      = t
   r.Theta          = make([]float64, n)
   return &r
 }
@@ -117,10 +119,11 @@ func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector, lab
   } else {
     r := KmerLr{}
     r.LogisticRegression             = *lr
+    r.Transform                      = obj.   Transform
     r.KmerLrAlphabet.Binarize        = config.Binarize
     r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
     r.KmerLrAlphabet.Kmers           = obj   .Kmers
-    return &r
+    return r.Sparsify(nil)
   }
 }
 

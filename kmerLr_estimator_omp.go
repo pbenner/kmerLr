@@ -35,7 +35,8 @@ import . "github.com/pbenner/gonetics"
 type KmerLrOmpEstimator struct {
   vectorEstimator.LogisticRegression
   // list of all features
-  Kmers KmerClassList
+  Kmers     KmerClassList
+  Transform Transform
   // full coefficients vector
   theta_ []float64
   // set of active features
@@ -48,7 +49,7 @@ type KmerLrOmpEstimator struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrOmpEstimator(config Config, kmers KmerClassList) *KmerLrOmpEstimator {
+func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, data []ConstVector, labels []bool, t Transform) *KmerLrOmpEstimator {
   n := kmers.Len() + 1
   if config.Cooccurrence {
     n = (kmers.Len()+1)*kmers.Len()/2 + 1
@@ -57,20 +58,22 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList) *KmerLrOmpEstimat
     log.Fatal(err)
     return nil
   } else {
-    estimator.Balance        = config.Balance
-    estimator.Seed           = config.Seed
-    estimator.L1Reg          = config.Lambda
-    estimator.Epsilon        = config.Epsilon
-    estimator.StepSizeFactor = config.StepSizeFactor
-    if config.MaxEpochs != 0 {
-      estimator.MaxIterations = config.MaxEpochs
-    }
     r := KmerLrOmpEstimator{}
     r.LogisticRegression = *estimator
-    r.Kmers         = kmers
-    r.theta_        = make([]float64, kmers.Len()+1)
-    r.OmpIterations = config.OmpIterations
-    r.n             = config.Omp
+    r.Kmers              = kmers
+    r.Transform          = t
+    r.theta_             = make([]float64, kmers.Len()+1)
+    r.OmpIterations      = config.OmpIterations
+    r.n                  = config.Omp
+    r.LogisticRegression.Balance        = config.Balance
+    r.LogisticRegression.Seed           = config.Seed
+    r.LogisticRegression.L1Reg          = config.Lambda
+    r.LogisticRegression.Epsilon        = config.Epsilon
+    r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
+    r.LogisticRegression.Hook           = NewHook(config, trace, nil, icv, data, labels, &r.LogisticRegression)
+    if config.MaxEpochs != 0 {
+      r.LogisticRegression.MaxIterations = config.MaxEpochs
+    }
     return &r
   }
 }
@@ -120,6 +123,7 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector, label
     return nil
   } else {
     r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
+    r.Transform                      = obj.Transform
     r.KmerLrAlphabet.Binarize        = config.Binarize
     r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
     r.KmerLrAlphabet.Kmers           = make(KmerClassList, len(obj.active))

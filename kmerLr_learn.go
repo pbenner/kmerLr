@@ -48,23 +48,21 @@ func learn_parameters(config Config, data []ConstVector, labels []bool, classifi
     trace = &Trace{}
   }
   if config.Omp != 0 {
-    estimator := NewKmerLrOmpEstimator(config, kmers)
-    estimator.Hook = NewHook(config, trace, icv, data, labels, &estimator.LogisticRegression)
+    estimator := NewKmerLrOmpEstimator(config, kmers, trace, icv, data, labels, t)
     if classifier != nil {
       estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
     classifier = estimator.Estimate(config, data, labels)
   } else
   if config.Rprop {
-    estimator := NewKmerLrRpropEstimator(config, kmers)
+    estimator := NewKmerLrRpropEstimator(config, kmers, t)
     estimator.Hook = NewRpropHook(config, trace, icv, data, labels, estimator)
     if classifier != nil {
       estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
     classifier = estimator.Estimate(config, data, labels)
   } else {
-    estimator := NewKmerLrEstimator(config, kmers)
-    estimator.Hook = NewHook(config, trace, icv, data, labels, &estimator.LogisticRegression)
+    estimator := NewKmerLrEstimator(config, kmers, trace, icv, data, labels, t)
     if classifier != nil {
       estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
@@ -76,10 +74,8 @@ func learn_parameters(config Config, data []ConstVector, labels []bool, classifi
   if config.SaveTrace {
     SaveTrace(config, filename_trace, trace)
   }
-  // set transform
-  classifier.Transform = t
   // export model
-  SaveModel(config, filename_json, classifier.Sparsify())
+  SaveModel(config, filename_json, classifier)
 
   return classifier
 }

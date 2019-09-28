@@ -72,14 +72,19 @@ func (obj *KmerLr) Loss(data []ConstVector, c []bool, lambda float64, balance bo
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLr) Sparsify() *KmerLr {
+func (obj *KmerLr) Sparsify(data []ConstVector) *KmerLr {
   theta := []float64{obj.Theta.ValueAt(0)}
   kmers := KmerClassList{}
   tr    := Transform{}
+  m     := make(map[int]int)
+  m[0]   = 0
   if obj.Theta.Dim() == len(obj.Kmers)+1 {
     // no co-occurrences
     for i := 0; i < len(obj.Kmers); i++ {
       if obj.Theta.ValueAt(i+1) != 0.0 {
+        if data != nil {
+          m[i+1] = len(theta)
+        }
         theta = append(theta, obj.Theta.ValueAt(i+1))
         kmers = append(kmers, obj.Kmers[i])
       }
@@ -92,6 +97,19 @@ func (obj *KmerLr) Sparsify() *KmerLr {
           tr.Mu    = append(tr.Mu   , obj.Transform.Mu   [i+1])
           tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[i+1])
         }
+      }
+    }
+    if len(data) != 0 {
+      for j, x := range data {
+        i := []int      {}
+        v := []ConstReal{}
+        for it := x.ConstIterator(); it.Ok(); it.Next() {
+          if it.Index() == 0 || obj.Theta.ValueAt(it.Index()) != 0.0 {
+            i = append(i, m[it.Index()])
+            v = append(v, ConstReal(it.GetConst().GetValue()))
+          }
+        }
+        data[j] = UnsafeSparseConstRealVector(i, v, len(kmers)+1)
       }
     }
   } else {
@@ -114,6 +132,9 @@ func (obj *KmerLr) Sparsify() *KmerLr {
     }
     for i := 1; i <= len(obj.Kmers); i++ {
       if nz[i-1] {
+        if data != nil {
+          m[i+1] = len(theta)
+        }
         theta = append(theta, obj.Theta.ValueAt(i))
         kmers = append(kmers, obj.Kmers[i-1])
       }
@@ -122,6 +143,7 @@ func (obj *KmerLr) Sparsify() *KmerLr {
       for i2 := i1+1; i2 < len(obj.Kmers); i2++ {
         i := CoeffIndex(p).Ind2Sub(i1, i2)
         if nz[i1] && nz[i2] {
+          m[i] = len(theta)
           theta = append(theta, obj.Theta.ValueAt(i))
         }
       }
@@ -143,6 +165,21 @@ func (obj *KmerLr) Sparsify() *KmerLr {
             tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[i])
           }
         }
+      }
+    }
+    if len(data) != 0 {
+      n := (len(kmers)+1)*len(kmers)/2 + 1
+      for j, x := range data {
+        i := []int      {}
+        v := []ConstReal{}
+        for it := x.ConstIterator(); it.Ok(); it.Next() {
+          i1, i2 := CoeffIndex(p).Sub2Ind(it.Index()-1)
+          if it.Index() == 0 || (nz[i1] && nz[i2]) {
+            i = append(i, m[it.Index()])
+            v = append(v, ConstReal(it.GetConst().GetValue()))
+          }
+        }
+        data[j] = UnsafeSparseConstRealVector(i, v, n)
       }
     }
   }

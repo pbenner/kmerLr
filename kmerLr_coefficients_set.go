@@ -191,5 +191,5 @@ func (obj *KmerLrCoefficientsSet) AsKmerLr(alphabet KmerLrAlphabet) *KmerLr {
       }
     }
   }
-  return NewKmerLr(v, alphabet).Sparsify()
+  return NewKmerLr(v, alphabet).Sparsify(nil)
 }

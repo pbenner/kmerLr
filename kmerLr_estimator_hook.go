@@ -32,7 +32,7 @@ type HookType func(x ConstVector, change ConstScalar, epoch int) bool
 
 /* -------------------------------------------------------------------------- */
 
-func NewHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool, estimator *vectorEstimator.LogisticRegression) HookType {
+func NewHook(config Config, trace *Trace, iterations *int, icv int, data []ConstVector, c []bool, estimator *vectorEstimator.LogisticRegression) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
   loss := func(x ConstVector) float64 {
@@ -45,6 +45,9 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool,
   positive := []bool{}
   t := time.Now()
   hook := func(x ConstVector, change ConstScalar, epoch int) bool {
+    if iterations != nil {
+      (*iterations)++
+    }
     loss_old, loss_new = loss_new, loss_old
     n := 0
     if config.EvalLoss {
