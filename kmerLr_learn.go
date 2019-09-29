@@ -97,12 +97,8 @@ func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, ba
   var classifier *KmerLr
   var kmers       KmerClassList
   if filename_json != "" {
-    classifier = ImportKmerLr(config, filename_json)
+    classifier = ImportKmerLr(&config, filename_json)
     kmers      = classifier.Kmers
-    // copy config from classifier
-    config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
-    config.Binarize        = classifier.Binarize
-    config.Cooccurrence    = classifier.Cooccurrence
   }
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
@@ -136,7 +132,7 @@ func main_learn(config Config, args []string) {
   optLambdaAuto      := options.    IntLong("lambda-auto",      0 ,            0, "select lambda automatically so that [value] coefficients are non-zero")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
-  optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model k-mer co-occurrences")
+  optCooccurrence    := options.    IntLong("co-occurrence",    0 ,           -1, "epochs after which to model k-mer co-occurrences")
   optComplement      := options.   BoolLong("complement",       0 ,               "consider complement sequences")
   optReverse         := options.   BoolLong("reverse",          0 ,               "consider reverse sequences")
   optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
@@ -279,6 +275,12 @@ func main_learn(config Config, args []string) {
       log.Fatal(err)
     }
     config.RpropEta = []float64{v1, v2}
+  }
+  if *optRprop && *optCooccurrence > 0 {
+    log.Fatal("Rprop does not support delayed modeling of co-occurrences")
+  }
+  if *optOmp > 0 && *optCooccurrence > 0 {
+    log.Fatal("Omp does not support delayed modeling of co-occurrences")
   }
   config.Balance         = *optBalance
   config.Binarize        = *optBinarize

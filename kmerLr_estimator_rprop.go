@@ -51,7 +51,7 @@ type KmerLrRpropEstimator struct {
 
 func NewKmerLrRpropEstimator(config Config, kmers KmerClassList, t Transform) *KmerLrRpropEstimator {
   n := kmers.Len() + 1
-  if config.Cooccurrence {
+  if config.Cooccurrence == 0 {
     n = (kmers.Len()+1)*kmers.Len()/2 + 1
   }
   r := KmerLrRpropEstimator{}
@@ -120,6 +120,7 @@ func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector, lab
     r := KmerLr{}
     r.LogisticRegression             = *lr
     r.Transform                      = obj.   Transform
+    r.Cooccurrence                   = config.Cooccurrence == 0
     r.KmerLrAlphabet.Binarize        = config.Binarize
     r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
     r.KmerLrAlphabet.Kmers           = obj   .Kmers

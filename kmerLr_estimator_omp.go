@@ -51,7 +51,7 @@ type KmerLrOmpEstimator struct {
 
 func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, data []ConstVector, labels []bool, t Transform) *KmerLrOmpEstimator {
   n := kmers.Len() + 1
-  if config.Cooccurrence {
+  if config.Cooccurrence == 0 {
     n = (kmers.Len()+1)*kmers.Len()/2 + 1
   }
   if estimator, err := vectorEstimator.NewLogisticRegression(n, true); err != nil {
@@ -124,6 +124,7 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector, label
   } else {
     r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
     r.Transform                      = obj.Transform
+    r.Cooccurrence                   = config.Cooccurrence == 0
     r.KmerLrAlphabet.Binarize        = config.Binarize
     r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
     r.KmerLrAlphabet.Kmers           = make(KmerClassList, len(obj.active))

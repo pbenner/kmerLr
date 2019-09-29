@@ -81,12 +81,7 @@ func compute_similarity(config Config, theta ConstVector, x1, x2 ConstVector) fl
 /* -------------------------------------------------------------------------- */
 
 func similarity(config Config, filenameModel, filenameFasta, filenameOut string, negate bool) {
-  classifier := ImportKmerLr(config, filenameModel)
-
-  // copy config from classifier
-  config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
-  config.Binarize        = classifier.Binarize
-  config.Cooccurrence    = classifier.Cooccurrence
+  classifier := ImportKmerLr(&config, filenameModel)
 
   // remove negative entries
   if negate {

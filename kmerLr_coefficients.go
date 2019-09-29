@@ -103,16 +103,11 @@ func coefficients_format(kmers KmerClassList, coefficients AbsFloatInt) string {
 /* -------------------------------------------------------------------------- */
 
 func coefficients(config Config, filename, filename_fg, filename_bg string, related, rescale bool) {
-  classifier   := ImportKmerLr(config, filename)
+  classifier   := ImportKmerLr(&config, filename)
   coefficients := NewAbsFloatInt(classifier.Theta.Dim()-1)
   coeffmap     := make(map[KmerClassId]float64)
   kmers        := classifier.Kmers
   graph        := KmerGraph{}
-
-  // copy config from classifier
-  config.KmerEquivalence = classifier.KmerLrAlphabet.KmerEquivalence
-  config.Binarize        = classifier.Binarize
-  config.Cooccurrence    = classifier.Cooccurrence
 
   data := []ConstVector{}
   c    := []bool{}

@@ -34,7 +34,7 @@ type Config struct {
   KmerEquivalence
   Balance         bool
   Binarize        bool
-  Cooccurrence    bool
+  Cooccurrence    int
   Lambda          float64
   LambdaAuto      int
   Epsilon         float64

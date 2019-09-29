@@ -73,10 +73,36 @@ func compute_class_weights(c []bool) [2]float64 {
 
 /* -------------------------------------------------------------------------- */
 
+func extend_counts_cooccurrence_(config Config, x ConstVector) ConstVector {
+  i := x.(SparseConstRealVector).GetSparseIndices()
+  v := x.(SparseConstRealVector).GetSparseValues ()
+  n := x.Dim()
+  m := n*(n-1)/2 + 1
+  p := n-1
+  q := len(i)
+  for j1 := 1; j1 < q; j1++ {
+    for j2 := j1+1; j2 < q; j2++ {
+      i1 := i[j1]-1
+      i2 := i[j2]-1
+      i   = append(i, CoeffIndex(p).Ind2Sub(i1, i2))
+      v   = append(v, v[j1]*v[j2])
+    }
+  }
+  return UnsafeSparseConstRealVector(i, v, m)
+}
+
+func extend_counts_cooccurrence(config Config, data []ConstVector) {
+  for i, _ := range data {
+    data[i] = extend_counts_cooccurrence_(config, data[i])
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+
 func convert_counts(config Config, counts KmerCounts) ConstVector {
   n := counts.Len()+1
   m := counts.N  ()+1
-  if config.Cooccurrence {
+  if config.Cooccurrence == 0 {
     n = (counts.Len()+1)*counts.Len()/2 + 1
     m = (counts.N  ()+1)*counts.N  ()/2 + 1
   }
@@ -93,7 +119,7 @@ func convert_counts(config Config, counts KmerCounts) ConstVector {
       j++
     }
   }
-  if config.Cooccurrence {
+  if config.Cooccurrence == 0 {
     p := counts.Len()
     q := j
     for j1 := 1; j1 < q; j1++ {
