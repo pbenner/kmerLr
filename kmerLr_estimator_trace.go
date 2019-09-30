@@ -22,6 +22,7 @@ import   "fmt"
 import   "bufio"
 import   "math"
 import   "os"
+import   "time"
 
 /* -------------------------------------------------------------------------- */
 
@@ -30,6 +31,7 @@ type Trace struct {
   Nonzero []int
   Change  []float64
   Loss    []float64
+  Time    []time.Time
 }
 
 func (obj Trace) Export(filename string) error {
@@ -43,14 +45,14 @@ func (obj Trace) Export(filename string) error {
   defer w.Flush()
 
   if len(obj.Loss) > 0 {
-    fmt.Fprintf(w, "%6s %12s %8s %12s\n", "epoch", "change", "nonzero", "loss")
+    fmt.Fprintf(w, "%25s %6s %12s %8s %12s\n", "time", "epoch", "change", "nonzero", "loss")
     for i := 0; i < obj.Length(); i++ {
-      fmt.Fprintf(w, "%6d %12e %8d %12e\n", obj.Epoch[i], obj.Change[i], obj.Nonzero[i], obj.Loss[i])
+      fmt.Fprintf(w, "%25s %6d %12e %8d %12e\n", obj.Time[i].Format(time.RFC3339), obj.Epoch[i], obj.Change[i], obj.Nonzero[i], obj.Loss[i])
     }
   } else {
-    fmt.Fprintf(w, "%6s %12s %8s\n", "epoch", "change", "nonzero")
+    fmt.Fprintf(w, "%25s %6s %12s %8s\n", "time", "epoch", "change", "nonzero")
     for i := 0; i < obj.Length(); i++ {
-      fmt.Fprintf(w, "%6d %12e %8d\n", obj.Epoch[i], obj.Change[i], obj.Nonzero[i])
+      fmt.Fprintf(w, "%25s %6d %12e %8d\n", obj.Time[i].Format(time.RFC3339), obj.Epoch[i], obj.Change[i], obj.Nonzero[i])
     }
   }
   return nil
@@ -60,13 +62,14 @@ func (obj Trace) Length() int {
   return len(obj.Epoch)
 }
 
-func (obj *Trace) Append(epoch, nonzero int, change, loss float64) {
+func (obj *Trace) Append(epoch, nonzero int, change, loss float64, time time.Time) {
   obj.Epoch   = append(obj.Epoch  , epoch)
   obj.Nonzero = append(obj.Nonzero, nonzero)
   obj.Change  = append(obj.Change , change)
   if !math.IsNaN(loss) {
     obj.Loss  = append(obj.Loss   , loss)
   }
+  obj.Time    = append(obj.Time   , time)
 }
 
 func (obj Trace) CompVar(n int) float64 {

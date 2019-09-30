@@ -69,7 +69,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
       }
     }
     if trace != nil {
-      trace.Append(epoch+1, n, change.GetValue(), loss_new)
+      trace.Append(epoch+1, n, change.GetValue(), loss_new, time.Now())
     }
     if config.Verbose > 1 {
       if trace != nil {
@@ -138,7 +138,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, c []
       }
     }
     if trace != nil {
-      trace.Append(k, n, c, loss_new)
+      trace.Append(k, n, c, loss_new, time.Now())
     }
     if config.Verbose > 1 {
       if trace != nil {
