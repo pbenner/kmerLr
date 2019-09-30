@@ -72,6 +72,22 @@ func (obj *KmerLr) Loss(data []ConstVector, c []bool, lambda float64, balance bo
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLr) Nonzero() int {
+  n  := 0
+  it := obj.Theta.ConstIterator()
+  if it.Ok() {
+    it.Next()
+  }
+  for ; it.Ok(); it.Next() {
+    if it.GetConst().GetValue() != 0.0 {
+      n++
+    }
+  }
+  return n
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *KmerLr) Sparsify(data []ConstVector) *KmerLr {
   theta := []float64{obj.Theta.ValueAt(0)}
   kmers := KmerClassList{}

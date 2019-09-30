@@ -122,7 +122,9 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
         return r.Sparsify(nil)
       }
       // sparsify parameters and data
-      r = r.Sparsify(data)
+      if r.Nonzero() >= config.Prune {
+        r = r.Sparsify(data)
+      }
       // copy parameters
       obj.Kmers                    = r.KmerLrAlphabet.Kmers
       obj.LogisticRegression.Theta = r.Theta.(DenseBareRealVector)
