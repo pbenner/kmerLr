@@ -44,6 +44,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
   }
   positive := []bool{}
   t := time.Now()
+  s := time.Now()
   hook := func(x ConstVector, change ConstScalar, epoch int) bool {
     if iterations != nil {
       (*iterations)++
@@ -69,7 +70,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
       }
     }
     if trace != nil {
-      trace.Append(epoch+1, n, change.GetValue(), loss_new, time.Now())
+      trace.Append(epoch+1, n, change.GetValue(), loss_new, time.Since(s))
     }
     if config.Verbose > 1 {
       if trace != nil {
@@ -121,6 +122,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, c []
   }
   k := 0
   t := time.Now()
+  s := time.Now()
   hook := func(gradient []float64, step []float64, x ConstVector, y Scalar) bool {
     loss_old, loss_new = loss_new, loss_old
     k += 1
@@ -138,7 +140,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, c []
       }
     }
     if trace != nil {
-      trace.Append(k, n, c, loss_new, time.Now())
+      trace.Append(k, n, c, loss_new, time.Since(s))
     }
     if config.Verbose > 1 {
       if trace != nil {

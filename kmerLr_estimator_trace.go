@@ -26,12 +26,23 @@ import   "time"
 
 /* -------------------------------------------------------------------------- */
 
+func format_duration(duration time.Duration) string {
+  days    := int(duration.Hours() / 24)
+	hours   := int(math.Mod(duration.Hours(), 24))
+	minutes := int(math.Mod(duration.Minutes(), 60))
+	seconds := int(math.Mod(duration.Seconds(), 60))
+	msecs   := int(math.Mod(float64(duration.Milliseconds()), 1000))
+  return fmt.Sprintf("%02d:%02d:%02d:%02d.%03d", days, hours, minutes, seconds, msecs)
+}
+
+/* -------------------------------------------------------------------------- */
+
 type Trace struct {
-  Epoch   []int
-  Nonzero []int
-  Change  []float64
-  Loss    []float64
-  Time    []time.Time
+  Epoch    []int
+  Nonzero  []int
+  Change   []float64
+  Loss     []float64
+  Duration []time.Duration
 }
 
 func (obj Trace) Export(filename string) error {
@@ -45,14 +56,14 @@ func (obj Trace) Export(filename string) error {
   defer w.Flush()
 
   if len(obj.Loss) > 0 {
-    fmt.Fprintf(w, "%25s %6s %12s %8s %12s\n", "time", "epoch", "change", "nonzero", "loss")
+    fmt.Fprintf(w, "%15s %6s %12s %8s %12s\n", "duration", "epoch", "change", "nonzero", "loss")
     for i := 0; i < obj.Length(); i++ {
-      fmt.Fprintf(w, "%25s %6d %12e %8d %12e\n", obj.Time[i].Format(time.RFC3339), obj.Epoch[i], obj.Change[i], obj.Nonzero[i], obj.Loss[i])
+      fmt.Fprintf(w, "%15v %6d %12e %8d %12e\n", format_duration(obj.Duration[i]), obj.Epoch[i], obj.Change[i], obj.Nonzero[i], obj.Loss[i])
     }
   } else {
-    fmt.Fprintf(w, "%25s %6s %12s %8s\n", "time", "epoch", "change", "nonzero")
+    fmt.Fprintf(w, "%15s %6s %12s %8s\n", "duration", "epoch", "change", "nonzero")
     for i := 0; i < obj.Length(); i++ {
-      fmt.Fprintf(w, "%25s %6d %12e %8d\n", obj.Time[i].Format(time.RFC3339), obj.Epoch[i], obj.Change[i], obj.Nonzero[i])
+      fmt.Fprintf(w, "%15v %6d %12e %8d\n", format_duration(obj.Duration[i]), obj.Epoch[i], obj.Change[i], obj.Nonzero[i])
     }
   }
   return nil
@@ -62,14 +73,14 @@ func (obj Trace) Length() int {
   return len(obj.Epoch)
 }
 
-func (obj *Trace) Append(epoch, nonzero int, change, loss float64, time time.Time) {
+func (obj *Trace) Append(epoch, nonzero int, change, loss float64, duration time.Duration) {
   obj.Epoch   = append(obj.Epoch  , epoch)
   obj.Nonzero = append(obj.Nonzero, nonzero)
   obj.Change  = append(obj.Change , change)
   if !math.IsNaN(loss) {
     obj.Loss  = append(obj.Loss   , loss)
   }
-  obj.Time    = append(obj.Time   , time)
+  obj.Duration    = append(obj.Duration, duration)
 }
 
 func (obj Trace) CompVar(n int) float64 {
