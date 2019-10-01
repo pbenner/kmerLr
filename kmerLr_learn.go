@@ -276,12 +276,6 @@ func main_learn(config Config, args []string) {
     }
     config.RpropEta = []float64{v1, v2}
   }
-  if *optRprop && *optCooccurrence > 0 {
-    log.Fatal("Rprop does not support delayed modeling of co-occurrences")
-  }
-  if *optOmp > 0 && *optCooccurrence > 0 {
-    log.Fatal("Omp does not support delayed modeling of co-occurrences")
-  }
   config.Balance         = *optBalance
   config.Binarize        = *optBinarize
   config.Complement      = *optComplement
@@ -299,6 +293,15 @@ func main_learn(config Config, args []string) {
   config.Prune           = *optPrune
   if config.EpsilonLoss != 0.0 {
     config.EvalLoss = true
+  }
+  if config.Prune != 0 && config.Lambda != 0.0 && config.LambdaAuto == 0.0 {
+    log.Fatal("pruning requires automatic lambda mode")
+  }
+  if config.Rprop && config.Cooccurrence > 0 {
+    log.Fatal("Rprop does not support delayed modeling of co-occurrences")
+  }
+  if config.Omp > 0 && config.Cooccurrence > 0 {
+    log.Fatal("Omp does not support delayed modeling of co-occurrences")
   }
 
   learn(config, *optKFoldCV, filename_in, filename_fg, filename_bg, basename_out)
