@@ -160,6 +160,7 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
       obj.Kmers                    = r.KmerLrAlphabet.Kmers
       obj.LogisticRegression.Theta = r.Theta.(DenseBareRealVector)
     }
+    obj.Hook = h
     return r
   } else {
     obj.set_max_iterations(max_epochs)
