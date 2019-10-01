@@ -104,14 +104,14 @@ func (obj *KmerLrEstimator) estimate(config Config, data []ConstVector, labels [
   }
 }
 
-func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, labels []bool, max_epochs int) *KmerLr {
-  if config.Prune > 0 && (max_epochs == 0 || config.Prune < max_epochs) {
+func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, labels []bool, prune, max_epochs int) *KmerLr {
+  if prune > 0 && (max_epochs == 0 || prune < max_epochs) {
     r := (*KmerLr)(nil)
     i := 0
     for {
       // determine number of iterations
-      if d := max_epochs - obj.iterations; max_epochs == 0 || d > config.Prune {
-        obj.LogisticRegression.MaxIterations = config.Prune
+      if d := max_epochs - obj.iterations; max_epochs == 0 || d > prune {
+        obj.LogisticRegression.MaxIterations = prune
       } else {
         obj.LogisticRegression.MaxIterations = d
       }
@@ -132,21 +132,31 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
     }
     return r
   } else {
+    if d := max_epochs - obj.iterations; max_epochs > 0 {
+      if d >= 0 {
+        obj.LogisticRegression.MaxIterations = d
+      } else {
+        obj.LogisticRegression.MaxIterations = 0
+      }
+    } else {
+      obj.LogisticRegression.MaxIterations = int(^uint(0) >> 1)
+    }
     return obj.estimate(config, data, labels)
   }
 }
 
 func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
   if config.Cooccurrence > 0 && (config.MaxEpochs == 0 || config.Cooccurrence < config.MaxEpochs) {
-    r := obj.estimate_prune(config, data, labels, config.Cooccurrence)
+    r := obj.estimate_prune(config, data, labels, config.Prune, config.Cooccurrence)
     r = r.Sparsify(data)
     r.ExtendCooccurrence()
-    obj.Cooccurrence             = true
-    obj.Kmers                    = r.KmerLrAlphabet.Kmers
-    obj.LogisticRegression.Theta = r.Theta.(DenseBareRealVector)
+    obj.Cooccurrence                     = true
+    obj.Kmers                            = r.KmerLrAlphabet.Kmers
+    obj.LogisticRegression.Theta         = r.Theta.(DenseBareRealVector)
+    obj.LogisticRegression.MaxIterations = config.MaxEpochs
     extend_counts_cooccurrence(config, data)
-    return obj.estimate_prune(config, data, labels, config.MaxEpochs)
+    return obj.estimate_prune(config, data, labels, 0, config.MaxEpochs)
   } else {
-    return obj.estimate_prune(config, data, labels, config.MaxEpochs).Sparsify(nil)
+    return obj.estimate_prune(config, data, labels, config.Prune, config.MaxEpochs).Sparsify(nil)
   }
 }
