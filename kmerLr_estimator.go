@@ -171,7 +171,7 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
 func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
   if config.Cooccurrence > 0 && (config.MaxEpochs == 0 || config.Cooccurrence < config.MaxEpochs) {
     r := obj.estimate_prune(config, data, labels, config.Prune, config.Cooccurrence)
-    r = r.Sparsify(data)
+    r  = r.Sparsify(data)
     r.ExtendCooccurrence()
     obj.Cooccurrence                     = true
     obj.Kmers                            = r.KmerLrAlphabet.Kmers
