@@ -20,6 +20,7 @@ package main
 
 //import   "fmt"
 import   "log"
+import   "math"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -82,6 +83,20 @@ func (obj *KmerLrEstimator) CloneVectorEstimator() VectorEstimator {
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrEstimator) set_max_iterations(max_epochs int) {
+  if d := max_epochs - obj.iterations; max_epochs > 0 {
+    if d >= 0 {
+      obj.LogisticRegression.MaxIterations = d
+    } else {
+      obj.LogisticRegression.MaxIterations = 0
+    }
+  } else {
+    obj.LogisticRegression.MaxIterations = int(^uint(0) >> 1)
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *KmerLrEstimator) estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
   if err := obj.LogisticRegression.SetSparseData(data, labels, len(data)); err != nil {
     log.Fatal(err)
@@ -104,43 +119,50 @@ func (obj *KmerLrEstimator) estimate(config Config, data []ConstVector, labels [
   }
 }
 
+func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x ConstVector, change ConstScalar, epoch int) bool, do_prune *bool) func(x ConstVector, change ConstScalar, epoch int) bool {
+  hook := func(x ConstVector, change ConstScalar, epoch int) bool {
+    if r := hook_old(x, change, epoch); r {
+      return true
+    }
+    n := 0
+    m := x.Dim()
+    for it := x.ConstIterator(); it.Ok(); it.Next() {
+      if it.Index() != 0 && it.GetConst().GetValue() != 0.0 {
+        n += 1
+      }
+    }
+    r := math.Round(100.0*float64(n)/float64(m))
+    if int(r) < config.Prune && n >= config.LambdaAuto {
+      (*do_prune) = true
+      return true
+    }
+    return false
+  }
+  return hook
+}
+
 func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, labels []bool, prune, max_epochs int) *KmerLr {
   if prune > 0 && (max_epochs == 0 || prune < max_epochs) {
+    var do_prune bool
+    h := obj.Hook
     r := (*KmerLr)(nil)
-    i := 0
+    obj.Hook  = obj.estimate_prune_hook(config, h, &do_prune)
     for {
-      // determine number of iterations
-      if d := max_epochs - obj.iterations; max_epochs == 0 || d > prune {
-        obj.LogisticRegression.MaxIterations = prune
-      } else {
-        obj.LogisticRegression.MaxIterations = d
+      do_prune = false
+      obj.set_max_iterations(max_epochs)
+      r = obj.estimate(config, data, labels)
+      // check if algorithm converged
+      if !do_prune {
+        break
       }
-      i += obj.LogisticRegression.MaxIterations
-      // compute new estimate
-      r  = obj.estimate(config, data, labels)
-      // check if converged
-      if obj.iterations < i || (max_epochs > 0 && obj.iterations >= max_epochs) {
-        return r
-      }
-      // sparsify parameters and data
-      if r.Nonzero() >= config.LambdaAuto {
-        r = r.Sparsify(data)
-      }
+      r = r.Sparsify(data)
       // copy parameters
       obj.Kmers                    = r.KmerLrAlphabet.Kmers
       obj.LogisticRegression.Theta = r.Theta.(DenseBareRealVector)
     }
     return r
   } else {
-    if d := max_epochs - obj.iterations; max_epochs > 0 {
-      if d >= 0 {
-        obj.LogisticRegression.MaxIterations = d
-      } else {
-        obj.LogisticRegression.MaxIterations = 0
-      }
-    } else {
-      obj.LogisticRegression.MaxIterations = int(^uint(0) >> 1)
-    }
+    obj.set_max_iterations(max_epochs)
     return obj.estimate(config, data, labels)
   }
 }
