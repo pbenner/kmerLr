@@ -122,7 +122,7 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
         return r.Sparsify(nil)
       }
       // sparsify parameters and data
-      if r.Nonzero() >= config.Prune {
+      if r.Nonzero() >= config.LambdaAuto {
         r = r.Sparsify(data)
       }
       // copy parameters
