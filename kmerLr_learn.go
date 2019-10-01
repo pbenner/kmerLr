@@ -130,6 +130,7 @@ func main_learn(config Config, args []string) {
   optAlphabet        := options. StringLong("alphabet",         0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
   optLambda          := options. StringLong("lambda",           0 ,        "0.0", "regularization strength (L1)")
   optLambdaAuto      := options.    IntLong("lambda-auto",      0 ,            0, "select lambda automatically so that [value] coefficients are non-zero")
+  optLambdaEta       := options. StringLong("lambda-eta",       0 ,    "1.1:0.9", "auto lambda eta parameter [default: 1.1:0.9]")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
   optCooccurrence    := options.    IntLong("co-occurrence",    0 ,           -1, "epochs after which to model k-mer co-occurrences")
@@ -275,6 +276,18 @@ func main_learn(config Config, args []string) {
       log.Fatal(err)
     }
     config.RpropEta = []float64{v1, v2}
+  }
+  if eta := strings.Split(*optLambdaEta, ":"); len(eta) != 2 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(1)
+  } else {
+    v1, err := strconv.ParseFloat(eta[0], 64); if err != nil {
+      log.Fatal(err)
+    }
+    v2, err := strconv.ParseFloat(eta[1], 64); if err != nil {
+      log.Fatal(err)
+    }
+    config.LambdaEta = [2]float64{v1, v2}
   }
   config.Balance         = *optBalance
   config.Binarize        = *optBinarize

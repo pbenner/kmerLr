@@ -37,6 +37,7 @@ type Config struct {
   Cooccurrence    int
   Lambda          float64
   LambdaAuto      int
+  LambdaEta     [2]float64
   Epsilon         float64
   EpsilonLoss     float64
   EpsilonVar      float64

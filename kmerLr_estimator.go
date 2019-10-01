@@ -58,6 +58,7 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv in
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.L1Reg          = config.Lambda
     r.LogisticRegression.AutoReg        = config.LambdaAuto
+    r.LogisticRegression.Eta            = config.LambdaEta
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
     r.LogisticRegression.Hook           = NewHook(config, trace, &r.iterations, icv, data, labels, &r.LogisticRegression)
