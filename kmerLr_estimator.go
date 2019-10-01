@@ -120,7 +120,7 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
       r  = obj.estimate(config, data, labels)
       // check if converged
       if obj.iterations < i || (max_epochs > 0 && obj.iterations >= max_epochs) {
-        return r.Sparsify(nil)
+        return r
       }
       // sparsify parameters and data
       if r.Nonzero() >= config.LambdaAuto {
@@ -132,19 +132,21 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
     }
     return r
   } else {
-    return obj.estimate(config, data, labels).Sparsify(nil)
+    return obj.estimate(config, data, labels)
   }
 }
 
 func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
   if config.Cooccurrence > 0 && (config.MaxEpochs == 0 || config.Cooccurrence < config.MaxEpochs) {
     r := obj.estimate_prune(config, data, labels, config.Cooccurrence)
+    r = r.Sparsify(data)
+    r.ExtendCooccurrence()
     obj.Cooccurrence             = true
     obj.Kmers                    = r.KmerLrAlphabet.Kmers
     obj.LogisticRegression.Theta = r.Theta.(DenseBareRealVector)
     extend_counts_cooccurrence(config, data)
     return obj.estimate_prune(config, data, labels, config.MaxEpochs)
   } else {
-    return obj.estimate_prune(config, data, labels, config.MaxEpochs)
+    return obj.estimate_prune(config, data, labels, config.MaxEpochs).Sparsify(nil)
   }
 }

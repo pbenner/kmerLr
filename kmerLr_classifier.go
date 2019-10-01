@@ -228,6 +228,20 @@ func (obj *KmerLr) GetCoefficients() *KmerLrCoefficientsSet {
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLr) ExtendCooccurrence() {
+  if obj.Cooccurrence == false {
+    n     := obj.Theta.Dim()-1
+    theta := make([]float64, (n+1)*n/2 + 1)
+    for i := 0; i < n+1; i++ {
+      theta[i] = obj.Theta.ValueAt(i)
+    }
+    obj.Theta        = NewDenseBareRealVector(theta)
+    obj.Cooccurrence = true
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *KmerLr) Mean(classifiers []*KmerLr) error {
   c := classifiers[0].GetCoefficients()
   for i := 1; i < len(classifiers); i++ {
@@ -296,13 +310,7 @@ func ImportKmerLr(config *Config, filename string) *KmerLr {
   config.Binarize        = classifier.Binarize
   if config.Cooccurrence == 0 && !classifier.Cooccurrence {
     PrintStderr(*config, 1, "Extending parameter vector to model co-occurrence\n")
-    n     := classifier.Theta.Dim()-1
-    theta := make([]float64, (n+1)*n/2 + 1)
-    for i := 0; i < n+1; i++ {
-      theta[i] = classifier.Theta.ValueAt(i)
-    }
-    classifier.Theta        = NewDenseBareRealVector(theta)
-    classifier.Cooccurrence = true
+    classifier.ExtendCooccurrence()
   }
   if classifier.Cooccurrence {
     config.Cooccurrence = 0
