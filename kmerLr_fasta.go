@@ -83,7 +83,11 @@ func extend_counts_cooccurrence_(config Config, x ConstVector) ConstVector {
     for j2 := j1+1; j2 < q; j2++ {
       i1 := i[j1]-1
       i2 := i[j2]-1
-      i   = append(i, CoeffIndex(n).Ind2Sub(i1, i2))
+      j  := CoeffIndex(n).Ind2Sub(i1, i2)
+      if j >= m {
+        panic("internal error")
+      }
+      i   = append(i, j)
       v   = append(v, v[j1]*v[j2])
     }
   }

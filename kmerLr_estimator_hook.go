@@ -62,7 +62,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
       }
     }
     if config.Prune > 0 {
-      if len(positive) == 0 {
+      if len(positive) != x.Dim() {
         positive = make([]bool, x.Dim())
       }
       for it := x.ConstIterator(); it.Ok(); it.Next() {
