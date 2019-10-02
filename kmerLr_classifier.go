@@ -75,7 +75,7 @@ func (obj *KmerLr) Loss(data []ConstVector, c []bool, lambda float64, balance bo
 func (obj *KmerLr) Nonzero() int {
   n  := 0
   it := obj.Theta.ConstIterator()
-  if it.Ok() {
+  if it.Ok() && it.Index() == 0 {
     it.Next()
   }
   for ; it.Ok(); it.Next() {

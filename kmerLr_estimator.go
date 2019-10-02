@@ -83,8 +83,8 @@ func (obj *KmerLrEstimator) CloneVectorEstimator() VectorEstimator {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) set_max_iterations(max_epochs int) {
-  if d := max_epochs - obj.iterations; max_epochs > 0 {
+func (obj *KmerLrEstimator) set_max_iterations(config Config) {
+  if d := config.MaxEpochs - obj.iterations; config.MaxEpochs > 0 {
     if d >= 0 {
       obj.LogisticRegression.MaxIterations = d
     } else {
@@ -132,7 +132,7 @@ func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x C
       }
     }
     r := math.Round(100.0*float64(n)/float64(m))
-    if int(r) < config.Prune && n >= config.LambdaAuto {
+    if int(r) < config.Prune && n >= obj.AutoReg {
       (*do_prune) = true
       return true
     }
@@ -141,20 +141,21 @@ func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x C
   return hook
 }
 
-func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, labels []bool, prune, max_epochs int) *KmerLr {
-  if prune > 0 && (max_epochs == 0 || prune < max_epochs) {
+func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, labels []bool, prune int) *KmerLr {
+  if prune > 0 {
     var do_prune bool
     h := obj.Hook
     r := (*KmerLr)(nil)
     obj.Hook  = obj.estimate_prune_hook(config, h, &do_prune)
     for {
       do_prune = false
-      obj.set_max_iterations(max_epochs)
+      obj.set_max_iterations(config)
       r = obj.estimate(config, data, labels)
       // check if algorithm converged
       if !do_prune {
         break
       }
+      PrintStderr(config, 1, "Pruning parameter space...\n")
       r = r.Sparsify(data)
       // copy parameters
       obj.Kmers                    = r.KmerLrAlphabet.Kmers
@@ -163,14 +164,48 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
     obj.Hook = h
     return r
   } else {
-    obj.set_max_iterations(max_epochs)
+    obj.set_max_iterations(config)
     return obj.estimate(config, data, labels)
   }
 }
 
-func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
-  if config.Cooccurrence > 0 && (config.MaxEpochs == 0 || config.Cooccurrence < config.MaxEpochs) {
-    r := obj.estimate_prune(config, data, labels, config.Prune, config.Cooccurrence)
+func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old func(x ConstVector, change ConstScalar, epoch int) bool) func(x ConstVector, change ConstScalar, epoch int) bool {
+  hook := func(x ConstVector, change ConstScalar, epoch int) bool {
+    if r := hook_old(x, change, epoch); r {
+      return true
+    }
+    n := 0
+    for it := x.ConstIterator(); it.Ok(); it.Next() {
+      if it.Index() != 0 && it.GetConst().GetValue() != 0.0 {
+        n += 1
+      }
+    }
+    if n <= config.Cooccurrence {
+      return true
+    }
+    return false
+  }
+  return hook
+}
+
+func (obj *KmerLrEstimator) estimate_cooccurrence(config Config, data []ConstVector, labels []bool) *KmerLr {
+  if config.Cooccurrence > 0 {
+    h := obj.Hook
+    // this hook exits the algorithm as soon as
+    // the number of parameters is sufficiently reduced
+    obj.Hook    = obj.estimate_cooccurrence_hook(config, h)
+    // config.Cooccurrence defines the maximal number of
+    // coefficients when to expand the parameter space
+    obj.AutoReg = config.Cooccurrence
+    r := obj.estimate_prune(config, data, labels, config.Prune)
+    obj.Hook    = h
+    obj.AutoReg = config.LambdaAuto
+    if r.Nonzero() > config.Cooccurrence {
+      // somehow the goal of reducing the parameter space was not
+      // achieved => exit
+      return r
+    }
+    PrintStderr(config, 1, "Starting co-occurrence modeling...\n")
     r  = r.Sparsify(data)
     r.ExtendCooccurrence()
     obj.Cooccurrence                     = true
@@ -178,8 +213,12 @@ func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector, labels [
     obj.LogisticRegression.Theta         = r.Theta.(DenseBareRealVector)
     obj.LogisticRegression.MaxIterations = config.MaxEpochs
     extend_counts_cooccurrence(config, data)
-    return obj.estimate_prune(config, data, labels, 0, config.MaxEpochs)
+    return obj.estimate_prune(config, data, labels, 0)
   } else {
-    return obj.estimate_prune(config, data, labels, config.Prune, config.MaxEpochs).Sparsify(nil)
+    return obj.estimate_prune(config, data, labels, config.Prune)
   }
+}
+
+func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
+  return obj.estimate_cooccurrence(config, data, labels).Sparsify(nil)
 }
