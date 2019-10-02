@@ -179,7 +179,7 @@ func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old f
         n += 1
       }
     }
-    if n <= config.Cooccurrence {
+    if n <= config.Cooccurrence && n >= int((1.0 - 0.01)*float64(config.Cooccurrence)) {
       return true
     }
     return false
