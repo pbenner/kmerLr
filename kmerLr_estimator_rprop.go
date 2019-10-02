@@ -121,10 +121,10 @@ func (obj *KmerLrRpropEstimator) Estimate(config Config, data []ConstVector, lab
     r.LogisticRegression             = *lr
     r.Transform                      = obj.   Transform
     r.Cooccurrence                   = config.Cooccurrence == 0
-    r.KmerLrAlphabet.Binarize        = config.Binarize
-    r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
-    r.KmerLrAlphabet.Kmers           = obj   .Kmers
-    return r.Sparsify(nil)
+    r.KmerLrFeatures.Binarize        = config.Binarize
+    r.KmerLrFeatures.KmerEquivalence = config.KmerEquivalence
+    r.KmerLrFeatures.Kmers           = obj   .Kmers
+    return r.Prune(nil)
   }
 }
 

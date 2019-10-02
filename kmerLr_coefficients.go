@@ -78,8 +78,9 @@ func coefficients_print_related(kmer KmerClass, graph KmerGraph, coefficients ma
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients_print(kmers KmerClassList, k int) string {
-  k1, k2 := CoeffIndex(len(kmers)).Sub2Ind(k)
+func coefficients_print(kmers KmerClassList, features FeatureIndices, k int) string {
+  k1 := features[k][0]
+  k2 := features[k][1]
   if k1 == k2 {
     return fmt.Sprintf("%v", kmers[k1])
   } else {
@@ -87,13 +88,13 @@ func coefficients_print(kmers KmerClassList, k int) string {
   }
 }
 
-func coefficients_format(kmers KmerClassList, coefficients AbsFloatInt) string {
+func coefficients_format(kmers KmerClassList, features FeatureIndices, coefficients AbsFloatInt) string {
   m := 0
   for k := 0; k < coefficients.Len(); k++ {
     if coefficients.a[k] == 0.0 {
       break
     }
-    if r := len(coefficients_print(kmers, coefficients.b[k])); r > m {
+    if r := len(coefficients_print(kmers, features, coefficients.b[k])); r > m {
       m = r
     }
   }
@@ -107,6 +108,7 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
   coefficients := NewAbsFloatInt(classifier.Theta.Dim()-1)
   coeffmap     := make(map[KmerClassId]float64)
   kmers        := classifier.Kmers
+  features     := classifier.Features
   graph        := KmerGraph{}
 
   data := []ConstVector{}
@@ -115,7 +117,7 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
     kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
       log.Fatal(err)
     }
-    data, c, kmers = compile_training_data(config, kmersCounter, classifier.Kmers, filename_fg, filename_bg)
+    data, c, _ = compile_training_data(config, kmersCounter, classifier.Kmers, filename_fg, filename_bg)
   }
 
   // insert coefficients into the map
@@ -147,7 +149,7 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
       graph = NewKmerGraph(kmers, rel)
     }
   }
-  format := coefficients_format(kmers, coefficients)
+  format := coefficients_format(kmers, features, coefficients)
 
   for i := 0; i < coefficients.Len(); i++ {
     v := coefficients.a[i]
@@ -159,7 +161,8 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
       fmt.Printf("%6.2f%% ", kmer_abundance(data, c, k, true )*100.0)
       fmt.Printf("%6.2f%% ", kmer_abundance(data, c, k, false)*100.0)
     }
-    k1, k2 := CoeffIndex(len(kmers)).Sub2Ind(k)
+    k1 := features[k][0]
+    k2 := features[k][1]
     if k1 == k2 {
       fmt.Printf(format, i+1, v, kmers[k1])
     } else {

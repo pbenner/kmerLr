@@ -125,11 +125,11 @@ func (obj *KmerLrOmpEstimator) Estimate(config Config, data []ConstVector, label
     r := &KmerLr{LogisticRegression: *r_.(*vectorDistribution.LogisticRegression)}
     r.Transform                      = obj.Transform
     r.Cooccurrence                   = config.Cooccurrence == 0
-    r.KmerLrAlphabet.Binarize        = config.Binarize
-    r.KmerLrAlphabet.KmerEquivalence = config.KmerEquivalence
-    r.KmerLrAlphabet.Kmers           = make(KmerClassList, len(obj.active))
+    r.KmerLrFeatures.Binarize        = config.Binarize
+    r.KmerLrFeatures.KmerEquivalence = config.KmerEquivalence
+    r.KmerLrFeatures.Kmers           = make(KmerClassList, len(obj.active))
     for l, j := range obj.active {
-      r.KmerLrAlphabet.Kmers[l] = obj.Kmers[j]
+      r.KmerLrFeatures.Kmers[l] = obj.Kmers[j]
     }
     return r
   }

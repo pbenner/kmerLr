@@ -172,24 +172,28 @@ func (obj *KmerLrCoefficientsSet) MinCoefficients(b *KmerLrCoefficientsSet) {
   }
 }
 
-func (obj *KmerLrCoefficientsSet) AsKmerLr(alphabet KmerLrAlphabet) *KmerLr {
-  alphabet.Kmers = obj.Kmers.AsList()
-  p := alphabet.Kmers.Len()
-  n := alphabet.Kmers.Len()+1
-  if len(obj.IndexPairs) > 0 {
-    n = (alphabet.Kmers.Len()+1)*alphabet.Kmers.Len()/2 + 1
-  }
-  v := NullDenseBareRealVector(n)
-  for k, kmer := range alphabet.Kmers {
+func (obj *KmerLrCoefficientsSet) AsKmerLr(features KmerLrFeatures) *KmerLr {
+  kmers := obj.Kmers.AsList()
+  n := kmers.Len()
+  f := make(FeatureIndices, n)
+  v := NullDenseBareRealVector(n+1)
+  v[0] = ConstReal(obj.Offset)
+  for k, kmer := range kmers {
+    f[k+0] = [2]int{k, k}
     v[k+1] = ConstReal(obj.Get(kmer))
   }
   if len(obj.IndexPairs) > 0 {
-    for k1, kmer1 := range alphabet.Kmers {
-      for k2 := k1+1; k2 < alphabet.Kmers.Len(); k2++ {
-        kmer2 := alphabet.Kmers[k2]
-        v[CoeffIndex(p).Ind2Sub(k1, k2)] = ConstReal(obj.GetPair(kmer1, kmer2))
+    for k1, kmer1 := range kmers {
+      for k2 := k1+1; k2 < kmers.Len(); k2++ {
+        kmer2 := kmers[k2]
+        if value := obj.GetPair(kmer1, kmer2); value != 0.0 {
+          f = append(f, [2]int{k1, k2})
+          v = append(v, ConstReal(value))
+        }
       }
     }
   }
-  return NewKmerLr(v, alphabet).Sparsify(nil)
+  features.Kmers    = kmers
+  features.Features = f
+  return NewKmerLr(v, features).Prune(nil)
 }

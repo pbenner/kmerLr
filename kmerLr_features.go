@@ -27,42 +27,56 @@ import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
-type KmerLrAlphabet struct {
-  KmerEquivalence
-  Kmers        KmerClassList
-  Cooccurrence bool
-  Binarize     bool
+type FeatureIndices = [][2]int
+
+func newFeatureIndices(n int, cooccurrence bool) FeatureIndices {
+  if cooccurrence {
+    m := (n+1)*n/2
+    features := make(FeatureIndices, m)
+    for i1 := 0; i1 < n; i1++ {
+      for i2 := i1; i2 < n; i2++ {
+        j := CoeffIndex(n).Ind2Sub(i1, i2) - 1
+        features[j] = [2]int{i1, i2}
+      }
+    }
+    return features
+  } else {
+    features := make(FeatureIndices, n)
+    for i := 0; i < n; i++ {
+      features[i] = [2]int{i, i}
+    }
+    return features
+  }
 }
 
 /* -------------------------------------------------------------------------- */
 
-func (obj KmerLrAlphabet) Clone() KmerLrAlphabet {
-  r := KmerLrAlphabet{}
+type KmerLrFeatures struct {
+  KmerEquivalence
+  Kmers        KmerClassList
+  Cooccurrence bool
+  Binarize     bool
+  Features     FeatureIndices
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj KmerLrFeatures) Clone() KmerLrFeatures {
+  r := KmerLrFeatures{}
   r.Binarize        = obj.Binarize
   r.Cooccurrence    = obj.Cooccurrence
   r.KmerEquivalence = obj.KmerEquivalence
   r.Kmers           = obj.Kmers.Clone()
+  r.Features        = make(FeatureIndices, len(obj.Features))
+  for i, feature := range obj.Features {
+    r.Features[i] = [2]int{feature[0], feature[1]}
+  }
   return r
 }
 
 /* -------------------------------------------------------------------------- */
 
-func (a KmerLrAlphabet) Equals(b KmerLrAlphabet) bool {
-  if !a.KmerEquivalence.Equals(b.KmerEquivalence) {
-    return false
-  }
-  if a.Binarize != b.Binarize {
-    return false
-  }
-  if a.Cooccurrence != b.Cooccurrence {
-    return false
-  }
-  return a.Kmers.Equals(b.Kmers)
-}
-
-/* -------------------------------------------------------------------------- */
-
-func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType) error {
+func (obj *KmerLrFeatures) ImportConfig(config ConfigDistribution, t ScalarType) error {
   m, ok := config.GetNamedParameterAsInt("M"); if !ok {
     return fmt.Errorf("invalid config file")
   }
@@ -91,6 +105,9 @@ func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType)
   alphabet, ok := config.GetNamedParameterAsString("Alphabet"); if !ok {
     return fmt.Errorf("invalid config file")
   }
+  features, ok := config.GetNamedParametersAsIntPairs("Features"); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
   kmers, ok := config.GetNamedParametersAsStrings("Kmers"); if !ok {
     return fmt.Errorf("invalid config file")
   }
@@ -114,10 +131,11 @@ func (obj *KmerLrAlphabet) ImportConfig(config ConfigDistribution, t ScalarType)
   obj.Reverse      = reverse
   obj.Revcomp      = revcomp
   obj.MaxAmbiguous = maxAmbiguous
+  obj.Features     = features
   return nil
 }
 
-func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
+func (obj *KmerLrFeatures) ExportConfig() ConfigDistribution {
   config := struct{
     M, N           int
     Binarize       bool
@@ -128,6 +146,7 @@ func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
     MaxAmbiguous []int
     Alphabet       string
     Kmers        []string
+    Features       FeatureIndices
   }{}
   config.M, config.N  = obj.M, obj.N
   config.Binarize     = obj.Binarize
@@ -136,6 +155,7 @@ func (obj *KmerLrAlphabet) ExportConfig() ConfigDistribution {
   config.Reverse      = obj.Reverse
   config.Revcomp      = obj.Revcomp
   config.MaxAmbiguous = obj.MaxAmbiguous
+  config.Features     = obj.Features
   config.Alphabet     = obj.Alphabet.String()
   config.Kmers        = make([]string, len(obj.Kmers))
   for i, kmer := range obj.Kmers {
