@@ -62,7 +62,7 @@ func learn_parameters(config Config, data []ConstVector, labels []bool, classifi
     }
     classifier = estimator.Estimate(config, data, labels)
   } else {
-    estimator := NewKmerLrEstimator(config, kmers, trace, icv, data, labels, t)
+    estimator := NewKmerLrEstimator(config, kmers, trace, icv, data, classifier.Features, labels, t)
     if classifier != nil {
       estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
@@ -103,7 +103,7 @@ func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, ba
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data, labels, kmers := compile_training_data(config, kmersCounter, kmers, classifier.Cooccurrence, filename_fg, filename_bg)
+  data, labels, kmers := compile_training_data(config, kmersCounter, kmers, classifier.Features, filename_fg, filename_bg)
   kmersCounter = nil
 
   // normalize data for faster convergence

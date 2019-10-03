@@ -102,7 +102,7 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, classifier.Cooccurrence, filenameFasta)
+  data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, classifier.Features, filenameFasta)
   data     = classifier.TransformApply(config, data)
 
   // allocate result

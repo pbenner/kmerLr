@@ -42,15 +42,18 @@ type KmerLrEstimator struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, data []ConstVector, labels []bool, t Transform) *KmerLrEstimator {
+func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, data []ConstVector, features FeatureIndices, labels []bool, t Transform) *KmerLrEstimator {
+  if len(features) == 0 {
+    features = newFeatureIndices(kmers.Len(), false)
+  }
   if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
     r := KmerLrEstimator{}
-    r.Cooccurrence       = config.Cooccurrence == 0
+    r.Cooccurrence       = len(kmers) != len(features)
     r.Kmers              = kmers
-    r.Features           = newFeatureIndices(kmers.Len(), false)
+    r.Features           = features
     r.Transform          = t
     r.LogisticRegression = *estimator
     r.LogisticRegression.Balance        = config.Balance
