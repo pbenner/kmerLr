@@ -310,10 +310,5 @@ func ImportKmerLr(config *Config, filename string) *KmerLr {
   PrintStderr(*config, 1, "done\n")
   config.KmerEquivalence = classifier.KmerLrFeatures.KmerEquivalence
   config.Binarize        = classifier.Binarize
-  if config.Cooccurrence > 0 && classifier.Nonzero() < config.Cooccurrence {
-    PrintStderr(*config, 1, "Extending parameter vector to model co-occurrence\n")
-    classifier.ExtendCooccurrence()
-    config.Cooccurrence = 0
-  }
   return classifier
 }

@@ -76,7 +76,7 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, filename_in)
+  data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, classifier.Cooccurrence, filename_in)
   data     = classifier.TransformApply(config, data)
 
   predictions := predict_data(config, data, classifier)

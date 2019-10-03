@@ -188,7 +188,7 @@ func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old f
 }
 
 func (obj *KmerLrEstimator) estimate_cooccurrence(config Config, data []ConstVector, labels []bool) *KmerLr {
-  if config.Cooccurrence > 0 {
+  if config.Cooccurrence > 0 && obj.Cooccurrence == false {
     h := obj.Hook
     // this hook exits the algorithm as soon as
     // the number of parameters is sufficiently reduced

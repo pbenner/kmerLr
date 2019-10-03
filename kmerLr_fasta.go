@@ -102,10 +102,10 @@ func extend_counts_cooccurrence(config Config, data []ConstVector) {
 
 /* -------------------------------------------------------------------------- */
 
-func convert_counts(config Config, counts KmerCounts) ConstVector {
+func convert_counts(config Config, counts KmerCounts, cooccurrence bool) ConstVector {
   n := counts.Len()+1
   m := counts.N  ()+1
-  if config.Cooccurrence == 0 {
+  if cooccurrence {
     n = (counts.Len()+1)*counts.Len()/2 + 1
     m = (counts.N  ()+1)*counts.N  ()/2 + 1
   }
@@ -122,7 +122,7 @@ func convert_counts(config Config, counts KmerCounts) ConstVector {
       j++
     }
   }
-  if config.Cooccurrence == 0 {
+  if cooccurrence {
     p := counts.Len()
     q := j
     for j1 := 1; j1 < q; j1++ {
@@ -141,11 +141,11 @@ func convert_counts(config Config, counts KmerCounts) ConstVector {
   return UnsafeSparseConstRealVector(i, v, n)
 }
 
-func convert_counts_list(config Config, countsList *KmerCountsList) []ConstVector {
+func convert_counts_list(config Config, countsList *KmerCountsList, cooccurrence bool) []ConstVector {
   r := make([]ConstVector, countsList.Len())
   PrintStderr(config, 1, "Converting kmer counts... ")
   if err := config.Pool.RangeJob(0, countsList.Len(), func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    r[i] = convert_counts(config, countsList.At(i))
+    r[i] = convert_counts(config, countsList.At(i), cooccurrence)
     // free memory
     countsList.Counts[i] = nil
     return nil
@@ -188,7 +188,7 @@ func scan_sequences(config Config, kmersCounter *KmerCounter, sequences []string
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, filename_fg, filename_bg string) ([]ConstVector, []bool, KmerClassList) {
+func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, cooccurrence bool, filename_fg, filename_bg string) ([]ConstVector, []bool, KmerClassList) {
   fg := import_fasta(config, filename_fg)
   bg := import_fasta(config, filename_bg)
   labels := make([]bool, len(fg)+len(bg))
@@ -203,17 +203,17 @@ func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerC
   }
   counts_list_fg := counts_list.Slice(      0, len(fg))
   counts_list_bg := counts_list.Slice(len(fg), len(fg)+len(bg))
-  r_fg := convert_counts_list(config, &counts_list_fg)
-  r_bg := convert_counts_list(config, &counts_list_bg)
+  r_fg := convert_counts_list(config, &counts_list_fg, cooccurrence)
+  r_bg := convert_counts_list(config, &counts_list_bg, cooccurrence)
   return append(r_fg, r_bg...), labels, counts_list.Kmers
 }
 
-func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, filename string) ([]ConstVector, KmerClassList) {
+func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, cooccurrence bool, filename string) ([]ConstVector, KmerClassList) {
   sequences   := import_fasta(config, filename)
   counts      := scan_sequences(config, kmersCounter, sequences)
   counts_list := NewKmerCountsList(counts...)
   // set counts_list.Kmers to the set of kmers on which the
   // classifier was trained on
   counts_list.SetKmers(kmers)
-  return convert_counts_list(config, &counts_list), counts_list.Kmers
+  return convert_counts_list(config, &counts_list, cooccurrence), counts_list.Kmers
 }
