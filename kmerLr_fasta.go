@@ -123,7 +123,7 @@ func convert_counts(config Config, counts KmerCounts, features FeatureIndices) C
       c1 := counts.Counts[counts.Kmers[i1].KmerClassId]
       c2 := counts.Counts[counts.Kmers[i2].KmerClassId]
       if c1 != 0.0 && c2 != 0.0 {
-        i = append(i, j)
+        i = append(i, j+1)
         v = append(v, BareReal(c1*c2))
       }
     }

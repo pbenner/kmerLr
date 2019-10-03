@@ -41,7 +41,7 @@ func normalize_data(config Config, data []ConstVector) Transform {
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, icv int, t Transform, basename_out string) VectorPdf {
+func learn_parameters(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, t Transform, basename_out string) VectorPdf {
   // hook and trace
   var trace *Trace
   if config.SaveTrace || config.EpsilonVar != 0.0 {
@@ -62,7 +62,7 @@ func learn_parameters(config Config, data []ConstVector, labels []bool, classifi
     }
     classifier = estimator.Estimate(config, data, labels)
   } else {
-    estimator := NewKmerLrEstimator(config, kmers, trace, icv, data, classifier.Features, labels, t)
+    estimator := NewKmerLrEstimator(config, kmers, trace, icv, data, features, labels, t)
     if classifier != nil {
       estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
@@ -80,10 +80,10 @@ func learn_parameters(config Config, data []ConstVector, labels []bool, classifi
   return classifier
 }
 
-func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, kfold int, t Transform, basename_out string) {
+func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, kfold int, t Transform, basename_out string) {
   learnClassifier := func(i int, data []ConstVector, labels []bool) VectorPdf {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_parameters(config, data, labels, classifier, kmers, i, t, basename_out)
+    return learn_parameters(config, data, labels, classifier, kmers, features, i, t, basename_out)
   }
   testClassifier := func(i int, data []ConstVector, classifier VectorPdf) []float64 {
     return predict_data(config, data, classifier)
@@ -96,14 +96,16 @@ func learn_cv(config Config, data []ConstVector, labels []bool, classifier *Kmer
 func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, basename_out string) {
   var classifier *KmerLr
   var kmers       KmerClassList
+  var features    FeatureIndices
   if filename_json != "" {
     classifier = ImportKmerLr(&config, filename_json)
     kmers      = classifier.Kmers
+    features   = classifier.Features
   }
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data, labels, kmers := compile_training_data(config, kmersCounter, kmers, classifier.Features, filename_fg, filename_bg)
+  data, labels, kmers := compile_training_data(config, kmersCounter, kmers, features, filename_fg, filename_bg)
   kmersCounter = nil
 
   // normalize data for faster convergence
@@ -116,9 +118,9 @@ func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, ba
     t = classifier.Transform
   }
   if kfold <= 1 {
-    learn_parameters(config, data, labels, classifier, kmers, -1, t, basename_out)
+    learn_parameters(config, data, labels, classifier, kmers, features, -1, t, basename_out)
   } else {
-    learn_cv(config, data, labels, classifier, kmers, kfold, t, basename_out)
+    learn_cv(config, data, labels, classifier, kmers, features, kfold, t, basename_out)
   }
 }
 
