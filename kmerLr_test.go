@@ -82,7 +82,7 @@ func Test2(test *testing.T) {
     features := newFeatureIndices(len(kmers), true)
     data2, _,  _ := compile_training_data(config, kmersCounter, kmers, features, "kmerLr_test.fa", "kmerLr_test.fa")
 
-    for i, _ := range features[0:len(features)-4] {
+    for i, _ := range features {
       if data1[0].ValueAt(i+1) != data2[0].ValueAt(i+1) {
         test.Error("test failed")
       }
