@@ -120,11 +120,19 @@ func convert_counts(config Config, counts KmerCounts, features FeatureIndices) C
     for j, feature := range features {
       i1 := feature[0]
       i2 := feature[1]
-      c1 := counts.Counts[counts.Kmers[i1].KmerClassId]
-      c2 := counts.Counts[counts.Kmers[i2].KmerClassId]
-      if c1 != 0.0 && c2 != 0.0 {
-        i = append(i, j+1)
-        v = append(v, BareReal(c1*c2))
+      if i1 == i2 {
+        c := counts.Counts[counts.Kmers[i1].KmerClassId]
+        if c != 0.0 {
+          i = append(i, j+1)
+          v = append(v, BareReal(c))
+        }
+      } else {
+        c1 := counts.Counts[counts.Kmers[i1].KmerClassId]
+        c2 := counts.Counts[counts.Kmers[i2].KmerClassId]
+        if c1 != 0.0 && c2 != 0.0 {
+          i = append(i, j+1)
+          v = append(v, BareReal(c1*c2))
+        }
       }
     }
   }
