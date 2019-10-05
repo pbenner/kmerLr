@@ -56,16 +56,26 @@ func (obj Trace) Export(filename string) error {
   w := bufio.NewWriter(f)
   defer w.Flush()
 
+  // print header
+  fmt.Fprintf(w, "%15s %6s %12s %8s", "duration", "epoch", "change", "nonzero")
+  if len(obj.Lambda) > 0 {
+    fmt.Fprintf(w, " %12s", "lambda")
+  }
   if len(obj.Loss) > 0 {
-    fmt.Fprintf(w, "%15s %6s %12s %12s %8s %12s\n", "duration", "epoch", "change", "lambda", "nonzero", "loss")
-    for i := 0; i < obj.Length(); i++ {
-      fmt.Fprintf(w, "%15v %6d %12e %12e %8d %12e\n", format_duration(obj.Duration[i]), obj.Epoch[i], obj.Change[i], obj.Lambda[i], obj.Nonzero[i], obj.Loss[i])
+    fmt.Fprintf(w, " %12s", "loss")
+  }
+  fmt.Fprintf(w, "\n")
+
+  // print values
+  for i := 0; i < obj.Length(); i++ {
+    fmt.Fprintf(w, "%15v %6d %12e %8d", format_duration(obj.Duration[i]), obj.Epoch[i], obj.Change[i], obj.Nonzero[i])
+    if len(obj.Lambda) > 0 {
+      fmt.Fprintf(w, " %12e", obj.Lambda[i])
     }
-  } else {
-    fmt.Fprintf(w, "%15s %6s %12s %12s %8s\n", "duration", "epoch", "change", "lambda", "nonzero")
-    for i := 0; i < obj.Length(); i++ {
-      fmt.Fprintf(w, "%15v %6d %12e %12e %8d\n", format_duration(obj.Duration[i]), obj.Epoch[i], obj.Change[i], obj.Lambda[i], obj.Nonzero[i])
+    if len(obj.Loss) > 0 {
+      fmt.Fprintf(w, " %12e", obj.Loss[i])
     }
+    fmt.Fprintf(w, "\n")
   }
   return nil
 }
@@ -79,10 +89,10 @@ func (obj *Trace) Append(epoch, nonzero int, change, lambda, loss float64, durat
   obj.Nonzero = append(obj.Nonzero, nonzero)
   obj.Change  = append(obj.Change , change)
   if !math.IsNaN(lambda) {
-    obj.Loss  = append(obj.Lambda , lambda)
+    obj.Lambda = append(obj.Lambda, lambda)
   }
   if !math.IsNaN(loss) {
-    obj.Loss  = append(obj.Loss   , loss)
+    obj.Loss = append(obj.Loss, loss)
   }
   obj.Duration    = append(obj.Duration, duration)
 }
