@@ -41,6 +41,7 @@ type Trace struct {
   Epoch    []int
   Nonzero  []int
   Change   []float64
+  Lambda   []float64
   Loss     []float64
   Duration []time.Duration
 }
@@ -56,14 +57,14 @@ func (obj Trace) Export(filename string) error {
   defer w.Flush()
 
   if len(obj.Loss) > 0 {
-    fmt.Fprintf(w, "%15s %6s %12s %8s %12s\n", "duration", "epoch", "change", "nonzero", "loss")
+    fmt.Fprintf(w, "%15s %6s %12s %12s %8s %12s\n", "duration", "epoch", "change", "lambda", "nonzero", "loss")
     for i := 0; i < obj.Length(); i++ {
-      fmt.Fprintf(w, "%15v %6d %12e %8d %12e\n", format_duration(obj.Duration[i]), obj.Epoch[i], obj.Change[i], obj.Nonzero[i], obj.Loss[i])
+      fmt.Fprintf(w, "%15v %6d %12e %12e %8d %12e\n", format_duration(obj.Duration[i]), obj.Epoch[i], obj.Change[i], obj.Lambda[i], obj.Nonzero[i], obj.Loss[i])
     }
   } else {
-    fmt.Fprintf(w, "%15s %6s %12s %8s\n", "duration", "epoch", "change", "nonzero")
+    fmt.Fprintf(w, "%15s %6s %12s %12s %8s\n", "duration", "epoch", "change", "lambda", "nonzero")
     for i := 0; i < obj.Length(); i++ {
-      fmt.Fprintf(w, "%15v %6d %12e %8d\n", format_duration(obj.Duration[i]), obj.Epoch[i], obj.Change[i], obj.Nonzero[i])
+      fmt.Fprintf(w, "%15v %6d %12e %12e %8d\n", format_duration(obj.Duration[i]), obj.Epoch[i], obj.Change[i], obj.Lambda[i], obj.Nonzero[i])
     }
   }
   return nil
@@ -73,10 +74,13 @@ func (obj Trace) Length() int {
   return len(obj.Epoch)
 }
 
-func (obj *Trace) Append(epoch, nonzero int, change, loss float64, duration time.Duration) {
+func (obj *Trace) Append(epoch, nonzero int, change, lambda, loss float64, duration time.Duration) {
   obj.Epoch   = append(obj.Epoch  , epoch)
   obj.Nonzero = append(obj.Nonzero, nonzero)
   obj.Change  = append(obj.Change , change)
+  if !math.IsNaN(lambda) {
+    obj.Loss  = append(obj.Lambda , lambda)
+  }
   if !math.IsNaN(loss) {
     obj.Loss  = append(obj.Loss   , loss)
   }

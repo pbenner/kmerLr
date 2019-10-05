@@ -120,9 +120,9 @@ func (obj *KmerLrEstimator) estimate(config Config, data []ConstVector, labels [
   }
 }
 
-func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x ConstVector, change ConstScalar, epoch int) bool, do_prune *bool) func(x ConstVector, change ConstScalar, epoch int) bool {
-  hook := func(x ConstVector, change ConstScalar, epoch int) bool {
-    if r := hook_old(x, change, epoch); r {
+func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x ConstVector, change, lambda ConstScalar, epoch int) bool, do_prune *bool) HookType {
+  hook := func(x ConstVector, change, lambda ConstScalar, epoch int) bool {
+    if r := hook_old(x, change, lambda, epoch); r {
       return true
     }
     n := 0
@@ -171,9 +171,9 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
   }
 }
 
-func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old func(x ConstVector, change ConstScalar, epoch int) bool) func(x ConstVector, change ConstScalar, epoch int) bool {
-  hook := func(x ConstVector, change ConstScalar, epoch int) bool {
-    if r := hook_old(x, change, epoch); r {
+func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old func(x ConstVector, change, lambda ConstScalar, epoch int) bool) HookType {
+  hook := func(x ConstVector, change, lambda ConstScalar, epoch int) bool {
+    if r := hook_old(x, change, lambda, epoch); r {
       return true
     }
     n := 0

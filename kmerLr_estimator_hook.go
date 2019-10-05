@@ -28,7 +28,7 @@ import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
 /* -------------------------------------------------------------------------- */
 
-type HookType func(x ConstVector, change ConstScalar, epoch int) bool
+type HookType func(x ConstVector, change, lambda ConstScalar, epoch int) bool
 
 /* -------------------------------------------------------------------------- */
 
@@ -46,7 +46,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
   k := 0
   t := time.Now()
   s := time.Now()
-  hook := func(x ConstVector, change ConstScalar, epoch_ int) bool {
+  hook := func(x ConstVector, change, lambda ConstScalar, epoch_ int) bool {
     k++
     if iterations != nil {
       (*iterations)++
@@ -72,7 +72,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
       }
     }
     if trace != nil {
-      trace.Append(k, n, change.GetValue(), loss_new, time.Since(s))
+      trace.Append(k, n, change.GetValue(), lambda.GetValue(), loss_new, time.Since(s))
     }
     if config.Verbose > 1 {
       if trace != nil {
@@ -81,6 +81,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
         }
         fmt.Printf("epoch     : %d\n", k)
         fmt.Printf("change    : %v\n", change)
+        fmt.Printf("lambda    : %d\n", lambda)
         fmt.Printf("#coef     : %d\n", n-1)
         fmt.Printf("var(#coef): %f\n", trace.CompVar(10))
         if config.EvalLoss {
@@ -93,6 +94,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
         }
         fmt.Printf("epoch : %d\n", k)
         fmt.Printf("change: %v\n", change)
+        fmt.Printf("lambda: %d\n", lambda)
         fmt.Printf("#coef : %d\n", n-1)
         if config.EvalLoss {
           fmt.Printf("loss  : %f\n", loss_new)
@@ -142,7 +144,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, c []
       }
     }
     if trace != nil {
-      trace.Append(k, n, c, loss_new, time.Since(s))
+      trace.Append(k, n, c, math.NaN(), loss_new, time.Since(s))
     }
     if config.Verbose > 1 {
       if trace != nil {
