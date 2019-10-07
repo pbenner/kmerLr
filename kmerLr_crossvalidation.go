@@ -99,21 +99,21 @@ func crossvalidation(config Config, data_ []ConstVector, labels []bool, kfold in
    testClassifier func(i int, data []ConstVector, classifier VectorPdf) []float64) ([]float64, []bool) {
   groups := getCvGroups(len(data_), kfold, config.Seed)
 
-  // prepare a shallow copy of the data for each thread, this way a
-  // thread may modify the data by replacing vectors in the data slice
-  data   := make([][]ConstVector, config.Pool.NumberOfThreads())
+  r_predictions := make([][]float64, kfold)
+  r_labels      := make([][]bool,    kfold)
+  // prepare a shallow copy of the data for each CV run, this way
+  // the data may get modified in each run
+  data   := make([][]ConstVector, kfold)
   data[0] = data_
-  for i := 1; i < config.Pool.NumberOfThreads(); i++ {
+  for i := 1; i < kfold; i++ {
     data[i] = make([]ConstVector, len(data_))
     for j := 0; j < len(data_); j++ {
       data[i][j] = data_[j]
     }
   }
 
-  r_predictions := make([][]float64, kfold)
-  r_labels      := make([][]bool,    kfold)
   config.Pool.RangeJob(0, kfold, func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    data_test, labels_test, data_train, labels_train := filterCvGroup(data[pool.GetThreadId()], labels, groups, i)
+    data_test, labels_test, data_train, labels_train := filterCvGroup(data[i], labels, groups, i)
 
     classifier := learnClassifier(i, data_train, labels_train)
 
