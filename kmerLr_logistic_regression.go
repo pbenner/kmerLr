@@ -115,7 +115,7 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
       w = obj.ClassWeights[0]*(math.Exp(r))
     }
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      g[it.Index()] += w*it.GetConst().GetValue()
+      g[it.Index()] += w*it.GetValue()
     }
   }
   if obj.Lambda != 0.0 {

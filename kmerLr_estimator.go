@@ -128,7 +128,7 @@ func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x C
     n := 0
     m := x.Dim()
     for it := x.ConstIterator(); it.Ok(); it.Next() {
-      if it.Index() != 0 && it.GetConst().GetValue() != 0.0 {
+      if it.Index() != 0 && it.GetValue() != 0.0 {
         n += 1
       }
     }
@@ -178,7 +178,7 @@ func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old f
     }
     n := 0
     for it := x.ConstIterator(); it.Ok(); it.Next() {
-      if it.Index() != 0 && it.GetConst().GetValue() != 0.0 {
+      if it.Index() != 0 && it.GetValue() != 0.0 {
         n += 1
       }
     }

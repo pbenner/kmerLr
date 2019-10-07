@@ -154,7 +154,7 @@ func (obj *KmerLrRpropEstimator) setStepSize(data []ConstVector) {
       if it.Index() == data[i].Dim()-1 {
         break
       }
-      r += it.GetConst().GetValue()*it.GetConst().GetValue()
+      r += it.GetValue()*it.GetValue()
     }
     if r > max_squared_sum {
       max_squared_sum = r

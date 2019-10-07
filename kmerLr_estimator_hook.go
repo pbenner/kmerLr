@@ -57,7 +57,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
       loss_new = loss(x)
     }
     for it := x.ConstIterator(); it.Ok(); it.Next() {
-      if it.GetConst().GetValue() != 0.0 {
+      if it.GetValue() != 0.0 {
         n += 1
       }
     }
@@ -66,7 +66,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
         positive = make([]bool, x.Dim())
       }
       for it := x.ConstIterator(); it.Ok(); it.Next() {
-        if it.GetConst().GetValue() != 0.0 {
+        if it.GetValue() != 0.0 {
           positive[it.Index()] = true
         }
       }
@@ -139,7 +139,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, c []
       c += math.Abs(gradient[i])
     }
     for it := x.ConstIterator(); it.Ok(); it.Next() {
-      if it.GetConst().GetValue() != 0.0 {
+      if it.GetValue() != 0.0 {
         n += 1
       }
     }

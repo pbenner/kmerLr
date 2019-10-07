@@ -104,15 +104,15 @@ func extend_counts_cooccurrence(config Config, data []ConstVector) {
 
 func convert_counts(config Config, counts KmerCounts, features FeatureIndices) ConstVector {
   n := 0
-  i := []int      {0  }
-  v := []ConstReal{1.0}
+  i := []int    {0  }
+  v := []float64{1.0}
   if len(features) == 0 {
     n = counts.Len()+1
     // copy counts to (i, v)
     for it := counts.Iterate(); it.Ok(); it.Next() {
       if c := it.GetCount(); c != 0 {
         i = append(i, it.GetIndex()+1)
-        v = append(v, ConstReal(c))
+        v = append(v, float64(c))
       }
     }
   } else {
@@ -124,21 +124,21 @@ func convert_counts(config Config, counts KmerCounts, features FeatureIndices) C
         c := counts.Counts[counts.Kmers[i1].KmerClassId]
         if c != 0.0 {
           i = append(i, j+1)
-          v = append(v, BareReal(c))
+          v = append(v, float64(c))
         }
       } else {
         c1 := counts.Counts[counts.Kmers[i1].KmerClassId]
         c2 := counts.Counts[counts.Kmers[i2].KmerClassId]
         if c1 != 0.0 && c2 != 0.0 {
           i = append(i, j+1)
-          v = append(v, BareReal(c1*c2))
+          v = append(v, float64(c1*c2))
         }
       }
     }
   }
   // resize slice and restrict capacity
-  i = append([]int      {}, i[0:len(i)]...)
-  v = append([]ConstReal{}, v[0:len(v)]...)
+  i = append([]int    {}, i[0:len(i)]...)
+  v = append([]float64{}, v[0:len(v)]...)
   return UnsafeSparseConstRealVector(i, v, n)
 }
 

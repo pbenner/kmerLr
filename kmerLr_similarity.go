@@ -64,7 +64,7 @@ func compute_similarity(config Config, theta ConstVector, x1, x2 ConstVector) fl
   r2 := 0.0
   for it := theta.ConstIterator(); it.Ok(); it.Next() {
     i  := it.Index()
-    vt := it.GetConst().GetValue()
+    vt := it.GetValue()
     v1 := x1.ValueAt(i)
     v2 := x2.ValueAt(i)
     r0 += v1*vt*v2

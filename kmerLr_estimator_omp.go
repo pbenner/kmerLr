@@ -172,12 +172,12 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
   }
   r := make([]ConstVector, len(data))
   for i, _ := range data {
-    values  := []ConstReal{1.0}
-    indices := []int      {0  }
+    values  := []float64{1.0}
+    indices := []int    {0  }
     for l, j := range k {
       if v := data[i].ValueAt(j+1); b[j] && v != 0.0 {
         indices = append(indices, l+1)
-        values  = append(values , ConstReal(v))
+        values  = append(values , v)
       }
     }
     if j, v := data[i].(SparseConstRealVector).Last(); j != m-1 {
@@ -185,7 +185,7 @@ func (obj *KmerLrOmpEstimator) selectData(data []ConstVector, k []int) []ConstVe
     } else {
       // append class label
       indices = append(indices, n-1)
-      values  = append(values , v)
+      values  = append(values , v.GetValue())
     }
     r[i] = UnsafeSparseConstRealVector(indices, values, n)
   }
@@ -263,7 +263,7 @@ func (obj *KmerLrOmpEstimator) normalizationConstants(config Config, data []Cons
   for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 && j != m-1 {
-        x[j] += it.GetConst().GetValue()*it.GetConst().GetValue()
+        x[j] += it.GetValue()*it.GetValue()
       }
     }
   }

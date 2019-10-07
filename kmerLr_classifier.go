@@ -79,7 +79,7 @@ func (obj *KmerLr) Nonzero() int {
     it.Next()
   }
   for ; it.Ok(); it.Next() {
-    if it.GetConst().GetValue() != 0.0 {
+    if it.GetValue() != 0.0 {
       n++
     }
   }
@@ -116,17 +116,17 @@ func (obj *KmerLr) Prune(data []ConstVector) *KmerLr {
     }
     if len(data) != 0 {
       for j, x := range data {
-        i := []int      {  0}
-        v := []ConstReal{1.0}
+        i := []int    {  0}
+        v := []float64{1.0}
         for it := x.ConstIterator(); it.Ok(); it.Next() {
           if j := it.Index(); j != 0 && obj.Theta.ValueAt(j) != 0.0 {
             i = append(i, m[j-1]+1)
-            v = append(v, ConstReal(it.GetConst().GetValue()))
+            v = append(v, it.GetValue())
           }
         }
         // resize slice and restrict capacity
-        i = append([]int      {}, i[0:len(i)]...)
-        v = append([]ConstReal{}, v[0:len(v)]...)
+        i = append([]int    {}, i[0:len(i)]...)
+        v = append([]float64{}, v[0:len(v)]...)
         data[j] = UnsafeSparseConstRealVector(i, v, len(kmers)+1)
       }
     }
@@ -179,17 +179,17 @@ func (obj *KmerLr) Prune(data []ConstVector) *KmerLr {
     // prune data
     if len(data) != 0 {
       for j, x := range data {
-        i := []int      {}
-        v := []ConstReal{}
+        i := []int    {}
+        v := []float64{}
         for it := x.ConstIterator(); it.Ok(); it.Next() {
           if it.Index() == 0 || obj.Theta.ValueAt(it.Index()) != 0.0 {
             i = append(i, md[it.Index()])
-            v = append(v, ConstReal(it.GetConst().GetValue()))
+            v = append(v, it.GetValue())
           }
         }
         // resize slice and restrict capacity
-        i = append([]int      {}, i[0:len(i)]...)
-        v = append([]ConstReal{}, v[0:len(v)]...)
+        i = append([]int    {}, i[0:len(i)]...)
+        v = append([]float64{}, v[0:len(v)]...)
         data[j] = UnsafeSparseConstRealVector(i, v, len(theta))
       }
     }

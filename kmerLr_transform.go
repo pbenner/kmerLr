@@ -46,7 +46,7 @@ func (obj *Transform) TransformFit(config Config, data []ConstVector) {
   for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j > 0 {
-        mu[j] += it.GetConst().GetValue()
+        mu[j] += it.GetValue()
       }
     }
   }
@@ -58,7 +58,7 @@ func (obj *Transform) TransformFit(config Config, data []ConstVector) {
   for i := 0; i < n; i++ {
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j > 0 {
-        v := it.GetConst().GetValue()
+        v := it.GetValue()
         k    [j] += 1
         sigma[j] += (v-mu[j])*(v-mu[j])
       }
@@ -99,7 +99,7 @@ func (obj Transform) TransformApply(config Config, data []ConstVector) []ConstVe
     values  := data[i].(SparseConstRealVector).GetSparseValues ()
     for j1, j2 := range indices {
       if j2 < len(obj.Mu) {
-        values[j1] = (values[j1] - ConstReal(obj.Mu[j2]))/ConstReal(obj.Sigma[j2])
+        values[j1] = (values[j1] - obj.Mu[j2])/obj.Sigma[j2]
       }
     }
     data[i] = UnsafeSparseConstRealVector(indices, values, m)
