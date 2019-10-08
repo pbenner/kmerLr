@@ -41,32 +41,31 @@ func normalize_data(config Config, data []ConstVector) Transform {
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, t Transform, basename_out string) VectorPdf {
+func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, t Transform, basename_out string) VectorPdf {
   // hook and trace
   var trace *Trace
   if config.SaveTrace || config.EpsilonVar != 0.0 {
     trace = &Trace{}
   }
   if config.Omp != 0 {
-    estimator := NewKmerLrOmpEstimator(config, kmers, trace, icv, data, labels, t)
+    estimator := NewKmerLrOmpEstimator(config, kmers, trace, icv, data_train, labels, t)
     if classifier != nil {
       estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
-    classifier = estimator.Estimate(config, data, labels)
+    classifier = estimator.Estimate(config, data_train, labels)
   } else
   if config.Rprop {
-    estimator := NewKmerLrRpropEstimator(config, kmers, t)
-    estimator.Hook = NewRpropHook(config, trace, icv, data, labels, estimator)
+    estimator := NewKmerLrRpropEstimator(config, kmers, trace, icv, data_train, labels, t)
     if classifier != nil {
       estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
-    classifier = estimator.Estimate(config, data, labels)
+    classifier = estimator.Estimate(config, data_train, labels)
   } else {
-    estimator := NewKmerLrEstimator(config, kmers, trace, icv, data, features, labels, t)
+    estimator := NewKmerLrEstimator(config, kmers, trace, icv, data_train, features, labels, t)
     if classifier != nil {
       estimator.SetParameters(classifier.GetParameters().CloneVector())
     }
-    classifier = estimator.Estimate(config, data, labels)
+    classifier = estimator.Estimate(config, data_train, data_test, labels)
   }
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   filename_json  := fmt.Sprintf("%s.json" , basename_out)
@@ -80,20 +79,20 @@ func learn_parameters(config Config, data []ConstVector, labels []bool, classifi
   return classifier
 }
 
-func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, kfold int, t Transform, basename_out string) {
-  learnClassifier := func(i int, data []ConstVector, labels []bool) VectorPdf {
+func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t Transform, basename_out string) {
+  learnClassifier := func(i int, data_train, data_test []ConstVector, labels []bool) VectorPdf {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_parameters(config, data, labels, classifier, kmers, features, i, t, basename_out)
+    return learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, i, t, basename_out)
   }
   testClassifier := func(i int, data []ConstVector, classifier VectorPdf) []float64 {
     return predict_data(config, data, classifier)
   }
-  predictions, labels := crossvalidation(config, data, labels, kfold, learnClassifier, testClassifier)
+  predictions, labels := crossvalidation(config, data, labels, learnClassifier, testClassifier)
 
   SaveCrossvalidation(config, fmt.Sprintf("%s.table", basename_out), predictions, labels)
 }
 
-func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, basename_out string) {
+func learn(config Config, filename_json, filename_fg, filename_bg, basename_out string) {
   var classifier *KmerLr
   var kmers       KmerClassList
   var features    FeatureIndices
@@ -117,10 +116,10 @@ func learn(config Config, kfold int, filename_json, filename_fg, filename_bg, ba
   } else {
     t = classifier.Transform
   }
-  if kfold <= 1 {
-    learn_parameters(config, data, labels, classifier, kmers, features, -1, t, basename_out)
+  if config.KFoldCV <= 1 {
+    learn_parameters(config, data, data, labels, classifier, kmers, features, -1, t, basename_out)
   } else {
-    learn_cv(config, data, labels, classifier, kmers, features, kfold, t, basename_out)
+    learn_cv(config, data, labels, classifier, kmers, features, t, basename_out)
   }
 }
 
@@ -296,6 +295,7 @@ func main_learn(config Config, args []string) {
   config.Complement      = *optComplement
   config.Cooccurrence    = *optCooccurrence
   config.LambdaAuto      = *optLambdaAuto
+  config.KFoldCV         = *optKFoldCV
   config.Reverse         = *optReverse
   config.Revcomp         = *optRevcomp
   config.EvalLoss        = *optEvalLoss
@@ -319,5 +319,5 @@ func main_learn(config Config, args []string) {
     log.Fatal("Omp does not support delayed modeling of co-occurrences")
   }
 
-  learn(config, *optKFoldCV, filename_in, filename_fg, filename_bg, basename_out)
+  learn(config, filename_in, filename_fg, filename_bg, basename_out)
 }

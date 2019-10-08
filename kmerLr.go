@@ -41,6 +41,7 @@ type Config struct {
   Epsilon         float64
   EpsilonLoss     float64
   EpsilonVar      float64
+  KFoldCV         int
   StepSizeFactor  float64
   Seed            int64
   SaveTrace       bool

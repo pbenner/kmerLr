@@ -94,28 +94,18 @@ func saveCrossvalidation(filename string, predictions []float64, labels []bool) 
 
 /* -------------------------------------------------------------------------- */
 
-func crossvalidation(config Config, data_ []ConstVector, labels []bool, kfold int,
-  learnClassifier func(i int, data []ConstVector, c []bool) VectorPdf,
+func crossvalidation(config Config, data []ConstVector, labels []bool,
+  learnClassifier func(i int, data_train, data_all []ConstVector, c []bool) VectorPdf,
    testClassifier func(i int, data []ConstVector, classifier VectorPdf) []float64) ([]float64, []bool) {
-  groups := getCvGroups(len(data_), kfold, config.Seed)
+  groups := getCvGroups(len(data), config.KFoldCV, config.Seed)
 
-  r_predictions := make([][]float64, kfold)
-  r_labels      := make([][]bool,    kfold)
-  // prepare a shallow copy of the data for each CV run, this way
-  // the data may get modified in each run
-  data   := make([][]ConstVector, kfold)
-  data[0] = data_
-  for i := 1; i < kfold; i++ {
-    data[i] = make([]ConstVector, len(data_))
-    for j := 0; j < len(data_); j++ {
-      data[i][j] = data_[j]
-    }
-  }
+  r_predictions := make([][]float64, config.KFoldCV)
+  r_labels      := make([][]bool,    config.KFoldCV)
 
-  config.Pool.RangeJob(0, kfold, func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    data_test, labels_test, data_train, labels_train := filterCvGroup(data[i], labels, groups, i)
+  config.Pool.RangeJob(0, config.KFoldCV, func(i int, pool threadpool.ThreadPool, erf func() error) error {
+    data_test, labels_test, data_train, labels_train := filterCvGroup(data, labels, groups, i)
 
-    classifier := learnClassifier(i, data_train, labels_train)
+    classifier := learnClassifier(i, data_train, data_test, labels_train)
 
     r_predictions[i] = testClassifier(i, data_test, classifier)
     r_labels     [i] = labels_test
@@ -124,7 +114,7 @@ func crossvalidation(config Config, data_ []ConstVector, labels []bool, kfold in
   // join results
   predictions := []float64{}
   labels       = []bool   {}
-  for i := 0; i < kfold; i++ {
+  for i := 0; i < config.KFoldCV; i++ {
     predictions = append(predictions, r_predictions[i]...)
     labels      = append(labels     , r_labels     [i]...)
   }

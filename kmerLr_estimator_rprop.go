@@ -49,7 +49,7 @@ type KmerLrRpropEstimator struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrRpropEstimator(config Config, kmers KmerClassList, t Transform) *KmerLrRpropEstimator {
+func NewKmerLrRpropEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, data []ConstVector, labels []bool, t Transform) *KmerLrRpropEstimator {
   n := kmers.Len() + 1
   if config.Cooccurrence == 0 {
     n = (kmers.Len()+1)*kmers.Len()/2 + 1
@@ -66,6 +66,7 @@ func NewKmerLrRpropEstimator(config Config, kmers KmerClassList, t Transform) *K
   r.Kmers          = kmers
   r.Transform      = t
   r.Theta          = make([]float64, n)
+  r.Hook           = NewRpropHook(config, trace, icv, data, labels, &r)
   return &r
 }
 

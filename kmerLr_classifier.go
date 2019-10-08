@@ -88,7 +88,7 @@ func (obj *KmerLr) Nonzero() int {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLr) Prune(data []ConstVector) *KmerLr {
+func (obj *KmerLr) Prune(data_collection ...[]ConstVector) *KmerLr {
   features := FeatureIndices{}
   theta    := []float64{obj.Theta.ValueAt(0)}
   kmers    := KmerClassList{}
@@ -114,7 +114,7 @@ func (obj *KmerLr) Prune(data []ConstVector) *KmerLr {
         }
       }
     }
-    if len(data) != 0 {
+    for _, data := range data_collection {
       for j, x := range data {
         i := []int    {  0}
         v := []float64{1.0}
@@ -177,7 +177,7 @@ func (obj *KmerLr) Prune(data []ConstVector) *KmerLr {
       }
     }
     // prune data
-    if len(data) != 0 {
+    for _, data := range data_collection {
       for j, x := range data {
         i := []int    {}
         v := []float64{}

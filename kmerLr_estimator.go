@@ -97,8 +97,8 @@ func (obj *KmerLrEstimator) set_max_iterations(config Config) {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
-  if err := obj.LogisticRegression.SetSparseData(data, labels, len(data)); err != nil {
+func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, labels []bool) *KmerLr {
+  if err := obj.LogisticRegression.SetSparseData(data_train, labels, len(data_train)); err != nil {
     log.Fatal(err)
   }
   if err := obj.LogisticRegression.Estimate(nil, config.Pool); err != nil {
@@ -142,7 +142,7 @@ func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x C
   return hook
 }
 
-func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, labels []bool) *KmerLr {
+func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test []ConstVector, labels []bool) *KmerLr {
   if config.Prune > 0 {
     var do_prune bool
     h := obj.Hook
@@ -151,13 +151,13 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
     for {
       do_prune = false
       obj.set_max_iterations(config)
-      r = obj.estimate(config, data, labels)
+      r = obj.estimate(config, data_train, labels)
       // check if algorithm converged
       if !do_prune {
         break
       }
       PrintStderr(config, 1, "Pruning parameter space...\n")
-      r = r.Prune(data)
+      r = r.Prune(data_train, data_test)
       // copy parameters
       obj.Kmers                    = r.KmerLrFeatures.Kmers
       obj.Features                 = r.KmerLrFeatures.Features
@@ -167,7 +167,7 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data []ConstVector, la
     return r
   } else {
     obj.set_max_iterations(config)
-    return obj.estimate(config, data, labels)
+    return obj.estimate(config, data_train, labels)
   }
 }
 
@@ -190,7 +190,7 @@ func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old f
   return hook
 }
 
-func (obj *KmerLrEstimator) estimate_cooccurrence(config Config, data []ConstVector, labels []bool) *KmerLr {
+func (obj *KmerLrEstimator) estimate_cooccurrence(config Config, data_train, data_test []ConstVector, labels []bool) *KmerLr {
   if config.Cooccurrence > 0 && obj.Cooccurrence == false {
     h := obj.Hook
     // this hook exits the algorithm as soon as
@@ -199,7 +199,7 @@ func (obj *KmerLrEstimator) estimate_cooccurrence(config Config, data []ConstVec
     // config.Cooccurrence defines the maximal number of
     // coefficients when to expand the parameter space
     obj.AutoReg = config.Cooccurrence
-    r := obj.estimate_prune(config, data, labels)
+    r := obj.estimate_prune(config, data_train, data_test, labels)
     obj.Hook    = h
     obj.AutoReg = config.LambdaAuto
     if r.Nonzero() > config.Cooccurrence {
@@ -208,18 +208,20 @@ func (obj *KmerLrEstimator) estimate_cooccurrence(config Config, data []ConstVec
       return r
     }
     PrintStderr(config, 1, "Starting co-occurrence modeling...\n")
-    r  = r.Prune(data)
+    r  = r.Prune(data_train, data_test)
     r.ExtendCooccurrence()
     obj.Cooccurrence                     = true
     obj.Features                         = r.KmerLrFeatures.Features
     obj.Kmers                            = r.KmerLrFeatures.Kmers
     obj.LogisticRegression.Theta         = r.Theta.(DenseBareRealVector)
     obj.LogisticRegression.MaxIterations = config.MaxEpochs
-    extend_counts_cooccurrence(config, data)
+    extend_counts_cooccurrence(config, data_train)
+    extend_counts_cooccurrence(config, data_test)
   }
-  return obj.estimate_prune(config, data, labels)
+  return obj.estimate_prune(config, data_train, data_test, labels)
 }
 
-func (obj *KmerLrEstimator) Estimate(config Config, data []ConstVector, labels []bool) *KmerLr {
-  return obj.estimate_cooccurrence(config, data, labels).Prune(nil)
+func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) *KmerLr {
+  // always prune data in case it is required for testing the classifier
+  return obj.estimate_cooccurrence(config, data_train, data_test, labels).Prune(data_train, data_test)
 }
