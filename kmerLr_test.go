@@ -92,3 +92,29 @@ func Test2(test *testing.T) {
     }
   }
 }
+
+func Test3(test *testing.T) {
+  config := Config{}
+  config.Verbose        = 0
+  config.MaxEpochs      = 100
+  config.StepSizeFactor = 1.0
+
+  trace := &Trace{}
+
+  kmersCounter, err := NewKmerCounter(8, 8, false, false, true, nil, NucleotideAlphabet{}); if err != nil {
+    test.Error(err)
+  } else {
+    data, labels, kmers := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
+
+    estimator := NewKmerLrEstimator(config, kmers, trace, 0, data, nil, labels, Transform{})
+    estimator.Estimate(config, data, labels)
+
+    for _, x := range data {
+      for it := x.ConstIterator(); it.Ok(); it.Next() {
+        if it.GetValue() == 0.0 {
+          test.Error("test failed")
+        }
+      }
+    }
+  }
+}
