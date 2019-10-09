@@ -134,7 +134,7 @@ func main_learn(config Config, args []string) {
   optLambdaEta       := options. StringLong("lambda-eta",       0 ,    "1.1:0.9", "auto lambda eta parameter [default: 1.1:0.9]")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
-  optCooccurrence    := options.    IntLong("co-occurrence",    0 ,           -1, "epochs after which to model k-mer co-occurrences")
+  optCooccurrence    := options.    IntLong("co-occurrence",    0 ,           -1, "begin k-mer co-occurrences modeling when approximately [value] coefficients are non-zero")
   optComplement      := options.   BoolLong("complement",       0 ,               "consider complement sequences")
   optReverse         := options.   BoolLong("reverse",          0 ,               "consider reverse sequences")
   optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
@@ -153,7 +153,7 @@ func main_learn(config Config, args []string) {
   optRpropEta        := options. StringLong("rprop-eta",        0 ,    "1.2:0.8", "rprop eta parameter [default: 1.2:0.8]")
   optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
   optOmpIterations   := options.    IntLong("omp-iterations",   0 ,            1, "number of OMP iterations")
-  optPrune           := options.    IntLong("prune",            0 ,            0, "prune parameters space at regular intervals")
+  optPrune           := options.    IntLong("prune",            0 ,            0, "prune parameter space if less than [value]% coefficients are non-zero")
   optHelp            := options.   BoolLong("help",            'h',               "print help")
 
   options.SetParameters("<<M> <N>|<MODEL.json>> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
