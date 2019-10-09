@@ -117,7 +117,7 @@ func learn(config Config, filename_json, filename_fg, filename_bg, basename_out 
     t = classifier.Transform
   }
   if config.KFoldCV <= 1 {
-    learn_parameters(config, data, data, labels, classifier, kmers, features, -1, t, basename_out)
+    learn_parameters(config, data, nil, labels, classifier, kmers, features, -1, t, basename_out)
   } else {
     learn_cv(config, data, labels, classifier, kmers, features, t, basename_out)
   }
