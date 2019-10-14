@@ -102,7 +102,7 @@ func crossvalidation(config Config, data []ConstVector, labels []bool,
   r_predictions := make([][]float64, config.KFoldCV)
   r_labels      := make([][]bool,    config.KFoldCV)
 
-  config.Pool.RangeJob(0, config.KFoldCV, func(i int, pool threadpool.ThreadPool, erf func() error) error {
+  config.PoolCV.RangeJob(0, config.KFoldCV, func(i int, pool threadpool.ThreadPool, erf func() error) error {
     data_test, labels_test, data_train, labels_train := filterCvGroup(data, labels, groups, i)
 
     classifier := learnClassifier(i, data_train, data_test, labels_train)

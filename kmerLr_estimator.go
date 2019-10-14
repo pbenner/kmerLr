@@ -101,7 +101,7 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, la
   if err := obj.LogisticRegression.SetSparseData(data_train, labels, len(data_train)); err != nil {
     log.Fatal(err)
   }
-  if err := obj.LogisticRegression.Estimate(nil, config.Pool); err != nil {
+  if err := obj.LogisticRegression.Estimate(nil, config.PoolSaga); err != nil {
     log.Fatal(err)
   }
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {

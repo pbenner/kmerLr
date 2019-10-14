@@ -55,6 +55,8 @@ type Config struct {
   OmpIterations   int
   Prune           int
   Pool            threadpool.ThreadPool
+  PoolCV          threadpool.ThreadPool
+  PoolSaga        threadpool.ThreadPool
   Verbose         int
 }
 

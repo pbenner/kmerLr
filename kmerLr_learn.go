@@ -27,6 +27,7 @@ import   "strings"
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import . "github.com/pbenner/gonetics"
+import   "github.com/pbenner/threadpool"
 
 import   "github.com/pborman/getopt"
 
@@ -154,6 +155,8 @@ func main_learn(config Config, args []string) {
   optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
   optOmpIterations   := options.    IntLong("omp-iterations",   0 ,            1, "number of OMP iterations")
   optPrune           := options.    IntLong("prune",            0 ,            0, "prune parameter space if less than [value]% coefficients are non-zero")
+  optThreadsCV       := options.    IntLong("threads-cv",       0 ,            1, "number of threads for cross-validation")
+  optThreadsSaga     := options.    IntLong("threads-saga",     0 ,            1, "number of threads for SAGA algorithm")
   optHelp            := options.   BoolLong("help",            'h',               "print help")
 
   options.SetParameters("<<M> <N>|<MODEL.json>> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
@@ -289,6 +292,12 @@ func main_learn(config Config, args []string) {
       log.Fatal(err)
     }
     config.LambdaEta = [2]float64{v1, v2}
+  }
+  if *optThreadsCV > 1 {
+    config.PoolCV = threadpool.New(*optThreadsCV, 100)
+  }
+  if *optThreadsSaga > 1 {
+    config.PoolSaga = threadpool.New(*optThreadsSaga, 100)
   }
   config.Balance         = *optBalance
   config.Binarize        = *optBinarize
