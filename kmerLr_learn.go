@@ -133,6 +133,7 @@ func main_learn(config Config, args []string) {
   optLambda          := options. StringLong("lambda",           0 ,        "0.0", "regularization strength (L1)")
   optLambdaAuto      := options.    IntLong("lambda-auto",      0 ,            0, "select lambda automatically so that [value] coefficients are non-zero")
   optLambdaEta       := options. StringLong("lambda-eta",       0 ,    "1.1:0.9", "auto lambda eta parameter [default: 1.1:0.9]")
+  optLambdaMax       := options. StringLong("lambda-max",       0 ,        "0.0", "maximum lambda value")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
   optCooccurrence    := options.    IntLong("co-occurrence",    0 ,           -1, "begin k-mer co-occurrences modeling when approximately [value] coefficients are non-zero")
@@ -226,6 +227,11 @@ func main_learn(config Config, args []string) {
     log.Fatal(err)
   } else {
     config.Lambda = v
+  }
+  if v, err := strconv.ParseFloat(*optLambdaMax, 64); err != nil {
+    log.Fatal(err)
+  } else {
+    config.LambdaMax = v
   }
   if v, err := strconv.ParseFloat(*optScaleStepSize, 64); err != nil {
     log.Fatal(err)

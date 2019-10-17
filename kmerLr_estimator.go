@@ -18,9 +18,9 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
 import   "log"
-import   "math"
+//import   "math"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -59,6 +59,7 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv in
     r.LogisticRegression.Balance        = config.Balance
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.L1Reg          = config.Lambda
+    r.LogisticRegression.L1RegMax       = config.LambdaMax
     r.LogisticRegression.AutoReg        = config.LambdaAuto
     r.LogisticRegression.Eta            = config.LambdaEta
     r.LogisticRegression.Epsilon        = config.Epsilon
@@ -126,14 +127,15 @@ func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x C
       return true
     }
     n := 0
-    m := x.Dim()
+    //m := x.Dim()
     for it := x.ConstIterator(); it.Ok(); it.Next() {
       if it.Index() != 0 && it.GetValue() != 0.0 {
         n += 1
       }
     }
-    r := math.Round(100.0*float64(n)/float64(m))
-    if int(r) < config.Prune && n >= obj.AutoReg {
+    //r := math.Round(100.0*float64(n)/float64(m))
+    //if int(r) < config.Prune && n >= obj.AutoReg && change.GetValue() < 0.005 {
+    if n >= int((1.0 - 0.01)*float64(obj.AutoReg)) && n <= int((1.0 + 0.01)*float64(obj.AutoReg)) && change.GetValue() < 0.005 {
       (*do_prune) = true
       return true
     }
@@ -145,10 +147,17 @@ func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x C
 func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test []ConstVector, labels []bool) *KmerLr {
   if config.Prune > 0 {
     var do_prune bool
+    a := obj.AutoReg
     h := obj.Hook
     r := (*KmerLr)(nil)
     obj.Hook  = obj.estimate_prune_hook(config, h, &do_prune)
     for {
+      if r := float64(obj.Theta.Dim())*float64(config.Prune)/100.0; r > float64(config.LambdaAuto) {
+        fmt.Println("setting target to:", int(r))
+        obj.AutoReg = int(r)
+      } else {
+        obj.AutoReg = a
+      }
       do_prune = false
       obj.set_max_iterations(config)
       r = obj.estimate(config, data_train, labels)
@@ -163,7 +172,8 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
       obj.Features                 = r.KmerLrFeatures.Features
       obj.LogisticRegression.Theta = r.Theta.(DenseBareRealVector)
     }
-    obj.Hook = h
+    obj.Hook    = h
+    obj.AutoReg = a
     return r
   } else {
     obj.set_max_iterations(config)
@@ -182,7 +192,7 @@ func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old f
         n += 1
       }
     }
-    if n <= config.Cooccurrence && n >= int((1.0 - 0.01)*float64(config.Cooccurrence)) {
+    if n <= config.Cooccurrence && n >= int((1.0 - 0.01)*float64(config.Cooccurrence)) && change.GetValue() < 0.005 {
       return true
     }
     return false

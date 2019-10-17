@@ -38,6 +38,7 @@ type Config struct {
   Lambda          float64
   LambdaAuto      int
   LambdaEta     [2]float64
+  LambdaMax       float64
   Epsilon         float64
   EpsilonLoss     float64
   EpsilonVar      float64
