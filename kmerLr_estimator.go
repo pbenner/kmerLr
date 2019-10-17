@@ -133,9 +133,7 @@ func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x C
         n += 1
       }
     }
-    //r := math.Round(100.0*float64(n)/float64(m))
-    //if int(r) < config.Prune && n >= obj.AutoReg && change.GetValue() < 0.005 {
-    if n >= int((1.0 - 0.01)*float64(obj.AutoReg)) && n <= int((1.0 + 0.01)*float64(obj.AutoReg)) && change.GetValue() < 0.005 {
+    if n >= int((1.0 - 0.01)*float64(obj.AutoReg)) && n <= int((1.0 + 0.01)*float64(obj.AutoReg)) {
       (*do_prune) = true
       return true
     }
@@ -192,7 +190,7 @@ func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old f
         n += 1
       }
     }
-    if n <= config.Cooccurrence && n >= int((1.0 - 0.01)*float64(config.Cooccurrence)) && change.GetValue() < 0.005 {
+    if n <= config.Cooccurrence && n >= int((1.0 - 0.01)*float64(config.Cooccurrence)) {
       return true
     }
     return false
