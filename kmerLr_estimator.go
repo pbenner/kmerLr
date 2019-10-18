@@ -151,7 +151,6 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
     obj.Hook  = obj.estimate_prune_hook(config, h, &do_prune)
     for {
       if r := float64(obj.Theta.Dim())*float64(config.Prune)/100.0; r > float64(config.LambdaAuto) {
-        fmt.Println("setting target to:", int(r))
         obj.AutoReg = int(r)
       } else {
         obj.AutoReg = a
