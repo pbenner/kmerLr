@@ -145,9 +145,11 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
   if config.Prune > 0 {
     var do_prune bool
     a := obj.AutoReg
+    e := obj.Epsilon
     h := obj.Hook
     r := (*KmerLr)(nil)
-    obj.Hook  = obj.estimate_prune_hook(config, h, &do_prune)
+    obj.Epsilon = 0.0
+    obj.Hook    = obj.estimate_prune_hook(config, h, &do_prune)
     for {
       if r := float64(obj.Theta.Dim())*float64(config.Prune)/100.0; r > float64(a) {
         obj.AutoReg = int(r)
@@ -168,8 +170,9 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
       obj.Features                 = r.KmerLrFeatures.Features
       obj.LogisticRegression.Theta = r.Theta.(DenseBareRealVector)
     }
-    obj.Hook    = h
     obj.AutoReg = a
+    obj.Epsilon = e
+    obj.Hook    = h
     return r
   } else {
     obj.set_max_iterations(config)
@@ -177,7 +180,7 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
   }
 }
 
-func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old func(x ConstVector, change, lambda ConstScalar, epoch int) bool) HookType {
+func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old func(x ConstVector, change, lambda ConstScalar, epoch int) bool, do_cooccurrence *bool) HookType {
   hook := func(x ConstVector, change, lambda ConstScalar, epoch int) bool {
     if r := hook_old(x, change, lambda, epoch); r {
       return true
@@ -189,6 +192,7 @@ func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old f
       }
     }
     if n <= config.Cooccurrence && n >= int((1.0 - 0.01)*float64(config.Cooccurrence)) {
+      (*do_cooccurrence) = true
       return true
     }
     return false
@@ -198,17 +202,18 @@ func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old f
 
 func (obj *KmerLrEstimator) estimate_cooccurrence(config Config, data_train, data_test []ConstVector, labels []bool) *KmerLr {
   if config.Cooccurrence > 0 && obj.Cooccurrence == false {
+    var do_cooccurrence bool
     h := obj.Hook
     // this hook exits the algorithm as soon as
     // the number of parameters is sufficiently reduced
-    obj.Hook    = obj.estimate_cooccurrence_hook(config, h)
+    obj.Hook    = obj.estimate_cooccurrence_hook(config, h, &do_cooccurrence)
     // config.Cooccurrence defines the maximal number of
     // coefficients when to expand the parameter space
     obj.AutoReg = config.Cooccurrence
     r := obj.estimate_prune(config, data_train, data_test, labels)
     obj.Hook    = h
     obj.AutoReg = config.LambdaAuto
-    if r.Nonzero() > config.Cooccurrence {
+    if !do_cooccurrence {
       // somehow the goal of reducing the parameter space was not
       // achieved => exit
       return r
