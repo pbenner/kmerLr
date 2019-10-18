@@ -24,7 +24,6 @@ import   "time"
 
 import . "github.com/pbenner/autodiff"
 import   "github.com/pbenner/autodiff/algorithm/rprop"
-import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
 /* -------------------------------------------------------------------------- */
 
@@ -32,7 +31,93 @@ type HookType func(x ConstVector, change, lambda ConstScalar, epoch int) bool
 
 /* -------------------------------------------------------------------------- */
 
-func NewHook(config Config, trace *Trace, iterations *int, icv int, data []ConstVector, c []bool, estimator *vectorEstimator.LogisticRegression) HookType {
+func NewHook(config Config, trace *Trace, iterations *int, icv int, data []ConstVector, c []bool, estimator *KmerLrEstimator) HookType {
+  loss_old := math.NaN()
+  loss_new := math.NaN()
+  loss := func(x ConstVector) float64 {
+    lr := logisticRegression{}
+    lr.Theta        = x.GetValues()
+    lr.Lambda       = estimator.L1Reg
+    lr.ClassWeights = estimator.ClassWeights
+    return lr.Loss(data, c, nil)
+  }
+  positive := []bool{}
+  k := 0
+  t := time.Now()
+  s := time.Now()
+  hook := func(x ConstVector, change, lambda ConstScalar, epoch_ int) bool {
+    k++
+    if iterations != nil {
+      (*iterations)++
+    }
+    loss_old, loss_new = loss_new, loss_old
+    n := 0
+    if config.EvalLoss {
+      loss_new = loss(x)
+    }
+    for it := x.ConstIterator(); it.Ok(); it.Next() {
+      if it.GetValue() != 0.0 {
+        n += 1
+      }
+    }
+    if config.Prune > 0 {
+      if len(positive) != x.Dim() {
+        positive = make([]bool, x.Dim())
+      }
+      for it := x.ConstIterator(); it.Ok(); it.Next() {
+        if it.GetValue() != 0.0 {
+          positive[it.Index()] = true
+        }
+      }
+    }
+    if trace != nil {
+      trace.Append(k, n, change.GetValue(), lambda.GetValue(), loss_new, time.Since(s))
+    }
+    if config.Verbose > 1 {
+      if trace != nil {
+        if icv != -1 {
+          fmt.Printf("cv run    : %d\n", icv+1)
+        }
+        fmt.Printf("epoch     : %d\n", k)
+        fmt.Printf("change    : %v\n", change)
+        fmt.Printf("lambda    : %v\n", lambda)
+        fmt.Printf("#coef     : %d\n", n-1)
+        fmt.Printf("var(#coef): %f\n", trace.CompVar(10))
+        if config.EvalLoss {
+          fmt.Printf("loss      : %f\n", loss_new)
+        }
+        fmt.Printf("time      : %v\n", time.Since(t))
+      } else {
+        if icv != -1 {
+          fmt.Printf("cv run: %d\n", icv+1)
+        }
+        fmt.Printf("epoch : %d\n", k)
+        fmt.Printf("change: %v\n", change)
+        fmt.Printf("lambda: %v\n", lambda)
+        fmt.Printf("#coef : %d\n", n-1)
+        if config.EvalLoss {
+          fmt.Printf("loss  : %f\n", loss_new)
+        }
+        fmt.Printf("time  : %v\n", time.Since(t))
+      }
+      fmt.Println()
+    }
+    t = time.Now()
+    if trace != nil && config.EpsilonVar != 0.0 {
+      if r := trace.CompVar(10); r < config.EpsilonVar {
+        return true
+      }
+    }
+    if estimator.EpsilonLoss == 0.0 {
+      return false
+    } else {
+      return math.Abs(loss_old - loss_new) < estimator.EpsilonLoss
+    }
+  }
+  return hook
+}
+
+func NewOmpHook(config Config, trace *Trace, iterations *int, icv int, data []ConstVector, c []bool, estimator *KmerLrOmpEstimator) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
   loss := func(x ConstVector) float64 {

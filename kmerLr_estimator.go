@@ -36,6 +36,7 @@ type KmerLrEstimator struct {
   Kmers        KmerClassList
   Transform    Transform
   Features     FeatureIndices
+  EpsilonLoss  float64
   iterations   int
 }
 
@@ -54,6 +55,7 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv in
     r.Kmers              = kmers
     r.Features           = features
     r.Transform          = t
+    r.EpsilonLoss        = config.EpsilonLoss
     r.LogisticRegression = *estimator
     r.LogisticRegression.Balance        = config.Balance
     r.LogisticRegression.Seed           = config.Seed
@@ -63,7 +65,7 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv in
     r.LogisticRegression.Eta            = config.LambdaEta
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
-    r.LogisticRegression.Hook           = NewHook(config, trace, &r.iterations, icv, data, labels, &r.LogisticRegression)
+    r.LogisticRegression.Hook           = NewHook(config, trace, &r.iterations, icv, data, labels, &r)
     if config.MaxEpochs != 0 {
       r.LogisticRegression.MaxIterations = config.MaxEpochs
     }
@@ -146,10 +148,12 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
     var do_prune bool
     a := obj.AutoReg
     e := obj.Epsilon
+    l := obj.EpsilonLoss
     h := obj.Hook
     r := (*KmerLr)(nil)
-    obj.Epsilon = 0.0
-    obj.Hook    = obj.estimate_prune_hook(config, h, &do_prune)
+    obj.Epsilon     = 0.0
+    obj.EpsilonLoss = 0.0
+    obj.Hook        = obj.estimate_prune_hook(config, h, &do_prune)
     for {
       if r := float64(obj.Theta.Dim())*float64(config.Prune)/100.0; r > float64(a) {
         obj.AutoReg = int(r)
@@ -170,9 +174,10 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
       obj.Features                 = r.KmerLrFeatures.Features
       obj.LogisticRegression.Theta = r.Theta.(DenseBareRealVector)
     }
-    obj.AutoReg = a
-    obj.Epsilon = e
-    obj.Hook    = h
+    obj.AutoReg     = a
+    obj.Epsilon     = e
+    obj.EpsilonLoss = l
+    obj.Hook        = h
     return r
   } else {
     obj.set_max_iterations(config)
