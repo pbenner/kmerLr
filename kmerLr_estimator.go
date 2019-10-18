@@ -18,9 +18,8 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-import   "fmt"
+//import   "fmt"
 import   "log"
-//import   "math"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -150,7 +149,7 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
     r := (*KmerLr)(nil)
     obj.Hook  = obj.estimate_prune_hook(config, h, &do_prune)
     for {
-      if r := float64(obj.Theta.Dim())*float64(config.Prune)/100.0; r > float64(config.LambdaAuto) {
+      if r := float64(obj.Theta.Dim())*float64(config.Prune)/100.0; r > float64(a) {
         obj.AutoReg = int(r)
       } else {
         obj.AutoReg = a
