@@ -100,6 +100,7 @@ func (obj *KmerLrEstimator) set_max_iterations(config Config) {
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, labels []bool) *KmerLr {
+  obj.set_max_iterations(config)
   if err := obj.LogisticRegression.SetSparseData(data_train, labels, len(data_train)); err != nil {
     log.Fatal(err)
   }
@@ -161,7 +162,6 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
         obj.AutoReg = a
       }
       do_prune = false
-      obj.set_max_iterations(config)
       r = obj.estimate(config, data_train, labels)
       // check if algorithm converged
       if !do_prune {
@@ -179,10 +179,9 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
     obj.EpsilonLoss = l
     obj.Hook        = h
     return r
-  } else {
-    obj.set_max_iterations(config)
-    return obj.estimate(config, data_train, labels)
   }
+  // re-estimate parameters
+  return obj.estimate(config, data_train, labels)
 }
 
 func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old func(x ConstVector, change, lambda ConstScalar, epoch int) bool, do_cooccurrence *bool) HookType {
