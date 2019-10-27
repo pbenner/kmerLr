@@ -151,7 +151,6 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
     e := obj.Epsilon
     l := obj.EpsilonLoss
     h := obj.Hook
-    r := (*KmerLr)(nil)
     obj.Epsilon     = 0.0
     obj.EpsilonLoss = 0.0
     obj.Hook        = obj.estimate_prune_hook(config, h, &do_prune)
@@ -162,7 +161,7 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
         obj.AutoReg = a
       }
       do_prune = false
-      r = obj.estimate(config, data_train, labels)
+      r := obj.estimate(config, data_train, labels)
       // check if algorithm converged
       if !do_prune {
         break
@@ -178,7 +177,6 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
     obj.Epsilon     = e
     obj.EpsilonLoss = l
     obj.Hook        = h
-    return r
   }
   // re-estimate parameters
   return obj.estimate(config, data_train, labels)
