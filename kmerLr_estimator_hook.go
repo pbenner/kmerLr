@@ -34,10 +34,10 @@ type HookType func(x ConstVector, change, lambda ConstScalar, epoch int) bool
 func NewHook(config Config, trace *Trace, iterations *int, icv int, data []ConstVector, c []bool, estimator *KmerLrEstimator) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
-  loss := func(x ConstVector) float64 {
+  loss := func(x ConstVector, lambda ConstScalar) float64 {
     lr := logisticRegression{}
     lr.Theta        = x.GetValues()
-    lr.Lambda       = estimator.L1Reg
+    lr.Lambda       = lambda.GetValue()
     lr.ClassWeights = estimator.ClassWeights
     return lr.Loss(data, c, nil)
   }
@@ -53,7 +53,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
     loss_old, loss_new = loss_new, loss_old
     n := 0
     if config.EvalLoss {
-      loss_new = loss(x)
+      loss_new = loss(x, lambda)
     }
     for it := x.ConstIterator(); it.Ok(); it.Next() {
       if it.GetValue() != 0.0 {
@@ -120,10 +120,10 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
 func NewOmpHook(config Config, trace *Trace, iterations *int, icv int, data []ConstVector, c []bool, estimator *KmerLrOmpEstimator) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
-  loss := func(x ConstVector) float64 {
+  loss := func(x ConstVector, lambda ConstScalar) float64 {
     lr := logisticRegression{}
     lr.Theta        = x.GetValues()
-    lr.Lambda       = estimator.L1Reg
+    lr.Lambda       = lambda.GetValue()
     lr.ClassWeights = estimator.ClassWeights
     return lr.Loss(data, c, nil)
   }
@@ -139,7 +139,7 @@ func NewOmpHook(config Config, trace *Trace, iterations *int, icv int, data []Co
     loss_old, loss_new = loss_new, loss_old
     n := 0
     if config.EvalLoss {
-      loss_new = loss(x)
+      loss_new = loss(x, lambda)
     }
     for it := x.ConstIterator(); it.Ok(); it.Next() {
       if it.GetValue() != 0.0 {
