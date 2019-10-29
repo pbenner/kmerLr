@@ -129,13 +129,15 @@ func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x C
       return true
     }
     n := 0
-    //m := x.Dim()
+    m := x.Dim()
     for it := x.ConstIterator(); it.Ok(); it.Next() {
       if it.Index() != 0 && it.GetValue() != 0.0 {
         n += 1
       }
     }
-    if n >= int((1.0 - 0.01)*float64(obj.AutoReg)) && n <= int((1.0 + 0.01)*float64(obj.AutoReg)) {
+    upper := int((1.0 + 0.01)*float64(obj.AutoReg))
+    lower := int((1.0 - 0.01)*float64(obj.AutoReg))
+    if m > upper && n >= lower && n <= upper {
       (*do_prune) = true
       return true
     }
@@ -205,6 +207,7 @@ func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old f
 func (obj *KmerLrEstimator) estimate_cooccurrence(config Config, data_train, data_test []ConstVector, labels []bool) *KmerLr {
   if config.Cooccurrence > 0 && obj.Cooccurrence == false {
     var do_cooccurrence bool
+    a := obj.AutoReg
     h := obj.Hook
     // this hook exits the algorithm as soon as
     // the number of parameters is sufficiently reduced
@@ -214,7 +217,7 @@ func (obj *KmerLrEstimator) estimate_cooccurrence(config Config, data_train, dat
     obj.AutoReg = config.Cooccurrence
     r := obj.estimate_prune(config, data_train, data_test, labels)
     obj.Hook    = h
-    obj.AutoReg = config.LambdaAuto
+    obj.AutoReg = a
     if !do_cooccurrence {
       // somehow the goal of reducing the parameter space was not
       // achieved => exit
