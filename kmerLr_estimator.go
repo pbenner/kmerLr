@@ -156,7 +156,8 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
     obj.Epsilon     = 0.0
     obj.EpsilonLoss = 0.0
     obj.Hook        = obj.estimate_prune_hook(config, h, &do_prune)
-    for {
+    // perform pruning steps only when dim(theta) > upper
+    for upper := int((1.0 + 0.01)*float64(obj.AutoReg)); obj.Theta.Dim() > upper; {
       if r := float64(obj.Theta.Dim())*float64(config.Prune)/100.0; r > float64(a) {
         obj.AutoReg = int(r)
       } else {
@@ -164,7 +165,7 @@ func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test 
       }
       do_prune = false
       r := obj.estimate(config, data_train, labels)
-      // check if algorithm converged
+      // check if algorithm converged or if maximum iterations are reached
       if !do_prune {
         break
       }
