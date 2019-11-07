@@ -129,7 +129,9 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
     }
     if obj.Cooccurrence {
       for it1 := data[i].ConstIterator(); it1.Ok(); it1.Next() {
-        for it2 := data[i].ConstIterator(); it2.Ok(); it2.Next() {
+        it2 := it1.CloneConstIterator()
+        it2.Next()
+        for ; it2.Ok(); it2.Next() {
           i1 := it1.Index()-1
           i2 := it2.Index()-1
           j  := CoeffIndex(m).Ind2Sub(i1, i2)

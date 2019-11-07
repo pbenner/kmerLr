@@ -39,10 +39,13 @@ type featureSelector struct {
 
 func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) {
   f := FeatureIndices{}
+  b := make([]bool, len(theta))
+  b[0] = true
   // count non-zero entries in theta
   for k, _ := range theta[1:] {
     if theta[k] != 0.0 {
       f = append(f, [2]int{k, k})
+      b[k+1] = true
     }
   }
   if len(f) < n {
@@ -60,11 +63,46 @@ func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) {
       }
       if j := i[k]; theta[j] == 0.0 {
         // feature was previously zero
-        i1, i2 := CoeffIndex(m).Sub2Ind(j)
+        i1, i2 := CoeffIndex(m).Sub2Ind(j-1)
         f = append(f, [2]int{i1, i2})
       }
     }
   }
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector {
+  x := make([]ConstVector, len(obj.Data))
+  m := obj.Data[0].Dim()-1
+  for i_ := 0; i_ < len(x); i_++ {
+    i := []int    {}
+    v := []float64{}
+    for it := obj.Data[i_].ConstIterator(); it.Ok(); it.Next() {
+      if j := it.Index(); b[j] {
+        i = append(i, j)
+        v = append(v, it.GetValue())
+      }
+    }
+    if cooccurrence {
+      for it1 := obj.Data[i_].ConstIterator(); it1.Ok(); it1.Next() {
+        it2 := it1.CloneConstIterator()
+        it2.Next()
+        for ; it2.Ok(); it2.Next() {
+          i1 := it1.Index()-1
+          i2 := it2.Index()-1
+          j  := CoeffIndex(m).Ind2Sub(i1, i2)
+          i   = append(i, j)
+          v   = append(v, it1.GetValue()*it2.GetValue())
+        }
+      }
+    }
+    // resize slice and restrict capacity
+    i = append([]int    {}, i[0:len(i)]...)
+    v = append([]float64{}, v[0:len(v)]...)
+    x[i_] = UnsafeSparseConstRealVector(i, v, m+1)
+  }
+  return x
 }
 
 func (obj featureSelector) gradient(theta []float64, n int, cooccurrence bool) []float64 {
