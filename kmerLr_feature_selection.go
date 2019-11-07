@@ -91,7 +91,10 @@ func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector
       }
     }
     if cooccurrence {
-      for it1 := obj.Data[i_].ConstIterator(); it1.Ok(); it1.Next() {
+      it1 := obj.Data[i_].ConstIterator()
+      // skip first element
+      it1.Next()
+      for ; it1.Ok(); it1.Next() {
         it2 := it1.CloneConstIterator()
         it2.Next()
         for ; it2.Ok(); it2.Next() {
