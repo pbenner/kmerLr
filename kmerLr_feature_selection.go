@@ -19,7 +19,6 @@ package main
 /* -------------------------------------------------------------------------- */
 
 //import   "fmt"
-//import   "log"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
@@ -37,8 +36,9 @@ type featureSelector struct {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) {
+func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) (FeatureIndices, []ConstVector, float64) {
   f := FeatureIndices{}
+  l := 0.0
   b := make([]bool, len(theta))
   b[0] = true
   // count non-zero entries in theta
@@ -66,8 +66,12 @@ func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) {
         i1, i2 := CoeffIndex(m).Sub2Ind(j-1)
         f = append(f, [2]int{i1, i2})
       }
+      // new lambda value
+      l = g[k]
     }
   }
+  x := obj.selectData(b, cooccurrence)
+  return f, x, l
 }
 
 /* -------------------------------------------------------------------------- */
