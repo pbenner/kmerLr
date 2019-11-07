@@ -36,7 +36,7 @@ type featureSelector struct {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) (FeatureIndices, []ConstVector, float64) {
+func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) (FeatureIndices, []ConstVector, KmerClassList, float64) {
   f := FeatureIndices{}
   l := 0.0
   b := make([]bool, len(theta))
@@ -71,8 +71,9 @@ func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) (Fe
       l = g[k]
     }
   }
-  x := obj.selectData(b, cooccurrence)
-  return f, x, l
+  x := obj.selectData (b, cooccurrence)
+  k := obj.selectKmers(b)
+  return f, x, k, l
 }
 
 /* -------------------------------------------------------------------------- */
@@ -108,6 +109,17 @@ func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector
     x[i_] = UnsafeSparseConstRealVector(i, v, m+1)
   }
   return x
+}
+
+func (obj featureSelector) selectKmers(b []bool) KmerClassList {
+  m := obj.Data[0].Dim()-1
+  r := KmerClassList{}
+  for i := 0; i < m; i++ {
+    if b[i+1] {
+      r = append(r, obj.Kmers[i])
+    }
+  }
+  return r
 }
 
 func (obj featureSelector) gradient(theta []float64, n int, cooccurrence bool) []float64 {
