@@ -42,10 +42,10 @@ func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) (Fe
   b := make([]bool, len(theta))
   b[0] = true
   // count non-zero entries in theta
-  for k, _ := range theta[1:] {
+  for k := 1; k < len(theta); k++ {
     if theta[k] != 0.0 {
-      f = append(f, [2]int{k, k})
-      b[k+1] = true
+      f    = append(f, [2]int{k-1, k-1})
+      b[k] = true
     }
   }
   if len(f) < n {
@@ -64,7 +64,8 @@ func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) (Fe
       if j := i[k]; theta[j] == 0.0 {
         // feature was previously zero
         i1, i2 := CoeffIndex(m).Sub2Ind(j-1)
-        f = append(f, [2]int{i1, i2})
+        f    = append(f, [2]int{i1, i2})
+        b[k] = true
       }
       // new lambda value
       l = g[k]
