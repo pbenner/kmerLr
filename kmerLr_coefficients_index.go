@@ -27,6 +27,11 @@ type CoeffIndex int
 
 /* -------------------------------------------------------------------------- */
 
+func (obj CoeffIndex) Dim() int {
+  n := int(obj)
+  return (n+1)*n/2 + 1
+}
+
 func (obj CoeffIndex) Ind2Sub(k1, k2 int) int {
   n := int(obj)
   if k1 == k2 {
