@@ -93,8 +93,10 @@ func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector
           i1 := it1.Index()-1
           i2 := it2.Index()-1
           j  := CoeffIndex(m).Ind2Sub(i1, i2)
-          i   = append(i, j)
-          v   = append(v, it1.GetValue()*it2.GetValue())
+          if b[j] {
+            i = append(i, j)
+            v = append(v, it1.GetValue()*it2.GetValue())
+          }
         }
       }
     }
@@ -137,8 +139,9 @@ func (obj featureSelector) copyTheta(theta []float64, features FeatureIndices, n
     t = make([]float64, m+1)
     b = make([]bool   , m+1)
   }
+  b[0] = true
   for i, feature := range features {
-    j   := CoeffIndex(m).Ind2Sub(feature[0], feature[1])
+    j := CoeffIndex(m).Ind2Sub(feature[0], feature[1])
     if theta[i+1] != 0.0 {
       k   += 1
       t[j] = theta[i+1]
