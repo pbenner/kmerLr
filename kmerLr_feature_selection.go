@@ -36,20 +36,12 @@ type featureSelector struct {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) Select(theta []float64, n int, cooccurrence bool) (FeatureIndices, []ConstVector, KmerClassList, float64) {
+func (obj featureSelector) Select(theta []float64, features FeatureIndices, n int, cooccurrence bool) (FeatureIndices, []ConstVector, KmerClassList, float64) {
   f := FeatureIndices{}
   l := 0.0
-  b := make([]bool, len(theta))
-  b[0] = true
-  // count non-zero entries in theta
-  for k := 1; k < len(theta); k++ {
-    if theta[k] != 0.0 {
-      f    = append(f, [2]int{k-1, k-1})
-      b[k] = true
-    }
-  }
-  if len(f) < n {
-    g := obj.gradient(theta, n, cooccurrence)
+  t, ok, b := obj.copyTheta(theta, features, n, cooccurrence)
+  if ok {
+    g := obj.gradient(t, n, cooccurrence)
     i := make([]int, len(g))
     m := obj.Data[0].Dim()-1
     for k, _ := range i {
@@ -131,4 +123,27 @@ func (obj featureSelector) gradient(theta []float64, n int, cooccurrence bool) [
   lr.ClassWeights = obj.ClassWeights
   lr.Cooccurrence = cooccurrence
   return lr.Gradient(nil, obj.Data, obj.Labels, nil)
+}
+
+func (obj featureSelector) copyTheta(theta []float64, features FeatureIndices, n int, cooccurrence bool) ([]float64, bool, []bool) {
+  t := []float64(nil)
+  b := []bool   (nil)
+  k := 0
+  m := obj.Data[0].Dim()-1
+  if cooccurrence {
+    t = make([]float64, CoeffIndex(m).Dim())
+    b = make([]bool   , CoeffIndex(m).Dim())
+  } else {
+    t = make([]float64, m+1)
+    b = make([]bool   , m+1)
+  }
+  for i, feature := range features {
+    j   := CoeffIndex(m).Ind2Sub(feature[0], feature[1])
+    if theta[i+1] != 0.0 {
+      k   += 1
+      t[j] = theta[i+1]
+      b[j] = true
+    }
+  }
+  return t, k < n, b
 }
