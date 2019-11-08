@@ -96,14 +96,24 @@ func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndic
 }
 
 func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector {
-  x := make([]ConstVector, len(obj.Data))
   m := obj.Data[0].Dim()-1
+  k := make([]int, len(b))
+  x := make([]ConstVector, len(obj.Data))
+  // remap data indices
+  for i, j := 0, 0; j < len(b); j++ {
+    if b[j] {
+      k[j] =  i
+      i   +=  1
+    } else {
+      k[j] = -1
+    }
+  }
   for i_ := 0; i_ < len(x); i_++ {
     i := []int    {}
     v := []float64{}
     for it := obj.Data[i_].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); b[j] {
-        i = append(i, j)
+        i = append(i, k[j])
         v = append(v, it.GetValue())
       }
     }
@@ -119,7 +129,7 @@ func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector
           i2 := it2.Index()-1
           j  := CoeffIndex(m).Ind2Sub(i1, i2)
           if b[j] {
-            i = append(i, j)
+            i = append(i, k[j])
             v = append(v, it1.GetValue()*it2.GetValue())
           }
         }
