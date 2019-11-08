@@ -128,6 +128,25 @@ func (obj Transform) TransformEquals(t Transform) bool {
   return true
 }
 
+func (obj Transform) TransformSelect(b []bool) Transform {
+  tr := Transform{}
+  if len(obj.Mu) > 0 {
+    for i := 0; i < len(b); i++ {
+      if b[i] {
+        tr.Mu = append(tr.Mu, obj.Mu[i])
+      }
+    }
+  }
+  if len(obj.Sigma) > 0 {
+    for i := 0; i < len(b); i++ {
+      if b[i] {
+        tr.Sigma = append(tr.Sigma, obj.Sigma[i])
+      }
+    }
+  }
+  return tr
+}
+
 /* -------------------------------------------------------------------------- */
 
 func (obj *Transform) ImportConfig(config ConfigDistribution, t ScalarType) error {
