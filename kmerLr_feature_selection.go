@@ -39,13 +39,12 @@ type featureSelector struct {
 func (obj featureSelector) Select(theta []float64, features FeatureIndices, n int, cooccurrence bool) (FeatureIndices, []ConstVector, KmerClassList, float64) {
   l := 0.0
   // copy all features i with theta_{i+1} != 0
-  t, f, b := obj.restoreNonzero(theta, features, cooccurrence)
+  t, c, b := obj.restoreNonzero(theta, features, cooccurrence)
   // check if new features must be added
-  if len(f) < n {
+  if c < n {
     // compute gradient for selecting new features
     g := obj.gradient(t, n, cooccurrence)
     i := make([]int, len(g))
-    m := obj.Data[0].Dim()-1
     for k, _ := range i {
       i[k] = k
     }
@@ -53,30 +52,29 @@ func (obj featureSelector) Select(theta []float64, features FeatureIndices, n in
     AbsFloatInt{g[1:], i[1:]}.SortReverse()
     // add new features
     for k := 1; k < len(i); k++ {
-      if len(f) >= n {
+      if c >= n {
         break
       }
       if j := i[k]; theta[j] == 0.0 {
         // feature was previously zero
-        i1, i2 := CoeffIndex(m).Sub2Ind(j-1)
-        f    = append(f, [2]int{i1, i2})
         b[k] = true
+        c   += 1
       }
       // new lambda value
       l = g[k]
     }
   }
-  x := obj.selectData (b, cooccurrence)
-  k := obj.selectKmers(b)
+  x    := obj.selectData (b, cooccurrence)
+  k, f := obj.selectKmers(b)
   return f, x, k, l
 }
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndices, cooccurrence bool) ([]float64, FeatureIndices, []bool) {
-  f := FeatureIndices{}
+func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndices, cooccurrence bool) ([]float64, int, []bool) {
   t := []float64(nil)
   b := []bool   (nil)
+  c := 0
   m := obj.Data[0].Dim()-1
   if cooccurrence {
     t = make([]float64, CoeffIndex(m).Dim())
@@ -89,12 +87,12 @@ func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndic
   for i, feature := range features {
     j := CoeffIndex(m).Ind2Sub(feature[0], feature[1])
     if theta[i+1] != 0.0 {
-      f    = append(f, feature)
       t[j] = theta[i+1]
       b[j] = true
+      c   += 1
     }
   }
-  return t, f, b
+  return t, c, b
 }
 
 func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector {
@@ -135,15 +133,32 @@ func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector
   return x
 }
 
-func (obj featureSelector) selectKmers(b []bool) KmerClassList {
+func (obj featureSelector) selectKmers(b []bool) (KmerClassList, FeatureIndices) {
+  f := FeatureIndices{}
   m := obj.Data[0].Dim()-1
   r := KmerClassList{}
-  for i := 0; i < m; i++ {
-    if b[i+1] {
-      r = append(r, obj.Kmers[i])
+  z := make([]bool, len(obj.Kmers))
+  i := make([]int , len(obj.Kmers))
+  for j := 1; j < len(b); j++ {
+    if b[j] {
+      i1, i2 := CoeffIndex(m).Sub2Ind(j-1)
+      z[i1] = true
+      z[i2] = true
     }
   }
-  return r
+  for k := 0; k < len(obj.Kmers); k++ {
+    if z[k] {
+      i[k] = len(r)
+      r    = append(r, obj.Kmers[k])
+    }
+  }
+  for j := 1; j < len(b); j++ {
+    if b[j] {
+      i1, i2 := CoeffIndex(m).Sub2Ind(j-1)
+      f = append(f, [2]int{i[i1], i[i2]})
+    }
+  }
+  return r, f
 }
 
 func (obj featureSelector) gradient(theta []float64, n int, cooccurrence bool) []float64 {
