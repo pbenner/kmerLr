@@ -34,11 +34,9 @@ type Config struct {
   KmerEquivalence
   Balance         bool
   Binarize        bool
-  Cooccurrence    int
+  Cooccurrence    bool
   Lambda          float64
   LambdaAuto      int
-  LambdaEta     [2]float64
-  LambdaMax       float64
   Epsilon         float64
   EpsilonLoss     float64
   EpsilonVar      float64
@@ -54,7 +52,6 @@ type Config struct {
   RpropStepSize   float64
   Omp             int
   OmpIterations   int
-  Prune           int
   Pool            threadpool.ThreadPool
   PoolCV          threadpool.ThreadPool
   PoolSaga        threadpool.ThreadPool

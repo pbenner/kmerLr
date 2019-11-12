@@ -27,7 +27,7 @@ import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
-type FeatureIndices = [][2]int
+type FeatureIndices [][2]int
 
 func newFeatureIndices(n int, cooccurrence bool) FeatureIndices {
   if cooccurrence {
@@ -47,6 +47,18 @@ func newFeatureIndices(n int, cooccurrence bool) FeatureIndices {
     }
     return features
   }
+}
+
+func (obj FeatureIndices) Equals(b FeatureIndices) bool {
+  if len(obj) != len(b) {
+    return false
+  }
+  for i := 0; i < len(b); i++ {
+    if obj[i][0] != b[i][0] || obj[i][1] != b[i][1] {
+      return false
+    }
+  }
+  return true
 }
 
 /* -------------------------------------------------------------------------- */

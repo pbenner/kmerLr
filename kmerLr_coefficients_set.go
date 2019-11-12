@@ -195,5 +195,5 @@ func (obj *KmerLrCoefficientsSet) AsKmerLr(features KmerLrFeatures) *KmerLr {
   }
   features.Kmers    = kmers
   features.Features = f
-  return NewKmerLr(v, features).Prune(nil)
+  return NewKmerLr(v, features)
 }

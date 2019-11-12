@@ -43,15 +43,12 @@ type KmerLrEstimator struct {
 /* -------------------------------------------------------------------------- */
 
 func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, data []ConstVector, features FeatureIndices, labels []bool, t Transform) *KmerLrEstimator {
-  if len(features) == 0 {
-    features = newFeatureIndices(kmers.Len(), false)
-  }
-  if estimator, err := vectorEstimator.NewLogisticRegression(kmers.Len()+1, true); err != nil {
+  if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
     r := KmerLrEstimator{}
-    r.Cooccurrence       = len(kmers) != len(features)
+    r.Cooccurrence       = config.Cooccurrence
     r.Kmers              = kmers
     r.Features           = features
     r.Transform          = t
@@ -59,10 +56,6 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv in
     r.LogisticRegression = *estimator
     r.LogisticRegression.Balance        = config.Balance
     r.LogisticRegression.Seed           = config.Seed
-    r.LogisticRegression.L1Reg          = config.Lambda
-    r.LogisticRegression.L1RegMax       = config.LambdaMax
-    r.LogisticRegression.AutoReg        = config.LambdaAuto
-    r.LogisticRegression.Eta            = config.LambdaEta
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
     r.LogisticRegression.Hook           = NewHook(config, trace, &r.iterations, icv, data, labels, &r)
@@ -97,10 +90,23 @@ func (obj *KmerLrEstimator) set_max_iterations(config Config) {
   }
 }
 
+func (obj *KmerLrEstimator) n_params(config Config) int {
+  if config.LambdaAuto != 0 {
+    return config.LambdaAuto
+  } else {
+    if m := obj.Kmers.Len(); config.Cooccurrence {
+      return CoeffIndex(m).Dim()
+    } else {
+      return m
+    }
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, labels []bool) *KmerLr {
+func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, labels []bool, lambda float64) *KmerLr {
   obj.set_max_iterations(config)
+  obj.LogisticRegression.L1Reg = lambda
   if err := obj.LogisticRegression.SetSparseData(data_train, labels, len(data_train)); err != nil {
     log.Fatal(err)
   }
@@ -117,128 +123,39 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, la
     r.KmerLrFeatures.Binarize        = config.Binarize
     r.KmerLrFeatures.Cooccurrence    = obj   .Cooccurrence
     r.KmerLrFeatures.Features        = obj   .Features
-    r.KmerLrFeatures.KmerEquivalence = config.KmerEquivalence
     r.KmerLrFeatures.Kmers           = obj   .Kmers
+    r.KmerLrFeatures.KmerEquivalence = config.KmerEquivalence
     return r
   }
 }
 
-func (obj *KmerLrEstimator) estimate_prune_hook(config Config, hook_old func(x ConstVector, change, lambda ConstScalar, epoch int) bool, do_prune *bool) HookType {
-  hook := func(x ConstVector, change, lambda ConstScalar, epoch int) bool {
-    if r := hook_old(x, change, lambda, epoch); r {
-      return true
-    }
-    n := 0
-    m := x.Dim()
-    for it := x.ConstIterator(); it.Ok(); it.Next() {
-      if it.Index() != 0 && it.GetValue() != 0.0 {
-        n += 1
-      }
-    }
-    upper := int((1.0 + 0.01)*float64(obj.AutoReg))
-    lower := int((1.0 - 0.01)*float64(obj.AutoReg))
-    if m > upper && n >= lower && n <= upper {
-      (*do_prune) = true
-      return true
-    }
-    return false
-  }
-  return hook
-}
-
-func (obj *KmerLrEstimator) estimate_prune(config Config, data_train, data_test []ConstVector, labels []bool) *KmerLr {
-  if config.Prune > 0 {
-    var do_prune bool
-    a := obj.AutoReg
-    e := obj.Epsilon
-    l := obj.EpsilonLoss
-    h := obj.Hook
-    obj.Epsilon     = 0.0
-    obj.EpsilonLoss = 0.0
-    obj.Hook        = obj.estimate_prune_hook(config, h, &do_prune)
-    // perform pruning steps only when dim(theta) > upper
-    for upper := int((1.0 + 0.01)*float64(obj.AutoReg)); obj.Theta.Dim() > upper; {
-      if r := float64(obj.Theta.Dim())*float64(config.Prune)/100.0; r > float64(a) {
-        obj.AutoReg = int(r)
-      } else {
-        obj.AutoReg = a
-      }
-      do_prune = false
-      r := obj.estimate(config, data_train, labels)
-      // check if algorithm converged or if maximum iterations are reached
-      if !do_prune {
-        break
-      }
-      PrintStderr(config, 1, "Pruning parameter space...\n")
-      r = r.Prune(data_train, data_test)
-      // copy parameters
-      obj.Kmers                    = r.KmerLrFeatures.Kmers
-      obj.Features                 = r.KmerLrFeatures.Features
-      obj.LogisticRegression.Theta = r.Theta.(DenseBareRealVector)
-    }
-    obj.AutoReg     = a
-    obj.Epsilon     = e
-    obj.EpsilonLoss = l
-    obj.Hook        = h
-  }
-  // re-estimate parameters
-  return obj.estimate(config, data_train, labels)
-}
-
-func (obj *KmerLrEstimator) estimate_cooccurrence_hook(config Config, hook_old func(x ConstVector, change, lambda ConstScalar, epoch int) bool, do_cooccurrence *bool) HookType {
-  hook := func(x ConstVector, change, lambda ConstScalar, epoch int) bool {
-    if r := hook_old(x, change, lambda, epoch); r {
-      return true
-    }
-    n := 0
-    for it := x.ConstIterator(); it.Ok(); it.Next() {
-      if it.Index() != 0 && it.GetValue() != 0.0 {
-        n += 1
-      }
-    }
-    if n <= config.Cooccurrence && n >= int((1.0 - 0.01)*float64(config.Cooccurrence)) {
-      (*do_cooccurrence) = true
-      return true
-    }
-    return false
-  }
-  return hook
-}
-
-func (obj *KmerLrEstimator) estimate_cooccurrence(config Config, data_train, data_test []ConstVector, labels []bool) *KmerLr {
-  if config.Cooccurrence > 0 && obj.Cooccurrence == false {
-    var do_cooccurrence bool
-    a := obj.AutoReg
-    h := obj.Hook
-    // this hook exits the algorithm as soon as
-    // the number of parameters is sufficiently reduced
-    obj.Hook    = obj.estimate_cooccurrence_hook(config, h, &do_cooccurrence)
-    // config.Cooccurrence defines the maximal number of
-    // coefficients when to expand the parameter space
-    obj.AutoReg = config.Cooccurrence
-    r := obj.estimate_prune(config, data_train, data_test, labels)
-    obj.Hook    = h
-    obj.AutoReg = a
-    if !do_cooccurrence {
-      // somehow the goal of reducing the parameter space was not
-      // achieved => exit
-      return r
-    }
-    PrintStderr(config, 1, "Starting co-occurrence modeling...\n")
-    r  = r.Prune(data_train, data_test)
-    r.ExtendCooccurrence()
-    obj.Cooccurrence                     = true
-    obj.Features                         = r.KmerLrFeatures.Features
-    obj.Kmers                            = r.KmerLrFeatures.Kmers
-    obj.LogisticRegression.Theta         = r.Theta.(DenseBareRealVector)
-    obj.LogisticRegression.MaxIterations = config.MaxEpochs
-    extend_counts_cooccurrence(config, data_train)
-    extend_counts_cooccurrence(config, data_test)
-  }
-  return obj.estimate_prune(config, data_train, data_test, labels)
-}
-
 func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) *KmerLr {
-  // always prune data in case it is required for testing the classifier
-  return obj.estimate_cooccurrence(config, data_train, data_test, labels).Prune(data_train, data_test)
+  n := obj.n_params(config)
+  w := [2]float64{}
+  if config.Balance {
+    w = compute_class_weights(labels)
+  } else {
+    w[0] = 1.0
+    w[1] = 1.0
+  }
+  s := newFeatureSelector(obj.Kmers, obj.Cooccurrence, data_train, data_test, labels, w, n)
+  r := (*KmerLr)(nil)
+  for {
+    theta, features, x_train, x_test, kmers, lambda, ok := s.Select(obj.Theta.GetValues(), obj.Features, obj.Kmers, obj.L1Reg)
+    obj.Features = features
+    obj.Kmers    = kmers
+    obj.Theta    = NewDenseBareRealVector(theta)
+    if !ok && r != nil {
+      break
+    }
+    for i, _ := range x_train {
+      data_train[i] = x_train[i]
+    }
+    for i, _ := range x_test {
+      data_test[i] = x_test[i]
+    }
+    r = obj.estimate(config, x_train, labels, lambda)
+    obj.Theta.Set(r.Theta)
+  }
+  return r
 }

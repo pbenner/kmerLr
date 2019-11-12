@@ -130,13 +130,10 @@ func main_learn(config Config, args []string) {
   options := getopt.New()
 
   optAlphabet        := options. StringLong("alphabet",         0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
-  optLambda          := options. StringLong("lambda",           0 ,        "0.0", "regularization strength (L1)")
   optLambdaAuto      := options.    IntLong("lambda-auto",      0 ,            0, "select lambda automatically so that [value] coefficients are non-zero")
-  optLambdaEta       := options. StringLong("lambda-eta",       0 ,    "1.1:0.9", "auto lambda eta parameter [default: 1.1:0.9]")
-  optLambdaMax       := options. StringLong("lambda-max",       0 ,        "0.0", "maximum lambda value")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
-  optCooccurrence    := options.    IntLong("co-occurrence",    0 ,           -1, "begin k-mer co-occurrences modeling when approximately [value] coefficients are non-zero")
+  optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model k-mer co-occurrences")
   optComplement      := options.   BoolLong("complement",       0 ,               "consider complement sequences")
   optReverse         := options.   BoolLong("reverse",          0 ,               "consider reverse sequences")
   optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
@@ -155,7 +152,6 @@ func main_learn(config Config, args []string) {
   optRpropEta        := options. StringLong("rprop-eta",        0 ,    "1.2:0.8", "rprop eta parameter [default: 1.2:0.8]")
   optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
   optOmpIterations   := options.    IntLong("omp-iterations",   0 ,            1, "number of OMP iterations")
-  optPrune           := options.    IntLong("prune",            0 ,            0, "prune parameter space if less than [value]% coefficients are non-zero")
   optThreadsCV       := options.    IntLong("threads-cv",       0 ,            1, "number of threads for cross-validation")
   optThreadsSaga     := options.    IntLong("threads-saga",     0 ,            1, "number of threads for SAGA algorithm")
   optHelp            := options.   BoolLong("help",            'h',               "print help")
@@ -223,16 +219,6 @@ func main_learn(config Config, args []string) {
   } else {
     config.EpsilonVar = s
   }
-  if v, err := strconv.ParseFloat(*optLambda, 64); err != nil {
-    log.Fatal(err)
-  } else {
-    config.Lambda = v
-  }
-  if v, err := strconv.ParseFloat(*optLambdaMax, 64); err != nil {
-    log.Fatal(err)
-  } else {
-    config.LambdaMax = v
-  }
   if v, err := strconv.ParseFloat(*optScaleStepSize, 64); err != nil {
     log.Fatal(err)
   } else {
@@ -287,18 +273,6 @@ func main_learn(config Config, args []string) {
     }
     config.RpropEta = []float64{v1, v2}
   }
-  if eta := strings.Split(*optLambdaEta, ":"); len(eta) != 2 {
-    options.PrintUsage(os.Stdout)
-    os.Exit(1)
-  } else {
-    v1, err := strconv.ParseFloat(eta[0], 64); if err != nil {
-      log.Fatal(err)
-    }
-    v2, err := strconv.ParseFloat(eta[1], 64); if err != nil {
-      log.Fatal(err)
-    }
-    config.LambdaEta = [2]float64{v1, v2}
-  }
   if *optThreadsCV > 1 {
     config.PoolCV = threadpool.New(*optThreadsCV, 100)
   }
@@ -320,19 +294,8 @@ func main_learn(config Config, args []string) {
   config.Omp             = *optOmp
   config.OmpIterations   = *optOmpIterations
   config.Rprop           = *optRprop
-  config.Prune           = *optPrune
   if config.EpsilonLoss != 0.0 {
     config.EvalLoss = true
   }
-  if config.Prune != 0 && config.Lambda != 0.0 && config.LambdaAuto == 0.0 {
-    log.Fatal("pruning requires automatic lambda mode")
-  }
-  if config.Rprop && config.Cooccurrence > 0 {
-    log.Fatal("Rprop does not support delayed modeling of co-occurrences")
-  }
-  if config.Omp > 0 && config.Cooccurrence > 0 {
-    log.Fatal("Omp does not support delayed modeling of co-occurrences")
-  }
-
   learn(config, filename_in, filename_fg, filename_bg, basename_out)
 }

@@ -19,6 +19,7 @@ package main
 /* -------------------------------------------------------------------------- */
 
 //import   "fmt"
+import   "math"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
@@ -27,56 +28,94 @@ import . "github.com/pbenner/gonetics"
 
 type featureSelector struct {
   ClassWeights [2]float64
-  // static list of available kmers
-  Kmers    KmerClassList
-  // static data set
-  Data   []ConstVector
-  Labels []bool
+  DataTrain     []ConstVector
+  DataTest      []ConstVector
+  Labels        []bool
+  Kmers           KmerClassList
+  KmersMap        map[KmerClassId]int
+  Cooccurrence    bool
+  N               int
 }
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) Select(theta []float64, features FeatureIndices, n int, cooccurrence bool) (FeatureIndices, []ConstVector, KmerClassList, float64) {
-  l := 0.0
+func newFeatureSelector(kmers KmerClassList, cooccurrence bool, data_train, data_test []ConstVector, labels []bool, class_weights [2]float64, n int) featureSelector {
+  x_train := make([]ConstVector, len(data_train))
+  x_test  := make([]ConstVector, len(data_test))
+  for i, _ := range data_train {
+    x_train[i] = data_train[i]
+  }
+  for i, _ := range data_test {
+    x_test[i] = data_test[i]
+  }
+  m := make(map[KmerClassId]int)
+  for i := 0; i < len(kmers); i++ {
+    m[kmers[i].KmerClassId] = i
+  }
+  r := featureSelector{
+    Kmers       : kmers,
+    KmersMap    : m,
+    DataTrain   : x_train,
+    DataTest    : x_test,
+    Labels      : labels,
+    ClassWeights: class_weights,
+    Cooccurrence: cooccurrence,
+    N           : n }
+  return r
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj featureSelector) Select(theta []float64, features FeatureIndices, kmers KmerClassList, lambda float64) ([]float64, FeatureIndices, []ConstVector, []ConstVector, KmerClassList, float64, bool) {
   // copy all features i with theta_{i+1} != 0
-  t, c, b := obj.restoreNonzero(theta, features, cooccurrence)
-  // check if new features must be added
-  if c < n {
-    // compute gradient for selecting new features
-    g := obj.gradient(t, n, cooccurrence)
-    i := make([]int, len(g))
-    for k, _ := range i {
-      i[k] = k
+  t, c, b := obj.restoreNonzero(theta, features, kmers)
+  // compute gradient for selecting new features
+  g := obj.gradient(t)
+  i := make([]int, len(g))
+  for k, _ := range i {
+    i[k] = k
+  }
+  // sort gradient entries with respect to absolute values
+  AbsFloatInt{g[1:], i[1:]}.SortReverse()
+  // add new features
+  for k := 1; k < len(i); k++ {
+    if c >= obj.N {
+      break
     }
-    // sort gradient entries with respect to absolute values
-    AbsFloatInt{g[1:], i[1:]}.SortReverse()
-    // add new features
-    for k := 1; k < len(i); k++ {
-      if c >= n {
-        break
-      }
-      if j := i[k]; theta[j] == 0.0 {
-        // feature was previously zero
-        b[k] = true
-        c   += 1
-      }
-      // new lambda value
-      l = g[k]
+    if !b[i[k]] {
+      // feature was previously zero
+      b[i[k]] = true
+      c      += 1
     }
   }
-  x    := obj.selectData (b, cooccurrence)
-  k, f := obj.selectKmers(b)
-  return f, x, k, l
+  t        = obj.selectTheta(b, t)
+  x_train := obj.selectData (b, obj.DataTrain, c)
+  x_test  := obj.selectData (b, obj.DataTest , c)
+  k, f    := obj.selectKmers(b)
+  l       := obj.computeLambda(b, g, i)
+  return t, f, x_train, x_test, k, l, !features.Equals(f) || math.Abs(lambda - l) > 1e-6
 }
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndices, cooccurrence bool) ([]float64, int, []bool) {
+func (obj featureSelector) computeLambda(b []bool, g []float64, i []int) float64 {
+  // set lambda to first gradient element not included in the feature set
+  for k := 1; k < len(i); k++ {
+    if !b[i[k]] {
+      return math.Abs(g[i[k]])/float64(len(obj.DataTrain))
+    }
+  }
+  return 0.0
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndices, kmers KmerClassList) ([]float64, int, []bool) {
   t := []float64(nil)
   b := []bool   (nil)
   c := 0
-  m := obj.Data[0].Dim()-1
-  if cooccurrence {
+  m := obj.DataTrain[0].Dim()-1
+  if obj.Cooccurrence {
     t = make([]float64, CoeffIndex(m).Dim())
     b = make([]bool   , CoeffIndex(m).Dim())
   } else {
@@ -84,8 +123,9 @@ func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndic
     b = make([]bool   , m+1)
   }
   b[0] = true
+  t[0] = theta[0]
   for i, feature := range features {
-    j := CoeffIndex(m).Ind2Sub(feature[0], feature[1])
+    j := CoeffIndex(m).Ind2Sub(obj.KmersMap[kmers[feature[0]].KmerClassId], obj.KmersMap[kmers[feature[1]].KmerClassId])
     if theta[i+1] != 0.0 {
       t[j] = theta[i+1]
       b[j] = true
@@ -95,10 +135,20 @@ func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndic
   return t, c, b
 }
 
-func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector {
-  m := obj.Data[0].Dim()-1
+func (obj featureSelector) selectTheta(b []bool, theta []float64) []float64 {
+  r := []float64{}
+  for i := 0; i < len(b); i++ {
+    if b[i] {
+      r = append(r, theta[i])
+    }
+  }
+  return r
+}
+
+func (obj featureSelector) selectData(b []bool, data []ConstVector, n int) []ConstVector {
+  m := obj.DataTrain[0].Dim()-1
   k := make([]int, len(b))
-  x := make([]ConstVector, len(obj.Data))
+  x := make([]ConstVector, len(data))
   // remap data indices
   for i, j := 0, 0; j < len(b); j++ {
     if b[j] {
@@ -111,14 +161,14 @@ func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector
   for i_ := 0; i_ < len(x); i_++ {
     i := []int    {}
     v := []float64{}
-    for it := obj.Data[i_].ConstIterator(); it.Ok(); it.Next() {
+    for it := data[i_].ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); b[j] {
         i = append(i, k[j])
         v = append(v, it.GetValue())
       }
     }
-    if cooccurrence {
-      it1 := obj.Data[i_].ConstIterator()
+    if obj.Cooccurrence {
+      it1 := data[i_].ConstIterator()
       // skip first element
       it1.Next()
       for ; it1.Ok(); it1.Next() {
@@ -138,14 +188,14 @@ func (obj featureSelector) selectData(b []bool, cooccurrence bool) []ConstVector
     // resize slice and restrict capacity
     i = append([]int    {}, i[0:len(i)]...)
     v = append([]float64{}, v[0:len(v)]...)
-    x[i_] = UnsafeSparseConstRealVector(i, v, m+1)
+    x[i_] = UnsafeSparseConstRealVector(i, v, n+1)
   }
   return x
 }
 
 func (obj featureSelector) selectKmers(b []bool) (KmerClassList, FeatureIndices) {
   f := FeatureIndices{}
-  m := obj.Data[0].Dim()-1
+  m := obj.DataTrain[0].Dim()-1
   r := KmerClassList{}
   z := make([]bool, len(obj.Kmers))
   i := make([]int , len(obj.Kmers))
@@ -171,10 +221,10 @@ func (obj featureSelector) selectKmers(b []bool) (KmerClassList, FeatureIndices)
   return r, f
 }
 
-func (obj featureSelector) gradient(theta []float64, n int, cooccurrence bool) []float64 {
+func (obj featureSelector) gradient(theta []float64) []float64 {
   lr := logisticRegression{}
   lr.Theta        = theta
   lr.ClassWeights = obj.ClassWeights
-  lr.Cooccurrence = cooccurrence
-  return lr.Gradient(nil, obj.Data, obj.Labels, nil)
+  lr.Cooccurrence = obj.Cooccurrence
+  return lr.Gradient(nil, obj.DataTrain, obj.Labels, nil)
 }

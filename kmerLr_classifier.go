@@ -25,8 +25,6 @@ import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 
-import . "github.com/pbenner/gonetics"
-
 /* -------------------------------------------------------------------------- */
 
 type KmerLr struct {
@@ -84,122 +82,6 @@ func (obj *KmerLr) Nonzero() int {
     }
   }
   return n
-}
-
-/* -------------------------------------------------------------------------- */
-
-func (obj *KmerLr) Prune(data_collection ...[]ConstVector) *KmerLr {
-  features := FeatureIndices{}
-  theta    := []float64{obj.Theta.ValueAt(0)}
-  kmers    := KmerClassList{}
-  tr       := Transform{}
-  m        := make([]int, len(obj.Kmers))
-  if !obj.Cooccurrence {
-    // no co-occurrences
-    for i := 0; i < len(obj.Kmers); i++ {
-      if obj.Theta.ValueAt(i+1) != 0.0 {
-        m[i]     = len(kmers)
-        theta    = append(theta, obj.Theta.ValueAt(i+1))
-        kmers    = append(kmers, obj.Kmers[i])
-        features = append(features, [2]int{m[obj.Features[i][0]], m[obj.Features[i][1]]})
-      }
-    }
-    if len(obj.Transform.Mu) > 0 {
-      tr.Mu    = append(tr.Mu   , obj.Transform.Mu   [0])
-      tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[0])
-      for i := 0; i < len(obj.Kmers); i++ {
-        if obj.Theta.ValueAt(i+1) != 0.0 {
-          tr.Mu    = append(tr.Mu   , obj.Transform.Mu   [i+1])
-          tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[i+1])
-        }
-      }
-    }
-    for _, data := range data_collection {
-      for j, x := range data {
-        i := []int    {  0}
-        v := []float64{1.0}
-        for it := x.ConstIterator(); it.Ok(); it.Next() {
-          if j := it.Index(); j != 0 && obj.Theta.ValueAt(j) != 0.0 {
-            i = append(i, m[j-1]+1)
-            v = append(v, it.GetValue())
-          }
-        }
-        // resize slice and restrict capacity
-        i = append([]int    {}, i[0:len(i)]...)
-        v = append([]float64{}, v[0:len(v)]...)
-        data[j] = UnsafeSparseConstRealVector(i, v, len(kmers)+1)
-      }
-    }
-  } else {
-    // with co-occurrences
-    nz := make([]bool, len(obj.Kmers))
-    md := make([]int , obj.Theta.Dim())
-    md[0] = 0
-    // identify kmers with non-zero coefficients
-    for i, feature := range obj.Features {
-      i1 := feature[0]
-      i2 := feature[1]
-      if obj.Theta.ValueAt(i+1) != 0.0 {
-        nz[i1] = true
-        nz[i2] = true
-      }
-    }
-    // create new kmer list
-    for i := 0; i < len(obj.Kmers); i++ {
-      if nz[i] {
-        m[i]  = len(kmers)
-        kmers = append(kmers, obj.Kmers[i])
-      }
-    }
-    // prune parameter vector and feature list
-    for i := 1; i < obj.Theta.Dim(); i++ {
-      if obj.Theta.ValueAt(i) != 0.0 {
-        md[i]    = len(theta)
-        theta    = append(theta   , obj.Theta.ValueAt(i))
-        features = append(features, [2]int{m[obj.Features[i-1][0]], m[obj.Features[i-1][1]]})
-      }
-    }
-    // prune transforms
-    if len(obj.Transform.Mu) > 0 {
-      tr.Mu = append(tr.Mu, obj.Transform.Mu[0])
-      for i := 1; i < obj.Theta.Dim(); i++ {
-        if obj.Theta.ValueAt(i) != 0.0 {
-          tr.Mu = append(tr.Mu, obj.Transform.Mu[i])
-        }
-      }
-    }
-    if len(obj.Transform.Sigma) > 0 {
-      tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[0])
-      for i := 1; i < obj.Theta.Dim(); i++ {
-        if obj.Theta.ValueAt(i) != 0.0 {
-          tr.Sigma = append(tr.Sigma, obj.Transform.Sigma[i])
-        }
-      }
-    }
-    // prune data
-    for _, data := range data_collection {
-      for j, x := range data {
-        i := []int    {}
-        v := []float64{}
-        for it := x.ConstIterator(); it.Ok(); it.Next() {
-          if it.Index() == 0 || obj.Theta.ValueAt(it.Index()) != 0.0 {
-            i = append(i, md[it.Index()])
-            v = append(v, it.GetValue())
-          }
-        }
-        // resize slice and restrict capacity
-        i = append([]int    {}, i[0:len(i)]...)
-        v = append([]float64{}, v[0:len(v)]...)
-        data[j] = UnsafeSparseConstRealVector(i, v, len(theta))
-      }
-    }
-  }
-  kmerLrFeatures := obj.KmerLrFeatures.Clone()
-  kmerLrFeatures.Features = features
-  kmerLrFeatures.Kmers    = kmers
-  r := NewKmerLr(NewDenseBareRealVector(theta), kmerLrFeatures)
-  r.Transform = tr
-  return r
 }
 
 /* -------------------------------------------------------------------------- */
@@ -308,6 +190,7 @@ func ImportKmerLr(config *Config, filename string) *KmerLr {
     log.Fatal(err)
   }
   PrintStderr(*config, 1, "done\n")
+  config.Cooccurrence    = classifier.Cooccurrence || config.Cooccurrence
   config.KmerEquivalence = classifier.KmerLrFeatures.KmerEquivalence
   config.Binarize        = classifier.Binarize
   return classifier

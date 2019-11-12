@@ -41,7 +41,6 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
     lr.ClassWeights = estimator.ClassWeights
     return lr.Loss(data, c, nil)
   }
-  positive := []bool{}
   k := 0
   t := time.Now()
   s := time.Now()
@@ -58,16 +57,6 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
     for it := x.ConstIterator(); it.Ok(); it.Next() {
       if it.GetValue() != 0.0 {
         n += 1
-      }
-    }
-    if config.Prune > 0 {
-      if len(positive) != x.Dim() {
-        positive = make([]bool, x.Dim())
-      }
-      for it := x.ConstIterator(); it.Ok(); it.Next() {
-        if it.GetValue() != 0.0 {
-          positive[it.Index()] = true
-        }
       }
     }
     if trace != nil {
@@ -127,7 +116,6 @@ func NewOmpHook(config Config, trace *Trace, iterations *int, icv int, data []Co
     lr.ClassWeights = estimator.ClassWeights
     return lr.Loss(data, c, nil)
   }
-  positive := []bool{}
   k := 0
   t := time.Now()
   s := time.Now()
@@ -144,16 +132,6 @@ func NewOmpHook(config Config, trace *Trace, iterations *int, icv int, data []Co
     for it := x.ConstIterator(); it.Ok(); it.Next() {
       if it.GetValue() != 0.0 {
         n += 1
-      }
-    }
-    if config.Prune > 0 {
-      if len(positive) != x.Dim() {
-        positive = make([]bool, x.Dim())
-      }
-      for it := x.ConstIterator(); it.Ok(); it.Next() {
-        if it.GetValue() != 0.0 {
-          positive[it.Index()] = true
-        }
       }
     }
     if trace != nil {
