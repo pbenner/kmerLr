@@ -138,7 +138,7 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
           i1 := it1.Index()-1
           i2 := it2.Index()-1
           j  := CoeffIndex(m).Ind2Sub(i1, i2)
-          g[j] += w*it1.GetValue()*it2.GetValue()
+          g[j] += w*it1.GetValue()*it2.GetValue()/float64(n)
         }
       }
     }

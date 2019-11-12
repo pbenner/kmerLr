@@ -104,9 +104,8 @@ func (obj *KmerLrEstimator) n_params(config Config) int {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, labels []bool, lambda float64) *KmerLr {
+func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, labels []bool) *KmerLr {
   obj.set_max_iterations(config)
-  obj.LogisticRegression.L1Reg = lambda
   if err := obj.LogisticRegression.SetSparseData(data_train, labels, len(data_train)); err != nil {
     log.Fatal(err)
   }
@@ -138,23 +137,32 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
     w[0] = 1.0
     w[1] = 1.0
   }
-  s := newFeatureSelector(obj.Kmers, obj.Cooccurrence, data_train, data_test, labels, w, n)
+  // create a copy of data arrays, from which to select subsets
+  copy_data_train := make([]ConstVector, len(data_train))
+  copy_data_test  := make([]ConstVector, len(data_test))
+  for i, x := range data_train {
+    copy_data_train[i] = x
+  }
+  for i, x := range data_test {
+    copy_data_test [i] = x
+  }
+  s := newFeatureSelector(obj.Kmers, obj.Cooccurrence, labels, w, n)
   r := (*KmerLr)(nil)
   for {
-    theta, features, x_train, x_test, kmers, lambda, ok := s.Select(obj.Theta.GetValues(), obj.Features, obj.Kmers, obj.L1Reg)
-    obj.Features = features
-    obj.Kmers    = kmers
-    obj.Theta    = NewDenseBareRealVector(theta)
+    // select features on the initial data set
+    selection, lambda, ok := s.Select(copy_data_train, obj.Theta.GetValues(), obj.Features, obj.Kmers, obj.L1Reg)
     if !ok && r != nil {
       break
     }
-    for i, _ := range x_train {
-      data_train[i] = x_train[i]
-    }
-    for i, _ := range x_test {
-      data_test[i] = x_test[i]
-    }
-    r = obj.estimate(config, x_train, labels, lambda)
+    obj.L1Reg    = lambda
+    obj.Features = selection.Features()
+    obj.Kmers    = selection.Kmers()
+    obj.Theta    = selection.Theta()
+    // create actual training and validation data sets
+    selection.Data(data_train, copy_data_train)
+    selection.Data(data_test , copy_data_test)
+
+    r = obj.estimate(config, data_train, labels)
     obj.Theta.Set(r.Theta)
   }
   return r
