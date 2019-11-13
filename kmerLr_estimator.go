@@ -34,14 +34,13 @@ type KmerLrEstimator struct {
   vectorEstimator.LogisticRegression
   Cooccurrence bool
   Kmers        KmerClassList
-  Transform    Transform
   Features     FeatureIndices
   EpsilonLoss  float64
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, data []ConstVector, features FeatureIndices, labels []bool, t Transform) *KmerLrEstimator {
+func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, data []ConstVector, features FeatureIndices, labels []bool) *KmerLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
     log.Fatal(err)
     return nil
@@ -50,7 +49,6 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv in
     r.Cooccurrence       = config.Cooccurrence
     r.Kmers              = kmers
     r.Features           = features
-    r.Transform          = t
     r.EpsilonLoss        = config.EpsilonLoss
     r.LogisticRegression = *estimator
     r.LogisticRegression.Balance        = config.Balance
@@ -104,7 +102,6 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, la
   } else {
     r := &KmerLr{}
     r.LogisticRegression             = *r_.(*vectorDistribution.LogisticRegression)
-    r.Transform                      = obj   .Transform
     r.KmerLrFeatures.Binarize        = config.Binarize
     r.KmerLrFeatures.Cooccurrence    = obj   .Cooccurrence
     r.KmerLrFeatures.Features        = obj   .Features
@@ -122,6 +119,11 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   } else {
     w[0] = 1.0
     w[1] = 1.0
+  }
+  transform := Transform{}
+  // estimate data transform if required
+  if !config.NoNormalization {
+    transform.TransformFit(config, data_train)
   }
   // create a copy of data arrays, from which to select subsets
   copy_data_train := make([]ConstVector, len(data_train))
@@ -152,6 +154,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
 
     PrintStderr(config, 1, "New epoch with lambda=%f...\n", lambda)
     r = obj.estimate(config, data_train, labels)
+    r.Transform = selection.Transform(transform)
     obj.Theta.Set(r.Theta)
   }
   return r

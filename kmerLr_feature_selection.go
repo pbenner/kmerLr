@@ -236,3 +236,7 @@ func (obj featureSelection) Kmers() KmerClassList {
 func (obj featureSelection) Features() FeatureIndices {
   return obj.features
 }
+
+func (obj featureSelection) Transform(t Transform) Transform {
+  return t.TransformSelect(obj.b)
+}
