@@ -24,8 +24,6 @@ import   "io"
 import   "log"
 import   "os"
 
-import . "github.com/pbenner/autodiff"
-import . "github.com/pbenner/autodiff/statistics"
 import . "github.com/pbenner/gonetics"
 
 import   "github.com/pborman/getopt"
@@ -56,20 +54,6 @@ func savePredictions(filename string, predictions []float64) {
 
 /* -------------------------------------------------------------------------- */
 
-func predict_data(config Config, data []ConstVector, classifier VectorPdf) []float64 {
-  r := make([]float64, len(data))
-  t := BareReal(0.0)
-  for i, _ := range data {
-    if err := classifier.LogPdf(&t, data[i]); err != nil {
-      log.Fatal(err)
-    }
-    r[i] = t.GetValue()
-  }
-  return r
-}
-
-/* -------------------------------------------------------------------------- */
-
 func predict(config Config, filename_json, filename_in, filename_out string) {
   classifier := ImportKmerLr(&config, filename_json)
 
@@ -77,9 +61,8 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
     log.Fatal(err)
   }
   data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_in)
-  data     = classifier.TransformApply(config, data)
 
-  predictions := predict_data(config, data, classifier)
+  predictions := classifier.Predict(config, data)
 
   savePredictions(filename_out, predictions)
 }

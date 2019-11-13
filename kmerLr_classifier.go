@@ -55,11 +55,25 @@ func (obj *KmerLr) Clone() *KmerLr {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLr) Loss(data []ConstVector, c []bool, lambda float64, balance bool) float64 {
+func (obj *KmerLr) Predict(config Config, data []ConstVector) []float64 {
+  data = obj.TransformApply(config, data)
+  r := make([]float64, len(data))
+  t := BareReal(0.0)
+  for i, _ := range data {
+    if err := obj.LogPdf(&t, data[i]); err != nil {
+      log.Fatal(err)
+    }
+    r[i] = t.GetValue()
+  }
+  return r
+}
+
+func (obj *KmerLr) Loss(config Config, data []ConstVector, c []bool) float64 {
+  data = obj.TransformApply(config, data)
   lr := logisticRegression{}
   lr.Theta  = obj.Theta.GetValues()
-  lr.Lambda = lambda
-  if balance {
+  lr.Lambda = config.Lambda
+  if config.Balance {
     lr.ClassWeights = compute_class_weights(c)
   } else {
     lr.ClassWeights[0] = 1.0
@@ -99,22 +113,6 @@ func (obj *KmerLr) GetCoefficients() *KmerLrCoefficientsSet {
     }
   }
   return r
-}
-
-/* -------------------------------------------------------------------------- */
-
-func (obj *KmerLr) ExtendCooccurrence() {
-  if obj.Cooccurrence == false {
-    n := len(obj.Kmers)
-    features := newFeatureIndices(n, true)
-    theta    := make([]float64, len(features)+1)
-    for i := 0; i < n+1; i++ {
-      theta[i] = obj.Theta.ValueAt(i)
-    }
-    obj.Cooccurrence = true
-    obj.Features     = features
-    obj.Theta        = NewDenseBareRealVector(theta)
-  }
 }
 
 /* -------------------------------------------------------------------------- */

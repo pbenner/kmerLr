@@ -24,7 +24,6 @@ import   "math/rand"
 import   "os"
 
 import . "github.com/pbenner/autodiff"
-import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
@@ -95,8 +94,8 @@ func saveCrossvalidation(filename string, predictions []float64, labels []bool) 
 /* -------------------------------------------------------------------------- */
 
 func crossvalidation(config Config, data []ConstVector, labels []bool,
-  learnClassifier func(i int, data_train, data_all []ConstVector, c []bool) VectorPdf,
-   testClassifier func(i int, data []ConstVector, classifier VectorPdf) []float64) ([]float64, []bool) {
+  learnClassifier func(i int, data_train, data_all []ConstVector, c []bool) *KmerLr,
+   testClassifier func(i int, data []ConstVector, classifier *KmerLr) []float64) ([]float64, []bool) {
   groups := getCvGroups(len(data), config.KFoldCV, config.Seed)
 
   r_predictions := make([][]float64, config.KFoldCV)

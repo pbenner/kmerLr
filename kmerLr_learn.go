@@ -25,7 +25,6 @@ import   "strconv"
 import   "strings"
 
 import . "github.com/pbenner/autodiff"
-import . "github.com/pbenner/autodiff/statistics"
 import . "github.com/pbenner/gonetics"
 import   "github.com/pbenner/threadpool"
 
@@ -33,7 +32,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, basename_out string) VectorPdf {
+func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, basename_out string) *KmerLr {
   // hook and trace
   var trace *Trace
   if config.SaveTrace || config.EpsilonVar != 0.0 {
@@ -59,12 +58,12 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
 }
 
 func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, basename_out string) {
-  learnClassifier := func(i int, data_train, data_test []ConstVector, labels []bool) VectorPdf {
+  learnClassifier := func(i int, data_train, data_test []ConstVector, labels []bool) *KmerLr {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
     return learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, i, basename_out)
   }
-  testClassifier := func(i int, data []ConstVector, classifier VectorPdf) []float64 {
-    return predict_data(config, data, classifier)
+  testClassifier := func(i int, data []ConstVector, classifier *KmerLr) []float64 {
+    return classifier.Predict(config, data)
   }
   predictions, labels := crossvalidation(config, data, labels, learnClassifier, testClassifier)
 
