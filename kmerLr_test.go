@@ -98,33 +98,6 @@ func Test2(test *testing.T) {
 
 func Test3(test *testing.T) {
   config := Config{}
-  //config.Binarize = true
-  config.Verbose  = 0
-
-  kmersCounter, err := NewKmerCounter(4, 8, false, false, true, nil, GappedNucleotideAlphabet{}); if err != nil {
-    test.Error(err)
-  } else {
-    _, _, kmers := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test.fa", "kmerLr_test.fa")
-    kmers = kmers[0:10]
-    data1, _,  _ := compile_training_data(config, kmersCounter, kmers, nil, "kmerLr_test.fa", "kmerLr_test.fa")
-
-    extend_counts_cooccurrence(config, data1)
-    features := newFeatureIndices(len(kmers), true)
-    data2, _,  _ := compile_training_data(config, kmersCounter, kmers, features, "kmerLr_test.fa", "kmerLr_test.fa")
-
-    for i, _ := range features {
-      if data1[0].ValueAt(i+1) != data2[0].ValueAt(i+1) {
-        test.Error("test failed")
-      }
-      if data1[1].ValueAt(i+1) != data2[1].ValueAt(i+1) {
-        test.Error("test failed")
-      }
-    }
-  }
-}
-
-func Test4(test *testing.T) {
-  config := Config{}
   config.Verbose        = 0
   config.MaxIterations  = 100
   config.StepSizeFactor = 1.0
@@ -149,7 +122,7 @@ func Test4(test *testing.T) {
   }
 }
 
-func Test5(test *testing.T) {
+func Test4(test *testing.T) {
   config := Config{}
   config.Verbose        = 0
   config.StepSizeFactor = 1.0

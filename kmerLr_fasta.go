@@ -73,35 +73,6 @@ func compute_class_weights(c []bool) [2]float64 {
 
 /* -------------------------------------------------------------------------- */
 
-func extend_counts_cooccurrence_(config Config, x ConstVector) ConstVector {
-  i := x.(SparseConstRealVector).GetSparseIndices()
-  v := x.(SparseConstRealVector).GetSparseValues ()
-  n := x.Dim()-1
-  m := (n+1)*n/2 + 1
-  q := len(i)
-  for j1 := 1; j1 < q; j1++ {
-    for j2 := j1+1; j2 < q; j2++ {
-      i1 := i[j1]-1
-      i2 := i[j2]-1
-      j  := CoeffIndex(n).Ind2Sub(i1, i2)
-      if j >= m {
-        panic("internal error")
-      }
-      i   = append(i, j)
-      v   = append(v, v[j1]*v[j2])
-    }
-  }
-  return UnsafeSparseConstRealVector(i, v, m)
-}
-
-func extend_counts_cooccurrence(config Config, data []ConstVector) {
-  for i, _ := range data {
-    data[i] = extend_counts_cooccurrence_(config, data[i])
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-
 func convert_counts(config Config, counts KmerCounts, features FeatureIndices) ConstVector {
   n := 0
   i := []int    {0  }
