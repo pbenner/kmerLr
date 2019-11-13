@@ -31,7 +31,7 @@ type HookType func(x ConstVector, change, lambda ConstScalar, epoch int) bool
 
 /* -------------------------------------------------------------------------- */
 
-func NewHook(config Config, trace *Trace, iterations *int, icv int, data []ConstVector, c []bool, estimator *KmerLrEstimator) HookType {
+func NewHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool, estimator *KmerLrEstimator) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
   loss := func(x ConstVector, lambda ConstScalar) float64 {
@@ -46,9 +46,6 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
   s := time.Now()
   hook := func(x ConstVector, change, lambda ConstScalar, epoch_ int) bool {
     k++
-    if iterations != nil {
-      (*iterations)++
-    }
     loss_old, loss_new = loss_new, loss_old
     n := 0
     if config.EvalLoss {
@@ -106,7 +103,7 @@ func NewHook(config Config, trace *Trace, iterations *int, icv int, data []Const
   return hook
 }
 
-func NewOmpHook(config Config, trace *Trace, iterations *int, icv int, data []ConstVector, c []bool, estimator *KmerLrOmpEstimator) HookType {
+func NewOmpHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool, estimator *KmerLrOmpEstimator) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
   loss := func(x ConstVector, lambda ConstScalar) float64 {
@@ -121,9 +118,6 @@ func NewOmpHook(config Config, trace *Trace, iterations *int, icv int, data []Co
   s := time.Now()
   hook := func(x ConstVector, change, lambda ConstScalar, epoch_ int) bool {
     k++
-    if iterations != nil {
-      (*iterations)++
-    }
     loss_old, loss_new = loss_new, loss_old
     n := 0
     if config.EvalLoss {

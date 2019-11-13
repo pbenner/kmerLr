@@ -37,7 +37,6 @@ type KmerLrEstimator struct {
   Transform    Transform
   Features     FeatureIndices
   EpsilonLoss  float64
-  iterations   int
 }
 
 /* -------------------------------------------------------------------------- */
@@ -58,9 +57,9 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv in
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
-    r.LogisticRegression.Hook           = NewHook(config, trace, &r.iterations, icv, data, labels, &r)
-    if config.MaxEpochs != 0 {
-      r.LogisticRegression.MaxIterations = config.MaxEpochs
+    r.LogisticRegression.Hook           = NewHook(config, trace, icv, data, labels, &r)
+    if config.MaxIterations != 0 {
+      r.LogisticRegression.MaxIterations = config.MaxIterations
     }
     return &r
   }
@@ -135,7 +134,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   }
   s := newFeatureSelector(obj.Kmers, obj.Cooccurrence, labels, w, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
-  for {
+  for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++{
     // select features on the initial data set
     selection, lambda, ok := s.Select(copy_data_train, obj.Theta.GetValues(), obj.Features, obj.Kmers, obj.L1Reg)
     if !ok && r != nil {

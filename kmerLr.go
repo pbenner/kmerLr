@@ -47,6 +47,7 @@ type Config struct {
   SaveTrace       bool
   EvalLoss        bool
   MaxEpochs       int
+  MaxIterations   int
   NoNormalization bool
   Rprop           bool
   RpropEta      []float64

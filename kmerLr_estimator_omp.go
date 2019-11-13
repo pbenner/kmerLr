@@ -70,9 +70,9 @@ func NewKmerLrOmpEstimator(config Config, kmers KmerClassList, trace *Trace, icv
     r.LogisticRegression.L1Reg          = config.Lambda
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
-    r.LogisticRegression.Hook           = NewOmpHook(config, trace, nil, icv, data, labels, &r)
-    if config.MaxEpochs != 0 {
-      r.LogisticRegression.MaxIterations = config.MaxEpochs
+    r.LogisticRegression.Hook           = NewOmpHook(config, trace, icv, data, labels, &r)
+    if config.MaxIterations != 0 {
+      r.LogisticRegression.MaxIterations = config.MaxIterations
     }
     return &r
   }

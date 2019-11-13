@@ -59,7 +59,7 @@ func NewKmerLrRpropEstimator(config Config, kmers KmerClassList, trace *Trace, i
   r.ClassWeights   = [2]float64{1, 1}
   r.Lambda         = config.Lambda
   r.Epsilon        = config.Epsilon
-  r.MaxIterations  = config.MaxEpochs
+  r.MaxIterations  = config.MaxIterations
   r.StepSize       = config.RpropStepSize
   r.StepSizeFactor = config.StepSizeFactor
   r.Eta            = config.RpropEta

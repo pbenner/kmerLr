@@ -126,7 +126,7 @@ func Test3(test *testing.T) {
 func Test4(test *testing.T) {
   config := Config{}
   config.Verbose        = 0
-  config.MaxEpochs      = 100
+  config.MaxIterations  = 100
   config.StepSizeFactor = 1.0
 
   trace := &Trace{}
