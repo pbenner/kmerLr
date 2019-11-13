@@ -134,7 +134,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   }
   s := newFeatureSelector(obj.Kmers, obj.Cooccurrence, labels, w, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
-  for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++{
+  for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
     // select features on the initial data set
     selection, lambda, ok := s.Select(copy_data_train, obj.Theta.GetValues(), obj.Features, obj.Kmers, obj.L1Reg)
     if !ok && r != nil {
