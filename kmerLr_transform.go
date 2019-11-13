@@ -40,13 +40,33 @@ func (obj *Transform) Fit(config Config, data []ConstVector) {
   PrintStderr(config, 1, "Fitting data transform... ")
   n := len(data)
   m := data[0].Dim()
+  if config.Cooccurrence {
+    m = CoeffIndex(m-1).Dim() + 1
+  }
   mu    := make([]float64, m)
   sigma := make([]float64, m)
   // compute mu
   for i := 0; i < n; i++ {
-    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      if j := it.Index(); j > 0 {
-        mu[j] += it.GetValue()
+    it := data[i].ConstIterator()
+    // skip first element
+    it.Next()
+    for ; it.Ok(); it.Next() {
+      j := it.Index()
+      mu[j] += it.GetValue()
+    }
+    if config.Cooccurrence {
+      it1 := data[i].ConstIterator()
+      // skip first element
+      it1.Next()
+      for ; it1.Ok(); it1.Next() {
+        it2 := it1.CloneConstIterator()
+        it2.Next()
+        for ; it2.Ok(); it2.Next() {
+          i1 := it1.Index()-1
+          i2 := it2.Index()-1
+          j  := CoeffIndex(m).Ind2Sub(i1, i2)
+          mu[j] += it1.GetValue()*it2.GetValue()
+        }
       }
     }
   }
@@ -56,11 +76,30 @@ func (obj *Transform) Fit(config Config, data []ConstVector) {
   k := make([]int, m)
   // compute sigma
   for i := 0; i < n; i++ {
-    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      if j := it.Index(); j > 0 {
-        v := it.GetValue()
-        k    [j] += 1
-        sigma[j] += (v-mu[j])*(v-mu[j])
+    it := data[i].ConstIterator()
+    // skip first element
+    it.Next()
+    for ; it.Ok(); it.Next() {
+      j := it.Index()
+      v := it.GetValue()
+      k    [j] += 1
+      sigma[j] += (v-mu[j])*(v-mu[j])
+    }
+    if config.Cooccurrence {
+      it1 := data[i].ConstIterator()
+      // skip first element
+      it1.Next()
+      for ; it1.Ok(); it1.Next() {
+        it2 := it1.CloneConstIterator()
+        it2.Next()
+        for ; it2.Ok(); it2.Next() {
+          i1 := it1.Index()-1
+          i2 := it2.Index()-1
+          j  := CoeffIndex(m).Ind2Sub(i1, i2)
+          v  := it1.GetValue()*it2.GetValue()
+          k    [j] += 1
+          sigma[j] += (v-mu[j])*(v-mu[j])
+        }
       }
     }
   }
