@@ -78,18 +78,6 @@ func (obj *KmerLrEstimator) CloneVectorEstimator() VectorEstimator {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) set_max_iterations(config Config) {
-  if d := config.MaxEpochs - obj.iterations; config.MaxEpochs > 0 {
-    if d >= 0 {
-      obj.LogisticRegression.MaxIterations = d
-    } else {
-      obj.LogisticRegression.MaxIterations = 0
-    }
-  } else {
-    obj.LogisticRegression.MaxIterations = int(^uint(0) >> 1)
-  }
-}
-
 func (obj *KmerLrEstimator) n_params(config Config) int {
   if config.LambdaAuto != 0 {
     return config.LambdaAuto
@@ -105,7 +93,6 @@ func (obj *KmerLrEstimator) n_params(config Config) int {
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, labels []bool) *KmerLr {
-  obj.set_max_iterations(config)
   if err := obj.LogisticRegression.SetSparseData(data_train, labels, len(data_train)); err != nil {
     log.Fatal(err)
   }
