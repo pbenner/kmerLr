@@ -104,7 +104,7 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, la
   } else {
     r := &KmerLr{}
     r.LogisticRegression             = *r_.(*vectorDistribution.LogisticRegression)
-    r.Transform                      = obj.Transform
+    r.Transform                      = obj   .Transform
     r.KmerLrFeatures.Binarize        = config.Binarize
     r.KmerLrFeatures.Cooccurrence    = obj   .Cooccurrence
     r.KmerLrFeatures.Features        = obj   .Features
