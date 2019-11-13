@@ -67,7 +67,7 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv in
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) Clone() *KmerLrOmpEstimator {
+func (obj *KmerLrEstimator) Clone() *KmerLrEstimator {
   panic("internal error")
 }
 

@@ -49,11 +49,6 @@ type Config struct {
   MaxEpochs       int
   MaxIterations   int
   NoNormalization bool
-  Rprop           bool
-  RpropEta      []float64
-  RpropStepSize   float64
-  Omp             int
-  OmpIterations   int
   Pool            threadpool.ThreadPool
   PoolCV          threadpool.ThreadPool
   PoolSaga        threadpool.ThreadPool

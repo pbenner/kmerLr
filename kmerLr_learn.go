@@ -48,26 +48,13 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
   if config.SaveTrace || config.EpsilonVar != 0.0 {
     trace = &Trace{}
   }
-  if config.Omp != 0 {
-    estimator := NewKmerLrOmpEstimator(config, kmers, trace, icv, data_train, labels, t)
-    if classifier != nil {
-      estimator.SetParameters(classifier.GetParameters().CloneVector())
-    }
-    classifier = estimator.Estimate(config, data_train, labels)
-  } else
-  if config.Rprop {
-    estimator := NewKmerLrRpropEstimator(config, kmers, trace, icv, data_train, labels, t)
-    if classifier != nil {
-      estimator.SetParameters(classifier.GetParameters().CloneVector())
-    }
-    classifier = estimator.Estimate(config, data_train, labels)
-  } else {
-    estimator := NewKmerLrEstimator(config, kmers, trace, icv, data_train, features, labels, t)
-    if classifier != nil {
-      estimator.SetParameters(classifier.GetParameters().CloneVector())
-    }
-    classifier = estimator.Estimate(config, data_train, data_test, labels)
+
+  estimator := NewKmerLrEstimator(config, kmers, trace, icv, data_train, features, labels, t)
+  if classifier != nil {
+    estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
+  classifier = estimator.Estimate(config, data_train, data_test, labels)
+
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   filename_json  := fmt.Sprintf("%s.json" , basename_out)
   // export trace
@@ -149,11 +136,6 @@ func main_learn(config Config, args []string) {
   optNoNormalization := options.   BoolLong("no-normalization", 0 ,               "do not normalize data")
   optKFoldCV         := options.    IntLong("k-fold-cv",        0 ,            1, "perform k-fold cross-validation")
   optScaleStepSize   := options. StringLong("scale-step-size",  0 ,        "1.0", "scale standard step-size")
-  optRprop           := options.   BoolLong("rprop",            0 ,               "use rprop for optimization")
-  optRpropStepSize   := options. StringLong("rprop-step-size",  0 ,        "0.0", "rprop initial step size [default: 0.0 (auto)]")
-  optRpropEta        := options. StringLong("rprop-eta",        0 ,    "1.2:0.8", "rprop eta parameter [default: 1.2:0.8]")
-  optOmp             := options.    IntLong("omp",              0 ,            0, "use OMP to select subset of features")
-  optOmpIterations   := options.    IntLong("omp-iterations",   0 ,            1, "number of OMP iterations")
   optThreadsCV       := options.    IntLong("threads-cv",       0 ,            1, "number of threads for cross-validation")
   optThreadsSaga     := options.    IntLong("threads-saga",     0 ,            1, "number of threads for SAGA algorithm")
   optHelp            := options.   BoolLong("help",            'h',               "print help")
@@ -202,9 +184,6 @@ func main_learn(config Config, args []string) {
   if *optHelp {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
-  }
-  if *optLambdaAuto != 0 && *optRprop {
-    log.Fatal("rprop does not support automatic regularization strength")
   }
   if s, err := strconv.ParseFloat(*optEpsilon, 64); err != nil {
     log.Fatal(err)
@@ -255,31 +234,6 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
   }
-  if *optOmp < 0 {
-    options.PrintUsage(os.Stdout)
-    os.Exit(1)
-  }
-  if *optOmpIterations < 1 {
-    options.PrintUsage(os.Stdout)
-    os.Exit(1)
-  }
-  if v, err := strconv.ParseFloat(*optRpropStepSize, 64); err != nil {
-    log.Fatal(err)
-  } else {
-    config.RpropStepSize = v
-  }
-  if eta := strings.Split(*optRpropEta, ":"); len(eta) != 2 {
-    options.PrintUsage(os.Stdout)
-    os.Exit(1)
-  } else {
-    v1, err := strconv.ParseFloat(eta[0], 64); if err != nil {
-      log.Fatal(err)
-    }
-    v2, err := strconv.ParseFloat(eta[1], 64); if err != nil {
-      log.Fatal(err)
-    }
-    config.RpropEta = []float64{v1, v2}
-  }
   if *optThreadsCV > 1 {
     config.PoolCV = threadpool.New(*optThreadsCV, 100)
   }
@@ -299,9 +253,6 @@ func main_learn(config Config, args []string) {
   config.MaxIterations   = *optMaxIterations
   config.SaveTrace       = *optSaveTrace
   config.NoNormalization = *optNoNormalization
-  config.Omp             = *optOmp
-  config.OmpIterations   = *optOmpIterations
-  config.Rprop           = *optRprop
   if config.EpsilonLoss != 0.0 {
     config.EvalLoss = true
   }
