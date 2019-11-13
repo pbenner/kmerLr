@@ -38,12 +38,12 @@ func format_duration(duration time.Duration) string {
 /* -------------------------------------------------------------------------- */
 
 type Trace struct {
-  Epoch    []int
-  Nonzero  []int
-  Change   []float64
-  Lambda   []float64
-  Loss     []float64
-  Duration []time.Duration
+  Iteration []int
+  Nonzero   []int
+  Change    []float64
+  Lambda    []float64
+  Loss      []float64
+  Duration  []time.Duration
 }
 
 func (obj Trace) Export(filename string) error {
@@ -57,7 +57,7 @@ func (obj Trace) Export(filename string) error {
   defer w.Flush()
 
   // print header
-  fmt.Fprintf(w, "%15s %6s %12s %8s", "duration", "epoch", "change", "nonzero")
+  fmt.Fprintf(w, "%15s %6s %12s %8s", "duration", "iteration", "change", "nonzero")
   if len(obj.Lambda) > 0 {
     fmt.Fprintf(w, " %12s", "lambda")
   }
@@ -68,7 +68,7 @@ func (obj Trace) Export(filename string) error {
 
   // print values
   for i := 0; i < obj.Length(); i++ {
-    fmt.Fprintf(w, "%15v %6d %12e %8d", format_duration(obj.Duration[i]), obj.Epoch[i], obj.Change[i], obj.Nonzero[i])
+    fmt.Fprintf(w, "%15v %6d %12e %8d", format_duration(obj.Duration[i]), obj.Iteration[i], obj.Change[i], obj.Nonzero[i])
     if len(obj.Lambda) > 0 {
       fmt.Fprintf(w, " %12e", obj.Lambda[i])
     }
@@ -81,13 +81,13 @@ func (obj Trace) Export(filename string) error {
 }
 
 func (obj Trace) Length() int {
-  return len(obj.Epoch)
+  return len(obj.Iteration)
 }
 
-func (obj *Trace) Append(epoch, nonzero int, change, lambda, loss float64, duration time.Duration) {
-  obj.Epoch   = append(obj.Epoch  , epoch)
-  obj.Nonzero = append(obj.Nonzero, nonzero)
-  obj.Change  = append(obj.Change , change)
+func (obj *Trace) Append(iteration, nonzero int, change, lambda, loss float64, duration time.Duration) {
+  obj.Iteration = append(obj.Iteration, iteration)
+  obj.Nonzero   = append(obj.Nonzero  , nonzero)
+  obj.Change    = append(obj.Change   , change)
   if !math.IsNaN(lambda) {
     obj.Lambda = append(obj.Lambda, lambda)
   }

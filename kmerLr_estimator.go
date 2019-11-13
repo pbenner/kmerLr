@@ -136,7 +136,9 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
     // select features on the initial data set
+    PrintStderr(config, 1, "Selecting %d features... ", n)
     selection, lambda, ok := s.Select(copy_data_train, obj.Theta.GetValues(), obj.Features, obj.Kmers, obj.L1Reg)
+    PrintStderr(config, 1, "done\n")
     if !ok && r != nil {
       break
     }
@@ -148,6 +150,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
     selection.Data(data_train, copy_data_train)
     selection.Data(data_test , copy_data_test)
 
+    PrintStderr(config, 1, "New epoch with lambda=%f...\n", lambda)
     r = obj.estimate(config, data_train, labels)
     obj.Theta.Set(r.Theta)
   }

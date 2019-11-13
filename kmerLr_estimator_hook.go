@@ -41,11 +41,9 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool,
     lr.ClassWeights = estimator.ClassWeights
     return lr.Loss(data, c, nil)
   }
-  k := 0
   t := time.Now()
   s := time.Now()
-  hook := func(x ConstVector, change, lambda ConstScalar, epoch_ int) bool {
-    k++
+  hook := func(x ConstVector, change, lambda ConstScalar, iteration int) bool {
     loss_old, loss_new = loss_new, loss_old
     n := 0
     if config.EvalLoss {
@@ -57,14 +55,14 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool,
       }
     }
     if trace != nil {
-      trace.Append(k, n, change.GetValue(), lambda.GetValue(), loss_new, time.Since(s))
+      trace.Append(iteration, n, change.GetValue(), lambda.GetValue(), loss_new, time.Since(s))
     }
     if config.Verbose > 1 {
       if trace != nil {
         if icv != -1 {
           fmt.Printf("cv run    : %d\n", icv+1)
         }
-        fmt.Printf("epoch     : %d\n", k)
+        fmt.Printf("iteration : %d\n", iteration)
         fmt.Printf("change    : %v\n", change)
         fmt.Printf("lambda    : %v\n", lambda)
         fmt.Printf("#coef     : %d\n", n-1)
@@ -77,14 +75,14 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool,
         if icv != -1 {
           fmt.Printf("cv run: %d\n", icv+1)
         }
-        fmt.Printf("epoch : %d\n", k)
-        fmt.Printf("change: %v\n", change)
-        fmt.Printf("lambda: %v\n", lambda)
-        fmt.Printf("#coef : %d\n", n-1)
+        fmt.Printf("iteration: %d\n", iteration)
+        fmt.Printf("change   : %v\n", change)
+        fmt.Printf("lambda   : %v\n", lambda)
+        fmt.Printf("#coef    : %d\n", n-1)
         if config.EvalLoss {
-          fmt.Printf("loss  : %f\n", loss_new)
+          fmt.Printf("loss     : %f\n", loss_new)
         }
-        fmt.Printf("time  : %v\n", time.Since(t))
+        fmt.Printf("time     : %v\n", time.Since(t))
       }
       fmt.Println()
     }
@@ -113,11 +111,9 @@ func NewOmpHook(config Config, trace *Trace, icv int, data []ConstVector, c []bo
     lr.ClassWeights = estimator.ClassWeights
     return lr.Loss(data, c, nil)
   }
-  k := 0
   t := time.Now()
   s := time.Now()
-  hook := func(x ConstVector, change, lambda ConstScalar, epoch_ int) bool {
-    k++
+  hook := func(x ConstVector, change, lambda ConstScalar, iteration int) bool {
     loss_old, loss_new = loss_new, loss_old
     n := 0
     if config.EvalLoss {
@@ -129,14 +125,14 @@ func NewOmpHook(config Config, trace *Trace, icv int, data []ConstVector, c []bo
       }
     }
     if trace != nil {
-      trace.Append(k, n, change.GetValue(), lambda.GetValue(), loss_new, time.Since(s))
+      trace.Append(iteration, n, change.GetValue(), lambda.GetValue(), loss_new, time.Since(s))
     }
     if config.Verbose > 1 {
       if trace != nil {
         if icv != -1 {
           fmt.Printf("cv run    : %d\n", icv+1)
         }
-        fmt.Printf("epoch     : %d\n", k)
+        fmt.Printf("iteration : %d\n", iteration)
         fmt.Printf("change    : %v\n", change)
         fmt.Printf("lambda    : %v\n", lambda)
         fmt.Printf("#coef     : %d\n", n-1)
@@ -149,14 +145,14 @@ func NewOmpHook(config Config, trace *Trace, icv int, data []ConstVector, c []bo
         if icv != -1 {
           fmt.Printf("cv run: %d\n", icv+1)
         }
-        fmt.Printf("epoch : %d\n", k)
-        fmt.Printf("change: %v\n", change)
-        fmt.Printf("lambda: %v\n", lambda)
-        fmt.Printf("#coef : %d\n", n-1)
+        fmt.Printf("iteration: %d\n", iteration)
+        fmt.Printf("change   : %v\n", change)
+        fmt.Printf("lambda   : %v\n", lambda)
+        fmt.Printf("#coef    : %d\n", n-1)
         if config.EvalLoss {
-          fmt.Printf("loss  : %f\n", loss_new)
+          fmt.Printf("loss     : %f\n", loss_new)
         }
-        fmt.Printf("time  : %v\n", time.Since(t))
+        fmt.Printf("time     : %v\n", time.Since(t))
       }
       fmt.Println()
     }
@@ -208,7 +204,7 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, c []
         if icv != -1 {
           fmt.Printf("cv run    : %d\n", icv+1)
         }
-        fmt.Printf("epoch     : %d\n", k)
+        fmt.Printf("iteration : %d\n", k)
         fmt.Printf("change    : %v\n", c)
         fmt.Printf("#coef     : %d\n", n-1)
         fmt.Printf("var(#coef): %f\n", trace.CompVar(10))
@@ -220,13 +216,13 @@ func NewRpropHook(config Config, trace *Trace, icv int, data []ConstVector, c []
         if icv != -1 {
           fmt.Printf("cv run: %d\n", icv+1)
         }
-        fmt.Printf("epoch : %d\n", k)
-        fmt.Printf("change: %v\n", c)
-        fmt.Printf("#coef : %d\n", n-1)
+        fmt.Printf("iteration: %d\n", k)
+        fmt.Printf("change   : %v\n", c)
+        fmt.Printf("#coef    : %d\n", n-1)
         if config.EvalLoss {
-          fmt.Printf("loss  : %f\n", loss_new)
+          fmt.Printf("loss     : %f\n", loss_new)
         }
-        fmt.Printf("time  : %v\n", time.Since(t))
+        fmt.Printf("time     : %v\n", time.Since(t))
       }
       fmt.Println()
     }
