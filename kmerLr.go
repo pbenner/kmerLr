@@ -38,6 +38,7 @@ type Config struct {
   Lambda          float64
   LambdaAuto      int
   Epsilon         float64
+  EpsilonLambda   float64
   EpsilonLoss     float64
   EpsilonVar      float64
   KFoldCV         int

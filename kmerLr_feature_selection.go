@@ -33,11 +33,12 @@ type featureSelector struct {
   KmersMap        map[KmerClassId]int
   Cooccurrence    bool
   N               int
+  Epsilon         float64
 }
 
 /* -------------------------------------------------------------------------- */
 
-func newFeatureSelector(kmers KmerClassList, cooccurrence bool, labels []bool, class_weights [2]float64, n int) featureSelector {
+func newFeatureSelector(kmers KmerClassList, cooccurrence bool, labels []bool, class_weights [2]float64, n int, epsilon float64) featureSelector {
   m := make(map[KmerClassId]int)
   for i := 0; i < len(kmers); i++ {
     m[kmers[i].KmerClassId] = i
@@ -48,15 +49,20 @@ func newFeatureSelector(kmers KmerClassList, cooccurrence bool, labels []bool, c
     Labels      : labels,
     ClassWeights: class_weights,
     Cooccurrence: cooccurrence,
-    N           : n }
+    N           : n,
+    Epsilon     : epsilon }
   return r
 }
 
 /* -------------------------------------------------------------------------- */
 
 func (obj featureSelector) Select(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, lambda float64) (featureSelection, float64, bool) {
+  ok := false
   // copy all features i with theta_{i+1} != 0
   t, c, b := obj.restoreNonzero(theta, features, kmers)
+  if c < obj.N {
+    ok = true
+  }
   // compute gradient for selecting new features
   g := obj.gradient(data, t)
   i := make([]int, len(g))
@@ -78,7 +84,7 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   }
   l    := obj.computeLambda(b, g, i)
   k, f := obj.selectKmers(b)
-  return featureSelection{obj, k, f, t, b, c}, l, !features.Equals(f) || math.Abs(lambda - l) > 1e-6
+  return featureSelection{obj, k, f, t, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -87,7 +93,7 @@ func (obj featureSelector) computeLambda(b []bool, g []float64, i []int) float64
   // set lambda to first gradient element not included in the feature set
   for k := 1; k < len(i); k++ {
     if !b[i[k]] {
-      return math.Abs(g[i[k]])
+      return math.Abs(g[k])
     }
   }
   return 0.0

@@ -146,7 +146,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   for i, x := range data_test {
     copy_data_test [i] = x
   }
-  s := newFeatureSelector(obj.Kmers, obj.Cooccurrence, labels, w, n)
+  s := newFeatureSelector(obj.Kmers, obj.Cooccurrence, labels, w, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for {
     // select features on the initial data set
