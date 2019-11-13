@@ -238,5 +238,5 @@ func (obj featureSelection) Features() FeatureIndices {
 }
 
 func (obj featureSelection) Transform(t Transform) Transform {
-  return t.TransformSelect(obj.b)
+  return t.Select(obj.b)
 }

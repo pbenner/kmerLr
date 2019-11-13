@@ -40,7 +40,7 @@ func combine(config Config, summary, filename_out string, filename_ins ...string
     if  classifiers[i].Cooccurrence != classifiers[0].Cooccurrence {
       log.Fatalf("data binarization is not consistent across classifiers")
     }
-    if !classifiers[i].Transform.TransformEquals(classifiers[0].Transform) {
+    if !classifiers[i].Transform.Equals(classifiers[0].Transform) {
       log.Fatalf("data transform is not consistent across classifiers")
     }
   }

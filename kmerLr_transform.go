@@ -33,7 +33,7 @@ type Transform struct {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *Transform) TransformFit(config Config, data []ConstVector) {
+func (obj *Transform) Fit(config Config, data []ConstVector) {
   if len(data) == 0 {
     return
   }
@@ -81,7 +81,7 @@ func (obj *Transform) TransformFit(config Config, data []ConstVector) {
   PrintStderr(config, 1, "done\n")
 }
 
-func (obj Transform) TransformApply(config Config, data []ConstVector) []ConstVector {
+func (obj Transform) Apply(config Config, data []ConstVector) []ConstVector {
   if len(obj.Mu) != len(obj.Sigma) {
     panic("internal error")
   }
@@ -108,7 +108,7 @@ func (obj Transform) TransformApply(config Config, data []ConstVector) []ConstVe
   return data
 }
 
-func (obj Transform) TransformEquals(t Transform) bool {
+func (obj Transform) Equals(t Transform) bool {
   if len(obj.Mu) != len(t.Mu) {
     return false
   }
@@ -128,7 +128,7 @@ func (obj Transform) TransformEquals(t Transform) bool {
   return true
 }
 
-func (obj Transform) TransformSelect(b []bool) Transform {
+func (obj Transform) Select(b []bool) Transform {
   tr := Transform{}
   if len(obj.Mu) > 0 {
     for i := 0; i < len(b); i++ {

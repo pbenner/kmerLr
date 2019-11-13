@@ -123,7 +123,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   transform := Transform{}
   // estimate data transform if required
   if !config.NoNormalization {
-    transform.TransformFit(config, data_train)
+    transform.Fit(config, data_train)
   }
   // create a copy of data arrays, from which to select subsets
   copy_data_train := make([]ConstVector, len(data_train))
