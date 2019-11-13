@@ -19,6 +19,8 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
+import   "bufio"
+import   "bytes"
 import   "strings"
 
 import . "github.com/pbenner/autodiff"
@@ -59,6 +61,22 @@ func (obj FeatureIndices) Equals(b FeatureIndices) bool {
     }
   }
   return true
+}
+
+func (obj FeatureIndices) String(kmers KmerClassList) string {
+  var buffer bytes.Buffer
+
+  w := bufio.NewWriter(&buffer)
+  for _, feature := range obj {
+    if feature[0] == feature[1] {
+      fmt.Fprintf(w, " %v", kmers[feature[0]])
+    } else {
+      fmt.Fprintf(w, " %v&%v", kmers[feature[0]], kmers[feature[1]])
+    }
+  }
+  w.Flush()
+
+  return buffer.String()
 }
 
 /* -------------------------------------------------------------------------- */
