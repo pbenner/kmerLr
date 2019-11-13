@@ -103,7 +103,7 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
     log.Fatal(err)
   }
   data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, classifier.Features, filenameFasta)
-  data     = classifier.Transform.Apply(config, data)
+  classifier.Transform.Apply(config, data)
 
   // allocate result
   result := make([][]float64, len(data))

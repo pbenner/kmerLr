@@ -111,7 +111,7 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, la
   }
 }
 
-func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) *KmerLr {
+func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform Transform) *KmerLr {
   n := obj.n_params(config)
   w := [2]float64{}
   if config.Balance {
@@ -119,11 +119,6 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   } else {
     w[0] = 1.0
     w[1] = 1.0
-  }
-  transform := Transform{}
-  // estimate data transform if required
-  if !config.NoNormalization {
-    transform.Fit(config, data_train)
   }
   // create a copy of data arrays, from which to select subsets
   copy_data_train := make([]ConstVector, len(data_train))
@@ -134,7 +129,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   for i, x := range data_test {
     copy_data_test [i] = x
   }
-  s := newFeatureSelector(obj.Kmers, obj.Cooccurrence, labels, w, n, config.EpsilonLambda)
+  s := newFeatureSelector(obj.Kmers, obj.Cooccurrence, labels, transform, w, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
     // select features on the initial data set
@@ -149,12 +144,12 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
     obj.Kmers    = selection.Kmers()
     obj.Theta    = selection.Theta()
     // create actual training and validation data sets
-    selection.Data(data_train, copy_data_train)
-    selection.Data(data_test , copy_data_test)
+    selection.Data(config, data_train, copy_data_train)
+    selection.Data(config, data_test , copy_data_test)
 
     PrintStderr(config, 1, "New epoch with lambda=%f...\n", lambda)
     r = obj.estimate(config, data_train, labels)
-    r.Transform = selection.Transform(transform)
+    r.Transform = selection.Transform()
     obj.Theta.Set(r.Theta)
   }
   return r

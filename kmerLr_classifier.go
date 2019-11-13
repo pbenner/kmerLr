@@ -56,7 +56,6 @@ func (obj *KmerLr) Clone() *KmerLr {
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLr) Predict(config Config, data []ConstVector) []float64 {
-  data = obj.Transform.Apply(config, data)
   r := make([]float64, len(data))
   t := BareReal(0.0)
   for i, _ := range data {
@@ -69,7 +68,6 @@ func (obj *KmerLr) Predict(config Config, data []ConstVector) []float64 {
 }
 
 func (obj *KmerLr) Loss(config Config, data []ConstVector, c []bool) float64 {
-  data = obj.Transform.Apply(config, data)
   lr := logisticRegression{}
   lr.Theta  = obj.Theta.GetValues()
   lr.Lambda = config.Lambda

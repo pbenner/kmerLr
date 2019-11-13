@@ -32,7 +32,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, basename_out string) *KmerLr {
+func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t Transform, icv int, basename_out string) *KmerLr {
   // hook and trace
   var trace *Trace
   if config.SaveTrace || config.EpsilonVar != 0.0 {
@@ -43,7 +43,7 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
   if classifier != nil {
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
-  classifier = estimator.Estimate(config, data_train, data_test, labels)
+  classifier = estimator.Estimate(config, data_train, data_test, labels, t)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   filename_json  := fmt.Sprintf("%s.json" , basename_out)
@@ -57,10 +57,10 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
   return classifier
 }
 
-func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, basename_out string) {
+func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t Transform, basename_out string) {
   learnClassifier := func(i int, data_train, data_test []ConstVector, labels []bool) *KmerLr {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, i, basename_out)
+    return learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, t, i, basename_out)
   }
   testClassifier := func(i int, data []ConstVector, classifier *KmerLr) []float64 {
     return classifier.Predict(config, data)
@@ -85,10 +85,16 @@ func learn(config Config, filename_json, filename_fg, filename_bg, basename_out 
   data, labels, kmers := compile_training_data(config, kmersCounter, kmers, features, filename_fg, filename_bg)
   kmersCounter = nil
 
+  t := Transform{}
+  // estimate transform on full data set so that all estimated
+  // classifiers share the same transform
+  if !config.NoNormalization {
+    t.Fit(config, data)
+  }
   if config.KFoldCV <= 1 {
-    learn_parameters(config, data, nil, labels, classifier, kmers, features, -1, basename_out)
+    learn_parameters(config, data, nil, labels, classifier, kmers, features, t, -1, basename_out)
   } else {
-    learn_cv(config, data, labels, classifier, kmers, features, basename_out)
+    learn_cv(config, data, labels, classifier, kmers, features, t, basename_out)
   }
 }
 

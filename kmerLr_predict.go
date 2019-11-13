@@ -61,6 +61,7 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
     log.Fatal(err)
   }
   data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_in)
+  classifier.Transform.Apply(config, data)
 
   predictions := classifier.Predict(config, data)
 

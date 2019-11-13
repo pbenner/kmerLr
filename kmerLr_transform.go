@@ -120,12 +120,12 @@ func (obj *Transform) Fit(config Config, data []ConstVector) {
   PrintStderr(config, 1, "done\n")
 }
 
-func (obj Transform) Apply(config Config, data []ConstVector) []ConstVector {
+func (obj Transform) Apply(config Config, data []ConstVector) {
   if len(obj.Mu) != len(obj.Sigma) {
     panic("internal error")
   }
   if len(obj.Mu) == 0 {
-    return data
+    return
   }
   PrintStderr(config, 1, "Normalizing data... ")
   n := len(data)
@@ -144,7 +144,6 @@ func (obj Transform) Apply(config Config, data []ConstVector) []ConstVector {
     data[i] = UnsafeSparseConstRealVector(indices, values, m)
   }
   PrintStderr(config, 1, "done\n")
-  return data
 }
 
 func (obj Transform) Equals(t Transform) bool {

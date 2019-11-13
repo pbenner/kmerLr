@@ -31,6 +31,7 @@ type featureSelector struct {
   Labels        []bool
   Kmers           KmerClassList
   KmersMap        map[KmerClassId]int
+  Transform       Transform
   Cooccurrence    bool
   N               int
   Epsilon         float64
@@ -38,7 +39,7 @@ type featureSelector struct {
 
 /* -------------------------------------------------------------------------- */
 
-func newFeatureSelector(kmers KmerClassList, cooccurrence bool, labels []bool, class_weights [2]float64, n int, epsilon float64) featureSelector {
+func newFeatureSelector(kmers KmerClassList, cooccurrence bool, labels []bool, transform Transform, class_weights [2]float64, n int, epsilon float64) featureSelector {
   m := make(map[KmerClassId]int)
   for i := 0; i < len(kmers); i++ {
     m[kmers[i].KmerClassId] = i
@@ -46,6 +47,7 @@ func newFeatureSelector(kmers KmerClassList, cooccurrence bool, labels []bool, c
   r := featureSelector{
     Kmers       : kmers,
     KmersMap    : m,
+    Transform   : transform,
     Labels      : labels,
     ClassWeights: class_weights,
     Cooccurrence: cooccurrence,
@@ -84,7 +86,8 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   }
   l    := obj.computeLambda(b, g, i)
   k, f := obj.selectKmers(b)
-  return featureSelection{obj, k, f, t, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
+  tr   := obj.Transform.Select(b)
+  return featureSelection{obj, k, f, t, tr, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -164,11 +167,12 @@ func (obj featureSelector) selectKmers(b []bool) (KmerClassList, FeatureIndices)
 
 type featureSelection struct {
   featureSelector
-  kmers    KmerClassList
-  features FeatureIndices
-  theta  []float64
-  b      []bool
-  c        int
+  kmers     KmerClassList
+  features  FeatureIndices
+  theta   []float64
+  transform Transform
+  b       []bool
+  c         int
 }
 
 /* -------------------------------------------------------------------------- */
@@ -183,7 +187,7 @@ func (obj featureSelection) Theta() DenseBareRealVector {
   return NewDenseBareRealVector(r)
 }
 
-func (obj featureSelection) Data(data_dst, data []ConstVector) {
+func (obj featureSelection) Data(config Config, data_dst, data []ConstVector) {
   m := len(obj.featureSelector.Kmers)
   k := make([]int, len(obj.b))
   // remap data indices
@@ -227,6 +231,7 @@ func (obj featureSelection) Data(data_dst, data []ConstVector) {
     v = append([]float64{}, v[0:len(v)]...)
     data_dst[i_] = UnsafeSparseConstRealVector(i, v, obj.c+1)
   }
+  obj.transform.Apply(config, data_dst)
 }
 
 func (obj featureSelection) Kmers() KmerClassList {
@@ -237,6 +242,6 @@ func (obj featureSelection) Features() FeatureIndices {
   return obj.features
 }
 
-func (obj featureSelection) Transform(t Transform) Transform {
-  return t.Select(obj.b)
+func (obj featureSelection) Transform() Transform {
+  return obj.transform
 }
