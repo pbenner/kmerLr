@@ -124,7 +124,7 @@ func Test3(test *testing.T) {
 
 func Test4(test *testing.T) {
   config := Config{}
-  config.Verbose        = 1
+  config.Verbose        = 0
   config.StepSizeFactor = 1.0
   config.LambdaAuto     = 8
   config.EvalLoss       = true
