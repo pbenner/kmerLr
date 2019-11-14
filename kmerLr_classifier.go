@@ -121,7 +121,7 @@ func (obj *KmerLr) Mean(classifiers []*KmerLr) error {
     c.AddCoefficients(classifiers[i].GetCoefficients())
   }
   c.DivAll(float64(len(classifiers)))
-  *obj = *c.AsKmerLr(obj.KmerLrFeatures.Clone())
+  *obj = *c.AsKmerLr(obj.KmerLrFeatures)
   return nil
 }
 
@@ -130,7 +130,7 @@ func (obj *KmerLr) Max(classifiers []*KmerLr) error {
   for i := 1; i < len(classifiers); i++ {
     c.MaxCoefficients(classifiers[i].GetCoefficients())
   }
-  *obj = *c.AsKmerLr(obj.KmerLrFeatures.Clone())
+  *obj = *c.AsKmerLr(obj.KmerLrFeatures)
   return nil
 }
 
@@ -139,7 +139,7 @@ func (obj *KmerLr) Min(classifiers []*KmerLr) error {
   for i := 1; i < len(classifiers); i++ {
     c.MinCoefficients(classifiers[i].GetCoefficients())
   }
-  *obj = *c.AsKmerLr(obj.KmerLrFeatures.Clone())
+  *obj = *c.AsKmerLr(obj.KmerLrFeatures)
   return nil
 }
 

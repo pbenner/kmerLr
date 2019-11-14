@@ -193,6 +193,7 @@ func (obj *KmerLrCoefficientsSet) AsKmerLr(features KmerLrFeatures) *KmerLr {
       }
     }
   }
+  features          = features.Clone()
   features.Kmers    = kmers
   features.Features = f
   return NewKmerLr(v, features)
