@@ -23,6 +23,7 @@ import   "math"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
+import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
@@ -144,6 +145,46 @@ func (obj Transform) Apply(config Config, data []ConstVector) {
     data[i] = UnsafeSparseConstRealVector(indices, values, m)
   }
   PrintStderr(config, 1, "done\n")
+}
+
+func (t1 Transform) EqualsReduced(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClassList) bool {
+  // compare mu
+  m1 := make(map[[2]KmerClassId]float64)
+  m2 := make(map[[2]KmerClassId]float64)
+  for i, feature := range f1 {
+    kmer1 := k1[feature[0]].KmerClassId
+    kmer2 := k1[feature[1]].KmerClassId
+    m1[[2]KmerClassId{kmer1, kmer2}] = t1.Mu[i+1]
+  }
+  for i, feature := range f2 {
+    kmer1 := k2[feature[0]].KmerClassId
+    kmer2 := k2[feature[1]].KmerClassId
+    m2[[2]KmerClassId{kmer1, kmer2}] = t2.Mu[i+1]
+  }
+  for key, value := range m1 {
+    if math.Abs(m2[key] - value) > 1e-12 {
+      return true
+    }
+  }
+  // compare sigma
+  m1 = make(map[[2]KmerClassId]float64)
+  m2 = make(map[[2]KmerClassId]float64)
+  for i, feature := range f1 {
+    kmer1 := k1[feature[0]].KmerClassId
+    kmer2 := k1[feature[1]].KmerClassId
+    m1[[2]KmerClassId{kmer1, kmer2}] = t1.Sigma[i+1]
+  }
+  for i, feature := range f2 {
+    kmer1 := k2[feature[0]].KmerClassId
+    kmer2 := k2[feature[1]].KmerClassId
+    m2[[2]KmerClassId{kmer1, kmer2}] = t2.Sigma[i+1]
+  }
+  for key, value := range m1 {
+    if math.Abs(m2[key] - value) > 1e-12 {
+      return true
+    }
+  }
+  return true
 }
 
 func (obj Transform) Equals(t Transform) bool {
