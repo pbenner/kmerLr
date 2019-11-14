@@ -31,7 +31,7 @@ type featureSelector struct {
   Labels        []bool
   Kmers           KmerClassList
   KmersMap        map[KmerClassId]int
-  Transform       Transform
+  Transform       TransformFull
   Cooccurrence    bool
   N               int
   Epsilon         float64
@@ -39,7 +39,7 @@ type featureSelector struct {
 
 /* -------------------------------------------------------------------------- */
 
-func newFeatureSelector(kmers KmerClassList, cooccurrence bool, labels []bool, transform Transform, class_weights [2]float64, n int, epsilon float64) featureSelector {
+func newFeatureSelector(kmers KmerClassList, cooccurrence bool, labels []bool, transform TransformFull, class_weights [2]float64, n int, epsilon float64) featureSelector {
   m := make(map[KmerClassId]int)
   for i := 0; i < len(kmers); i++ {
     m[kmers[i].KmerClassId] = i

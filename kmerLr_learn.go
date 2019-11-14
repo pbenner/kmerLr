@@ -32,7 +32,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t Transform, icv int, basename_out string) *KmerLr {
+func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t TransformFull, icv int, basename_out string) *KmerLr {
   // hook and trace
   var trace *Trace
   if config.SaveTrace || config.EpsilonVar != 0.0 {
@@ -57,7 +57,7 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
   return classifier
 }
 
-func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t Transform, basename_out string) {
+func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t TransformFull, basename_out string) {
   learnClassifier := func(i int, data_train, data_test []ConstVector, labels []bool) *KmerLr {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
     return learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, t, i, basename_out)
@@ -85,7 +85,7 @@ func learn(config Config, filename_json, filename_fg, filename_bg, basename_out 
   data, labels, kmers := compile_training_data(config, kmersCounter, kmers, features, filename_fg, filename_bg)
   kmersCounter = nil
 
-  t := Transform{}
+  t := TransformFull{}
   // estimate transform on full data set so that all estimated
   // classifiers share the same transform
   if !config.NoNormalization {

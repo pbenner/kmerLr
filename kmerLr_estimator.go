@@ -111,7 +111,7 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, la
   }
 }
 
-func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform Transform) *KmerLr {
+func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull) *KmerLr {
   n := obj.n_params(config)
   w := [2]float64{}
   if config.Balance {

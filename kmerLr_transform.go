@@ -27,14 +27,14 @@ import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
-type Transform struct {
+type TransformFull struct {
   Mu    []float64
   Sigma []float64
 }
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *Transform) Fit(config Config, data []ConstVector) {
+func (obj *TransformFull) Fit(config Config, data []ConstVector) {
   if len(data) == 0 {
     return
   }
@@ -121,33 +121,56 @@ func (obj *Transform) Fit(config Config, data []ConstVector) {
   PrintStderr(config, 1, "done\n")
 }
 
-func (obj Transform) Apply(config Config, data []ConstVector) {
-  if len(obj.Mu) != len(obj.Sigma) {
-    panic("internal error")
+func (obj TransformFull) Equals(t Transform) bool {
+  if len(obj.Mu) != len(t.Mu) {
+    return false
   }
-  if len(obj.Mu) == 0 {
-    return
+  if len(obj.Sigma) != len(t.Sigma) {
+    return false
   }
-  PrintStderr(config, 1, "Normalizing data... ")
-  n := len(data)
-  m := data[0].Dim()
-  for i := 0; i < n; i++ {
-    if data[i].Dim() != m {
-      panic("data has invalid dimension")
+  for i := 0; i < len(obj.Mu); i++ {
+    if math.Abs(obj.Mu[i] - t.Mu[i]) > 1e-12 {
+      return false
     }
-    indices := data[i].(SparseConstRealVector).GetSparseIndices()
-    values  := data[i].(SparseConstRealVector).GetSparseValues ()
-    for j1, j2 := range indices {
-      if j2 < len(obj.Mu) {
-        values[j1] = (values[j1] - obj.Mu[j2])/obj.Sigma[j2]
-      }
-    }
-    data[i] = UnsafeSparseConstRealVector(indices, values, m)
   }
-  PrintStderr(config, 1, "done\n")
+  for i := 0; i < len(obj.Sigma); i++ {
+    if math.Abs(obj.Sigma[i] - t.Sigma[i]) > 1e-12 {
+      return false
+    }
+  }
+  return true
 }
 
-func (t1 Transform) EqualsReduced(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClassList) bool {
+func (obj TransformFull) Select(b []bool) Transform {
+  tr := Transform{}
+  if len(obj.Mu) > 0 {
+    for i := 0; i < len(b); i++ {
+      if b[i] {
+        tr.Mu = append(tr.Mu, obj.Mu[i])
+      }
+    }
+  }
+  if len(obj.Sigma) > 0 {
+    for i := 0; i < len(b); i++ {
+      if b[i] {
+        tr.Sigma = append(tr.Sigma, obj.Sigma[i])
+      }
+    }
+  }
+  return tr
+}
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+
+type Transform struct {
+  Mu    []float64
+  Sigma []float64
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClassList) bool {
   // compare mu
   m1 := make(map[[2]KmerClassId]float64)
   m2 := make(map[[2]KmerClassId]float64)
@@ -187,43 +210,30 @@ func (t1 Transform) EqualsReduced(t2 Transform, f1, f2 FeatureIndices, k1, k2 Km
   return true
 }
 
-func (obj Transform) Equals(t Transform) bool {
-  if len(obj.Mu) != len(t.Mu) {
-    return false
+func (obj Transform) Apply(config Config, data []ConstVector) {
+  if len(obj.Mu) != len(obj.Sigma) {
+    panic("internal error")
   }
-  if len(obj.Sigma) != len(t.Sigma) {
-    return false
+  if len(obj.Mu) == 0 {
+    return
   }
-  for i := 0; i < len(obj.Mu); i++ {
-    if math.Abs(obj.Mu[i] - t.Mu[i]) > 1e-12 {
-      return false
+  PrintStderr(config, 1, "Normalizing data... ")
+  n := len(data)
+  m := data[0].Dim()
+  for i := 0; i < n; i++ {
+    if data[i].Dim() != m {
+      panic("data has invalid dimension")
     }
-  }
-  for i := 0; i < len(obj.Sigma); i++ {
-    if math.Abs(obj.Sigma[i] - t.Sigma[i]) > 1e-12 {
-      return false
-    }
-  }
-  return true
-}
-
-func (obj Transform) Select(b []bool) Transform {
-  tr := Transform{}
-  if len(obj.Mu) > 0 {
-    for i := 0; i < len(b); i++ {
-      if b[i] {
-        tr.Mu = append(tr.Mu, obj.Mu[i])
+    indices := data[i].(SparseConstRealVector).GetSparseIndices()
+    values  := data[i].(SparseConstRealVector).GetSparseValues ()
+    for j1, j2 := range indices {
+      if j2 < len(obj.Mu) {
+        values[j1] = (values[j1] - obj.Mu[j2])/obj.Sigma[j2]
       }
     }
+    data[i] = UnsafeSparseConstRealVector(indices, values, m)
   }
-  if len(obj.Sigma) > 0 {
-    for i := 0; i < len(b); i++ {
-      if b[i] {
-        tr.Sigma = append(tr.Sigma, obj.Sigma[i])
-      }
-    }
-  }
-  return tr
+  PrintStderr(config, 1, "done\n")
 }
 
 /* -------------------------------------------------------------------------- */
