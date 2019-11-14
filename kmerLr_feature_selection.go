@@ -78,7 +78,7 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
     if c >= obj.N {
       break
     }
-    if !b[i[k]] {
+    if !b[i[k]] && g[k] != 0.0 {
       // feature was previously zero
       b[i[k]] = true
       c      += 1
