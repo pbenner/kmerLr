@@ -62,9 +62,6 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   ok := false
   // copy all features i with theta_{i+1} != 0
   t, c, b := obj.restoreNonzero(theta, features, kmers)
-  if c < obj.N {
-    ok = true
-  }
   // compute gradient for selecting new features
   g := obj.gradient(data, t)
   i := make([]int, len(g))
@@ -80,6 +77,7 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
     }
     if !b[i[k]] && g[k] != 0.0 {
       // feature was previously zero
+      ok      = true
       b[i[k]] = true
       c      += 1
     }
