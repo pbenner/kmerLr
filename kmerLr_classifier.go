@@ -30,7 +30,7 @@ import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 type KmerLr struct {
   vectorDistribution.LogisticRegression
   KmerLrFeatures
-  Transform
+  Transform Transform
 }
 
 /* -------------------------------------------------------------------------- */
@@ -115,6 +115,21 @@ func (obj *KmerLr) GetCoefficients() *KmerLrCoefficientsSet {
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLr) JoinTransforms(classifiers []*KmerLr) error {
+  if len(classifiers) == 0 || classifiers[0].Transform.Nil() {
+    return nil
+  }
+  obj.Transform = NewTransform(classifiers[0].Transform.Dim())
+  for _, classifier := range classifiers {
+    if err := obj.Transform.Insert(classifier.Transform, obj.Features, classifier.Features, obj.Kmers, classifier.Kmers); err != nil {
+      return err
+    }
+  }
+  return nil
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *KmerLr) Mean(classifiers []*KmerLr) error {
   c := classifiers[0].GetCoefficients()
   for i := 1; i < len(classifiers); i++ {
@@ -122,7 +137,7 @@ func (obj *KmerLr) Mean(classifiers []*KmerLr) error {
   }
   c.DivAll(float64(len(classifiers)))
   *obj = *c.AsKmerLr(obj.KmerLrFeatures)
-  return nil
+  return obj.JoinTransforms(classifiers)
 }
 
 func (obj *KmerLr) Max(classifiers []*KmerLr) error {
@@ -131,7 +146,7 @@ func (obj *KmerLr) Max(classifiers []*KmerLr) error {
     c.MaxCoefficients(classifiers[i].GetCoefficients())
   }
   *obj = *c.AsKmerLr(obj.KmerLrFeatures)
-  return nil
+  return obj.JoinTransforms(classifiers)
 }
 
 func (obj *KmerLr) Min(classifiers []*KmerLr) error {
@@ -140,7 +155,7 @@ func (obj *KmerLr) Min(classifiers []*KmerLr) error {
     c.MinCoefficients(classifiers[i].GetCoefficients())
   }
   *obj = *c.AsKmerLr(obj.KmerLrFeatures)
-  return nil
+  return obj.JoinTransforms(classifiers)
 }
 
 /* -------------------------------------------------------------------------- */

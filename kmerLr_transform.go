@@ -170,6 +170,47 @@ type Transform struct {
 
 /* -------------------------------------------------------------------------- */
 
+func NewTransform(n int) Transform {
+  t := Transform{}
+  t.Mu    = make([]float64, n)
+  t.Sigma = make([]float64, n)
+  return t
+}
+
+func (obj Transform) Nil() bool {
+  return len(obj.Mu) == 0
+}
+
+func (obj Transform) Dim() int {
+  return len(obj.Mu)
+}
+
+func (t1 Transform) Insert(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClassList) error {
+  // create index
+  m := make(map[[2]KmerClassId]int)
+  for i, feature := range f1 {
+    kmer1 := k1[feature[0]].KmerClassId
+    kmer2 := k1[feature[1]].KmerClassId
+    m[[2]KmerClassId{kmer1, kmer2}] = i
+  }
+  for j, feature := range f2 {
+    kmer1 := k2[feature[0]].KmerClassId
+    kmer2 := k2[feature[1]].KmerClassId
+    // insert only if feature is present in target transform
+    if i, ok := m[[2]KmerClassId{kmer1, kmer2}]; ok {
+      if t1.Mu[i+1] == 0.0 {
+        t1.Mu[i+1] = t2.Mu[j+1]
+      } else
+      if t2.Mu[j+1] != 0.0 {
+        if math.Abs(t1.Mu[i+1] - t2.Mu[i+1]) > 1e-12 {
+          fmt.Errorf("joining transforms failed: transforms are incompatible")
+        }
+      }
+    }
+  }
+  return nil
+}
+
 func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClassList) bool {
   // compare mu
   m := make(map[[2]KmerClassId]float64)
