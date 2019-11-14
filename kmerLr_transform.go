@@ -186,7 +186,7 @@ func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
   }
   for key, value := range m1 {
     if math.Abs(m2[key] - value) > 1e-12 {
-      return true
+      return false
     }
   }
   // compare sigma
@@ -204,7 +204,7 @@ func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
   }
   for key, value := range m1 {
     if math.Abs(m2[key] - value) > 1e-12 {
-      return true
+      return false
     }
   }
   return true
