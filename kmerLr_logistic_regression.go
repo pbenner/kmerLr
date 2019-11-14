@@ -125,7 +125,7 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
       w = obj.ClassWeights[0]*(math.Exp(r))
     }
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      g[it.Index()] += w*it.GetValue()
+      g[it.Index()] += w*it.GetValue()/float64(n)
     }
     if obj.Cooccurrence {
       it1 := data[i].ConstIterator()
