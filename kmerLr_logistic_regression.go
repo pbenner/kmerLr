@@ -168,7 +168,11 @@ func (obj logisticRegression) Loss(data []ConstVector, c []bool, gamma []float64
   r := 0.0
 
   for i := 0; i < n; i++ {
-    r -= obj.ClassWeights[1]*obj.ClassLogPdf(data[i].(SparseConstRealVector), gamma, c[i])
+    if c[i] {
+      r -= obj.ClassWeights[1]*obj.ClassLogPdf(data[i].(SparseConstRealVector), gamma, c[i])
+    } else {
+      r -= obj.ClassWeights[0]*obj.ClassLogPdf(data[i].(SparseConstRealVector), gamma, c[i])
+    }
   }
   if obj.Lambda != 0.0 {
     for j := 1; j < m; j++ {
