@@ -91,13 +91,11 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
 /* -------------------------------------------------------------------------- */
 
 func (obj featureSelector) computeLambda(b []bool, g []float64, i []int) float64 {
-  // set lambda to first gradient element not included in the feature set
-  for k := 1; k < len(i); k++ {
-    if !b[i[k]] {
-      return math.Abs(g[k])
-    }
+  if len(g) > obj.N+1 {
+    return (math.Abs(g[obj.N]) + math.Abs(g[obj.N+1]))/2.0
+  } else {
+    return 0.0
   }
-  return 0.0
 }
 
 func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndices, kmers KmerClassList) ([]float64, int, []bool) {

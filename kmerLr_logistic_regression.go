@@ -48,6 +48,9 @@ func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, gamma []float
   if i[0] != 0 {
     panic("internal error")
   }
+  if len(obj.Theta) != x.Dim() {
+    panic("internal error")
+  }
   if gamma != nil {
     for j := 1; j < q; j++ {
       r += float64(v[j])/gamma[i[j]]*obj.Theta[i[j]]
@@ -125,7 +128,7 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
       w = obj.ClassWeights[0]*(math.Exp(r))
     }
     for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      g[it.Index()] += w*it.GetValue()/float64(n)
+      g[it.Index()] += w*it.GetValue()
     }
     if obj.Cooccurrence {
       it1 := data[i].ConstIterator()
@@ -138,7 +141,7 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
           i1 := it1.Index()-1
           i2 := it2.Index()-1
           j  := CoeffIndex(m).Ind2Sub(i1, i2)
-          g[j] += w*it1.GetValue()*it2.GetValue()/float64(n)
+          g[j] += w*it1.GetValue()*it2.GetValue()
         }
       }
     }
