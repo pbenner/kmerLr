@@ -100,9 +100,9 @@ func (obj *KmerLrEstimator) estimate_debug(config Config, data_train []ConstVect
       theta[k] = theta[k] - gamma*g[k]
       if k > 0 {
         if theta[k] >= 0.0 {
-          theta[k] =  math.Max(math.Abs(theta[k]) - gamma*obj.L1Reg*float64(len(data_train)), 0.0)
+          theta[k] =  math.Max(math.Abs(theta[k]) - gamma*obj.L1Reg, 0.0)
         } else {
-          theta[k] = -math.Max(math.Abs(theta[k]) - gamma*obj.L1Reg*float64(len(data_train)), 0.0)
+          theta[k] = -math.Max(math.Abs(theta[k]) - gamma*obj.L1Reg, 0.0)
         }
       }
     }
