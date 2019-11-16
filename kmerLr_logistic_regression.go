@@ -48,8 +48,14 @@ func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, gamma []float
   if i[0] != 0 {
     panic("internal error")
   }
-  if len(obj.Theta) != x.Dim() {
-    panic("internal error")
+  if obj.Cooccurrence {
+    if len(obj.Theta) != CoeffIndex(n).Dim() {
+      panic("internal error")
+    }
+  } else {
+    if len(obj.Theta) != n+1 {
+      panic("internal error")
+    }
   }
   if gamma != nil {
     for j := 1; j < q; j++ {

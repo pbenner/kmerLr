@@ -184,8 +184,12 @@ func (obj featureSelection) Theta() DenseBareRealVector {
 }
 
 func (obj featureSelection) Data(config Config, data_dst, data []ConstVector) {
-  m := len(obj.featureSelector.Kmers)
   k := make([]int, len(obj.b))
+  m := len(obj.featureSelector.Kmers)
+  // n := len(obj.featureSelector.Kmers) + 1
+  // if obj.Cooccurrence {
+  //   n = CoeffIndex(m).Dim()
+  // }
   // remap data indices
   for i, j := 0, 0; j < len(obj.b); j++ {
     if obj.b[j] {
