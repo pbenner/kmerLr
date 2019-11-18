@@ -66,20 +66,20 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   // copy all features i with theta_{i+1} != 0
   t, c, b := obj.restoreNonzero(theta, features, kmers)
   // compute gradient for selecting new features
-  g_ := obj.gradient(data, t)
+  g_ := obj.gradient(data, t)[1:]
   // sort gradient entries with respect to absolute values
   g, i := NLargestAbsFloat64(g_, 2*obj.N)
   g_    = nil
   // add new features
-  for k := 1; k < len(i); k++ {
+  for k := 0; k < len(i); k++ {
     if c >= obj.N {
       break
     }
-    if !b[i[k]] && g[k] != 0.0 {
+    if !b[i[k]+1] && g[k] != 0.0 {
       // feature was previously zero
-      ok      = true
-      b[i[k]] = true
-      c      += 1
+      ok        = true
+      b[i[k]+1] = true
+      c        += 1
     }
   }
   l    := obj.computeLambda(b, g, i)
@@ -91,8 +91,8 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
 /* -------------------------------------------------------------------------- */
 
 func (obj featureSelector) computeLambda(b []bool, g []float64, i []int) float64 {
-  if len(g) > obj.N+1 {
-    return (math.Abs(g[obj.N]) + math.Abs(g[obj.N+1]))/2.0
+  if len(g) > obj.N {
+    return (math.Abs(g[obj.N-1]) + math.Abs(g[obj.N]))/2.0
   } else {
     return 0.0
   }
@@ -191,6 +191,9 @@ func (obj featureSelection) Data(config Config, data_dst, data []ConstVector) {
     if obj.b[j] {
       k = append(k, j)
     }
+  }
+  if len(k) != obj.c+1 {
+    panic("internal error")
   }
   for i_ := 0; i_ < len(data); i_++ {
     i := []int    {}
