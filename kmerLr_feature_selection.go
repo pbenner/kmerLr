@@ -196,6 +196,7 @@ func (obj featureSelection) Theta() DenseBareRealVector {
 
 func (obj featureSelection) Data(config Config, data_dst, data []ConstVector) {
   k := []int{}
+  m := len(obj.featureSelector.Kmers)
   // remap data indices
   for j := 0; j < len(obj.b); j++ {
     if obj.b[j] {
@@ -209,9 +210,17 @@ func (obj featureSelection) Data(config Config, data_dst, data []ConstVector) {
     i := []int    {}
     v := []float64{}
     for j1, j2 := range k {
-      if value := data[i_].ValueAt(j2); value != 0.0 {
-        i = append(i, j1)
-        v = append(v, value)
+      if j2 >= data[i_].Dim() {
+        i1, i2 := CoeffIndex(m).Sub2Ind(j2-1)
+        if value := data[i_].ValueAt(i1+1)*data[i_].ValueAt(i2+1); value != 0.0 {
+          i = append(i, j1)
+          v = append(v, value)
+        }
+      } else {
+        if value := data[i_].ValueAt(j2); value != 0.0 {
+          i = append(i, j1)
+          v = append(v, value)
+        }
       }
     }
     // resize slice and restrict capacity
