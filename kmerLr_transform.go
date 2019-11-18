@@ -40,12 +40,16 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
   }
   PrintStderr(config, 1, "Fitting data transform... ")
   n := len(data)
-  m := data[0].Dim()
+  m := data[0].Dim() - 1
+  mu    := []float64{}
+  sigma := []float64{}
   if config.Cooccurrence {
-    m = CoeffIndex(m-1).Dim() + 1
+    mu    = make([]float64, CoeffIndex(m).Dim()+1)
+    sigma = make([]float64, CoeffIndex(m).Dim()+1)
+  } else {
+    mu    = make([]float64, m+1)
+    sigma = make([]float64, m+1)
   }
-  mu    := make([]float64, m)
-  sigma := make([]float64, m)
   // compute mu
   for i := 0; i < n; i++ {
     it := data[i].ConstIterator()
@@ -71,10 +75,10 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
       }
     }
   }
-  for j := 1; j < m; j++ {
+  for j := 1; j < len(mu); j++ {
     mu[j] /= float64(n)
   }
-  k := make([]int, m)
+  k := make([]int, len(mu))
   // compute sigma
   for i := 0; i < n; i++ {
     it := data[i].ConstIterator()
@@ -104,10 +108,10 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
       }
     }
   }
-  for j := 1; j < m; j++ {
+  for j := 1; j < len(sigma); j++ {
     sigma[j] += float64(n-k[j])*mu[j]*mu[j]
   }
-  for j := 1; j < m; j++ {
+  for j := 1; j < len(sigma); j++ {
     if sigma[j] == 0.0 {
       sigma[j] = 1.0
     } else {
@@ -248,6 +252,9 @@ func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
 }
 
 func (obj Transform) Apply(config Config, data []ConstVector) {
+  if len(data) == 0 {
+    return
+  }
   if len(obj.Mu) != len(obj.Sigma) {
     panic("internal error")
   }
