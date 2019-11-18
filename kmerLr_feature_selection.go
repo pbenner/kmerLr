@@ -82,7 +82,7 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
       c        += 1
     }
   }
-  l    := obj.computeLambda(b, g, i)
+  l    := obj.computeLambda(b, g)
   k, f := obj.selectKmers(b)
   tr   := obj.Transform.Select(b)
   return featureSelection{obj, k, f, t, tr, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
@@ -90,9 +90,19 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) computeLambda(b []bool, g []float64, i []int) float64 {
-  if len(g) > obj.N {
-    return (math.Abs(g[obj.N-1]) + math.Abs(g[obj.N]))/2.0
+func (obj featureSelector) computeLambda(b []bool, g []float64) float64 {
+  v := 0.0
+  if obj.N <= len(g) {
+    v = math.Abs(g[obj.N-1])
+  }
+  w := v
+  for k := obj.N; k < len(g); k++ {
+    if t := math.Abs(g[k]); t < w {
+      w = t; break
+    }
+  }
+  if v != w {
+    return (v+w)/2.0
   } else {
     return 0.0
   }

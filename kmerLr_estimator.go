@@ -92,7 +92,7 @@ func (obj *KmerLrEstimator) n_params(config Config) int {
 
 func (obj *KmerLrEstimator) estimate_debug(config Config, data_train []ConstVector, labels []bool) *KmerLr {
   theta := obj.Theta.GetValues()
-  gamma := 0.001
+  gamma := 0.0001
   lr1   := logisticRegression{theta, obj.ClassWeights, 0.0      , false, config.Pool}
   lr2   := logisticRegression{theta, obj.ClassWeights, obj.L1Reg, false, config.Pool}
   for i := 0; i < 10000; i++ {
