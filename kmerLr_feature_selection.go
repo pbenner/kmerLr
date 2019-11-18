@@ -23,6 +23,7 @@ import   "math"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
+import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
 
@@ -35,11 +36,12 @@ type featureSelector struct {
   Cooccurrence    bool
   N               int
   Epsilon         float64
+  Pool            threadpool.ThreadPool
 }
 
 /* -------------------------------------------------------------------------- */
 
-func newFeatureSelector(kmers KmerClassList, cooccurrence bool, labels []bool, transform TransformFull, class_weights [2]float64, n int, epsilon float64) featureSelector {
+func newFeatureSelector(config Config, kmers KmerClassList, cooccurrence bool, labels []bool, transform TransformFull, class_weights [2]float64, n int, epsilon float64) featureSelector {
   m := make(map[KmerClassId]int)
   for i := 0; i < len(kmers); i++ {
     m[kmers[i].KmerClassId] = i
@@ -52,7 +54,8 @@ func newFeatureSelector(kmers KmerClassList, cooccurrence bool, labels []bool, t
     ClassWeights: class_weights,
     Cooccurrence: cooccurrence,
     N           : n,
-    Epsilon     : epsilon }
+    Epsilon     : epsilon,
+    Pool        : config.Pool }
   return r
 }
 
@@ -128,6 +131,7 @@ func (obj featureSelector) gradient(data []ConstVector, theta []float64) []float
   lr.Theta        = theta
   lr.ClassWeights = obj.ClassWeights
   lr.Cooccurrence = obj.Cooccurrence
+  lr.Pool         = obj.Pool
   return lr.Gradient(nil, data, obj.Labels, nil)
 }
 
@@ -184,46 +188,20 @@ func (obj featureSelection) Theta() DenseBareRealVector {
 }
 
 func (obj featureSelection) Data(config Config, data_dst, data []ConstVector) {
-  k := make([]int, len(obj.b))
-  m := len(obj.featureSelector.Kmers)
-  // n := len(obj.featureSelector.Kmers) + 1
-  // if obj.Cooccurrence {
-  //   n = CoeffIndex(m).Dim()
-  // }
+  k := []int{}
   // remap data indices
-  for i, j := 0, 0; j < len(obj.b); j++ {
+  for j := 0; j < len(obj.b); j++ {
     if obj.b[j] {
-      k[j] =  i
-      i   +=  1
-    } else {
-      k[j] = -1
+      k = append(k, j)
     }
   }
   for i_ := 0; i_ < len(data); i_++ {
     i := []int    {}
     v := []float64{}
-    for it := data[i_].ConstIterator(); it.Ok(); it.Next() {
-      if j := it.Index(); obj.b[j] {
-        i = append(i, k[j])
-        v = append(v, it.GetValue())
-      }
-    }
-    if obj.Cooccurrence {
-      it1 := data[i_].ConstIterator()
-      // skip first element
-      it1.Next()
-      for ; it1.Ok(); it1.Next() {
-        it2 := it1.CloneConstIterator()
-        it2.Next()
-        for ; it2.Ok(); it2.Next() {
-          i1 := it1.Index()-1
-          i2 := it2.Index()-1
-          j  := CoeffIndex(m).Ind2Sub(i1, i2)
-          if obj.b[j] {
-            i = append(i, k[j])
-            v = append(v, it1.GetValue()*it2.GetValue())
-          }
-        }
+    for j1, j2 := range k {
+      if value := data[i_].ValueAt(j2); value != 0.0 {
+        i = append(i, j1)
+        v = append(v, value)
       }
     }
     // resize slice and restrict capacity

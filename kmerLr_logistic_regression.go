@@ -23,6 +23,7 @@ import   "math"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/logarithmetic"
+import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
 
@@ -31,6 +32,7 @@ type logisticRegression struct {
   ClassWeights [2]float64
   Lambda          float64
   Cooccurrence    bool
+  Pool            threadpool.ThreadPool
 }
 
 /* -------------------------------------------------------------------------- */
@@ -67,22 +69,27 @@ func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, gamma []float
           i1 := i[j1]-1
           i2 := i[j2]-1
           j  := CoeffIndex(n).Ind2Sub(i1, i2)
-          r += float64(v[j1]*v[j2])/gamma[j]*obj.Theta[j]
+          r  += v[j1]*v[j2]/gamma[j]*obj.Theta[j]
         }
       }
     }
   } else {
     for j := 1; j < q; j++ {
-      r += float64(v[j])*obj.Theta[i[j]]
+      r += v[j]*obj.Theta[i[j]]
     }
     if obj.Cooccurrence {
-      for j1 := 1; j1 < q; j1++ {
+      s := make([]float64, q)
+      obj.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
         for j2 := j1+1; j2 < q; j2++ {
           i1 := i[j1]-1
           i2 := i[j2]-1
           j  := CoeffIndex(n).Ind2Sub(i1, i2)
-          r += float64(v[j1]*v[j2])*obj.Theta[j]
+          s[j1] += v[j1]*v[j2]*obj.Theta[j]
         }
+        return nil
+      })
+      for i := 1; i < q; i++ {
+        r += s[i]
       }
     }
   }
@@ -101,55 +108,43 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
   if len(data) == 0 {
     return nil
   }
-  n := len(data)
-  m := data[0].Dim()-1
   if len(g) == 0 {
-    if obj.Cooccurrence {
-      g = make([]float64, CoeffIndex(m).Dim())
-    } else {
-      g = make([]float64, m+1)
-    }
+    g = make([]float64, len(obj.Theta))
   } else {
-    if obj.Cooccurrence {
-      if len(g) != CoeffIndex(m).Dim() {
-        panic("internal error")
-      }
-    } else {
-      if len(g) != m+1 {
-        panic("internal error")
-      }
+    if len(g) != len(obj.Theta) {
+      panic("internal error")
     }
     // initialize gradient
     for j, _ := range g {
       g[j] = 0
     }
   }
-  for i := 0; i < n; i++ {
+  for i_ := 0; i_ < len(data); i_++ {
     w := 0.0
-    r := obj.LogPdf(data[i].(SparseConstRealVector), gamma)
+    r := obj.LogPdf(data[i_].(SparseConstRealVector), gamma)
+    i := data[i_].(SparseConstRealVector).GetSparseIndices()
+    v := data[i_].(SparseConstRealVector).GetSparseValues ()
+    n := data[i_].Dim()-1
+    q := len(i)
 
-    if labels[i] {
+    if labels[i_] {
       w = obj.ClassWeights[1]*(math.Exp(r) - 1.0)
     } else {
       w = obj.ClassWeights[0]*(math.Exp(r))
     }
-    for it := data[i].ConstIterator(); it.Ok(); it.Next() {
-      g[it.Index()] += w*it.GetValue()
+    for j := 1; j < q; j++ {
+      g[i[j]] += w*v[j]
     }
     if obj.Cooccurrence {
-      it1 := data[i].ConstIterator()
-      // skip first element
-      it1.Next()
-      for ; it1.Ok(); it1.Next() {
-        it2 := it1.CloneConstIterator()
-        it2.Next()
-        for ; it2.Ok(); it2.Next() {
-          i1 := it1.Index()-1
-          i2 := it2.Index()-1
-          j  := CoeffIndex(m).Ind2Sub(i1, i2)
-          g[j] += w*it1.GetValue()*it2.GetValue()
+      obj.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
+        for j2 := j1+1; j2 < q; j2++ {
+          i1 := i[j1]-1
+          i2 := i[j2]-1
+          j  := CoeffIndex(n).Ind2Sub(i1, i2)
+          g[j] += w*v[j1]*v[j2]
         }
-      }
+        return nil
+      })
     }
   }
   if obj.Lambda != 0.0 {

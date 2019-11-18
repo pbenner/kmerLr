@@ -93,8 +93,8 @@ func (obj *KmerLrEstimator) n_params(config Config) int {
 func (obj *KmerLrEstimator) estimate_debug(config Config, data_train []ConstVector, labels []bool) *KmerLr {
   theta := obj.Theta.GetValues()
   gamma := 0.001
-  lr1   := logisticRegression{theta, obj.ClassWeights, 0.0      , false}
-  lr2   := logisticRegression{theta, obj.ClassWeights, obj.L1Reg, false}
+  lr1   := logisticRegression{theta, obj.ClassWeights, 0.0      , false, config.Pool}
+  lr2   := logisticRegression{theta, obj.ClassWeights, obj.L1Reg, false, config.Pool}
   for i := 0; i < 10000; i++ {
     g := lr1.Gradient(nil, data_train, labels, nil)
     for k := 0; k < len(theta); k++ {
@@ -160,7 +160,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   for i, x := range data_test {
     copy_data_test [i] = x
   }
-  s := newFeatureSelector(obj.Kmers, obj.Cooccurrence, labels, transform, obj.ClassWeights, n, config.EpsilonLambda)
+  s := newFeatureSelector(config, obj.Kmers, obj.Cooccurrence, labels, transform, obj.ClassWeights, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
     // select features on the initial data set
