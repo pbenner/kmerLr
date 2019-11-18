@@ -66,13 +66,10 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   // copy all features i with theta_{i+1} != 0
   t, c, b := obj.restoreNonzero(theta, features, kmers)
   // compute gradient for selecting new features
-  g := obj.gradient(data, t)
-  i := make([]int, len(g))
-  for k, _ := range i {
-    i[k] = k
-  }
+  g_ := obj.gradient(data, t)
   // sort gradient entries with respect to absolute values
-  AbsFloatInt{g[1:], i[1:]}.SortReverse()
+  g, i := NLargestAbsFloat64(g_, 2*obj.N)
+  g_    = nil
   // add new features
   for k := 1; k < len(i); k++ {
     if c >= obj.N {
