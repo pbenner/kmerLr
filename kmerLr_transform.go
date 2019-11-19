@@ -125,6 +125,14 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
   PrintStderr(config, 1, "done\n")
 }
 
+func (obj TransformFull) Nil() bool {
+  return len(obj.Mu) == 0
+}
+
+func (obj TransformFull) Apply(value float64, j int) float64 {
+  return (value - obj.Mu[j])/obj.Sigma[j]
+}
+
 func (obj TransformFull) Equals(t Transform) bool {
   if len(obj.Mu) != len(t.Mu) {
     return false

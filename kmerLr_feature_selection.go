@@ -135,7 +135,8 @@ func (obj featureSelector) gradient(data []ConstVector, theta []float64) []float
   lr.ClassWeights = obj.ClassWeights
   lr.Cooccurrence = obj.Cooccurrence
   lr.Pool         = obj.Pool
-  return lr.Gradient(nil, data, obj.Labels, nil)
+  lr.Transform    = obj.Transform
+  return lr.Gradient(nil, data, obj.Labels)
 }
 
 func (obj featureSelector) selectKmers(b []bool) (KmerClassList, FeatureIndices) {

@@ -77,7 +77,7 @@ func (obj *KmerLr) Loss(config Config, data []ConstVector, c []bool) float64 {
     lr.ClassWeights[0] = 1.0
     lr.ClassWeights[1] = 1.0
   }
-  return lr.Loss(data, c, nil)
+  return lr.Loss(data, c)
 }
 
 /* -------------------------------------------------------------------------- */

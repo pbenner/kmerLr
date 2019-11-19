@@ -32,6 +32,9 @@ type logisticRegression struct {
   ClassWeights [2]float64
   Lambda          float64
   Cooccurrence    bool
+  // apply transform on the fly because training data
+  // does not include co-occurrences
+  Transform       TransformFull
   Pool            threadpool.ThreadPool
 }
 
@@ -41,7 +44,7 @@ func (obj logisticRegression) Dim() int {
   return len(obj.Theta)-1
 }
 
-func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, gamma []float64, y bool) float64 {
+func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, y bool) float64 {
   i := x.GetSparseIndices()
   v := x.GetSparseValues ()
   n := x.Dim()-1
@@ -59,21 +62,7 @@ func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, gamma []float
       panic("internal error")
     }
   }
-  if gamma != nil {
-    for j := 1; j < q; j++ {
-      r += float64(v[j])/gamma[i[j]]*obj.Theta[i[j]]
-    }
-    if obj.Cooccurrence {
-      for j1 := 1; j1 < q; j1++ {
-        for j2 := j1+1; j2 < q; j2++ {
-          i1 := i[j1]-1
-          i2 := i[j2]-1
-          j  := CoeffIndex(n).Ind2Sub(i1, i2)
-          r  += v[j1]*v[j2]/gamma[j]*obj.Theta[j]
-        }
-      }
-    }
-  } else {
+  if obj.Transform.Nil() {
     for j := 1; j < q; j++ {
       r += v[j]*obj.Theta[i[j]]
     }
@@ -92,6 +81,25 @@ func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, gamma []float
         r += s[i]
       }
     }
+  } else {
+    for j := 1; j < q; j++ {
+      r += obj.Transform.Apply(v[j], i[j])*obj.Theta[i[j]]
+    }
+    if obj.Cooccurrence {
+      s := make([]float64, q)
+      obj.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
+        for j2 := j1+1; j2 < q; j2++ {
+          i1 := i[j1]-1
+          i2 := i[j2]-1
+          j  := CoeffIndex(n).Ind2Sub(i1, i2)
+          s[j1] += obj.Transform.Apply(v[j1]*v[j2], j)*obj.Theta[j]
+        }
+        return nil
+      })
+      for i := 1; i < q; i++ {
+        r += s[i]
+      }
+    }
   }
   if y {
     return -LogAdd(0.0, -r)
@@ -100,11 +108,11 @@ func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, gamma []float
   }
 }
 
-func (obj logisticRegression) LogPdf(v SparseConstRealVector, gamma []float64) float64 {
-  return obj.ClassLogPdf(v, gamma, true)
+func (obj logisticRegression) LogPdf(v SparseConstRealVector) float64 {
+  return obj.ClassLogPdf(v, true)
 }
 
-func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels []bool, gamma []float64) []float64 {
+func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels []bool) []float64 {
   if len(data) == 0 {
     return nil
   }
@@ -121,7 +129,7 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
   }
   for i_ := 0; i_ < len(data); i_++ {
     w := 0.0
-    r := obj.LogPdf(data[i_].(SparseConstRealVector), gamma)
+    r := obj.LogPdf(data[i_].(SparseConstRealVector))
     i := data[i_].(SparseConstRealVector).GetSparseIndices()
     v := data[i_].(SparseConstRealVector).GetSparseValues ()
     n := data[i_].Dim()-1
@@ -132,19 +140,36 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
     } else {
       w = obj.ClassWeights[0]*(math.Exp(r))
     }
-    for j := 0; j < q; j++ {
-      g[i[j]] += w*v[j]
-    }
-    if obj.Cooccurrence {
-      obj.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
-        for j2 := j1+1; j2 < q; j2++ {
-          i1 := i[j1]-1
-          i2 := i[j2]-1
-          j  := CoeffIndex(n).Ind2Sub(i1, i2)
-          g[j] += w*v[j1]*v[j2]
-        }
-        return nil
-      })
+    if obj.Transform.Nil() {
+      for j := 0; j < q; j++ {
+        g[i[j]] += w*v[j]
+      }
+      if obj.Cooccurrence {
+        obj.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
+          for j2 := j1+1; j2 < q; j2++ {
+            i1 := i[j1]-1
+            i2 := i[j2]-1
+            j  := CoeffIndex(n).Ind2Sub(i1, i2)
+            g[j] += w*v[j1]*v[j2]
+          }
+          return nil
+        })
+      }
+    } else {
+      for j := 0; j < q; j++ {
+        g[i[j]] += w*obj.Transform.Apply(v[j], i[j])
+      }
+      if obj.Cooccurrence {
+        obj.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
+          for j2 := j1+1; j2 < q; j2++ {
+            i1 := i[j1]-1
+            i2 := i[j2]-1
+            j  := CoeffIndex(n).Ind2Sub(i1, i2)
+            g[j] += w*obj.Transform.Apply(v[j1]*v[j2], j)
+          }
+          return nil
+        })
+      }
     }
   }
   if obj.Lambda != 0.0 {
@@ -160,7 +185,7 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
   return g
 }
 
-func (obj logisticRegression) Loss(data []ConstVector, c []bool, gamma []float64) float64 {
+func (obj logisticRegression) Loss(data []ConstVector, c []bool) float64 {
   if len(data) == 0 {
     return 0.0
   }
@@ -170,9 +195,9 @@ func (obj logisticRegression) Loss(data []ConstVector, c []bool, gamma []float64
 
   for i := 0; i < n; i++ {
     if c[i] {
-      r -= obj.ClassWeights[1]*obj.ClassLogPdf(data[i].(SparseConstRealVector), gamma, c[i])
+      r -= obj.ClassWeights[1]*obj.ClassLogPdf(data[i].(SparseConstRealVector), c[i])
     } else {
-      r -= obj.ClassWeights[0]*obj.ClassLogPdf(data[i].(SparseConstRealVector), gamma, c[i])
+      r -= obj.ClassWeights[0]*obj.ClassLogPdf(data[i].(SparseConstRealVector), c[i])
     }
   }
   if obj.Lambda != 0.0 {

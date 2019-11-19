@@ -38,7 +38,7 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool,
     lr.Theta        = x.GetValues()
     lr.Lambda       = lambda.GetValue()
     lr.ClassWeights = estimator.ClassWeights
-    return lr.Loss(data, c, nil)
+    return lr.Loss(data, c)
   }
   t := time.Now()
   s := time.Now()

@@ -93,10 +93,10 @@ func (obj *KmerLrEstimator) n_params(config Config) int {
 func (obj *KmerLrEstimator) estimate_debug(config Config, data_train []ConstVector, labels []bool) *KmerLr {
   theta := obj.Theta.GetValues()
   gamma := 0.0001
-  lr1   := logisticRegression{theta, obj.ClassWeights, 0.0      , false, config.Pool}
-  lr2   := logisticRegression{theta, obj.ClassWeights, obj.L1Reg, false, config.Pool}
+  lr1   := logisticRegression{theta, obj.ClassWeights, 0.0      , false, TransformFull{}, config.Pool}
+  lr2   := logisticRegression{theta, obj.ClassWeights, obj.L1Reg, false, TransformFull{}, config.Pool}
   for i := 0; i < 10000; i++ {
-    g := lr1.Gradient(nil, data_train, labels, nil)
+    g := lr1.Gradient(nil, data_train, labels)
     for k := 0; k < len(theta); k++ {
       theta[k] = theta[k] - gamma*g[k]
       if k > 0 {
@@ -107,7 +107,7 @@ func (obj *KmerLrEstimator) estimate_debug(config Config, data_train []ConstVect
         }
       }
     }
-    PrintStderr(config, 2, "loss: %f\n", lr2.Loss(data_train, labels, nil))
+    PrintStderr(config, 2, "loss: %f\n", lr2.Loss(data_train, labels))
   }
   obj.Theta = NewDenseBareRealVector(theta)
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
