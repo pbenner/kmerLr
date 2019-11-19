@@ -91,6 +91,10 @@ func learn(config Config, filename_json, filename_fg, filename_bg, basename_out 
   if !config.NoNormalization {
     t.Fit(config, data)
   }
+  // create index for sparse data
+  for i, _ := range data {
+    data[i].(SparseConstRealVector).CreateIndex()
+  }
   if config.KFoldCV <= 1 {
     learn_parameters(config, data, nil, labels, classifier, kmers, features, t, -1, basename_out)
   } else {
