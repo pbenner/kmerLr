@@ -69,7 +69,6 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   g_ := obj.gradient(data, t)[1:]
   // sort gradient entries with respect to absolute values
   g, i := NLargestAbsFloat64(g_, 2*obj.N)
-  g_    = nil
   // add new features
   for k := 0; k < len(i); k++ {
     if c >= obj.N {
@@ -82,7 +81,7 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
       c        += 1
     }
   }
-  l    := obj.computeLambda(b, g)
+  l    := obj.computeLambda(b, g, g_)
   k, f := obj.selectKmers(b)
   tr   := obj.Transform.Select(b)
   return featureSelection{obj, k, f, t, tr, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
@@ -90,22 +89,19 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) computeLambda(b []bool, g []float64) float64 {
-  v := 0.0
-  if obj.N <= len(g) {
-    v = math.Abs(g[obj.N-1])
-  }
-  w := v
-  for k := obj.N; k < len(g); k++ {
-    if t := math.Abs(g[k]); t < w {
-      w = t; break
-    }
-  }
-  if v != w {
-    return (v+w)/2.0
-  } else {
+func (obj featureSelector) computeLambda(b []bool, g, g_ []float64) float64 {
+  if obj.N > len(g) {
     return 0.0
   }
+  v := math.Abs(g[obj.N-1])
+  w := 0.0
+  // loop over unsorted gradient
+  for k := 0; k < len(g_); k++ {
+    if t := math.Abs(g_[k]); t > w && t < v {
+      w = t
+    }
+  }
+  return w
 }
 
 func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndices, kmers KmerClassList) ([]float64, int, []bool) {
