@@ -101,7 +101,7 @@ func (obj featureSelector) computeLambda(b []bool, g, g_ []float64) float64 {
       w = t
     }
   }
-  return w
+  return (v+w)/2.0
 }
 
 func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndices, kmers KmerClassList) ([]float64, int, []bool) {
