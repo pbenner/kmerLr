@@ -47,6 +47,11 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool,
     n := 0
     if config.EvalLoss {
       loss_new = loss(x, lambda)
+      if loss_new > loss_old {
+        fmt.Printf("Warning: optimization algorithm is oscillating, decresing step size...\n")
+        gamma := estimator.GetStepSize()
+        estimator.SetStepSize(gamma/2.0)
+      }
     }
     for it := x.ConstIterator(); it.Ok(); it.Next() {
       if it.GetValue() != 0.0 {
