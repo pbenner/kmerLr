@@ -119,7 +119,7 @@ func (obj *KmerLr) JoinTransforms(classifiers []*KmerLr) error {
   if len(classifiers) == 0 || classifiers[0].Transform.Nil() {
     return nil
   }
-  obj.Transform = NewTransform(classifiers[0].Transform.Dim())
+  obj.Transform = NewTransform(len(obj.Features)+1)
   for _, classifier := range classifiers {
     if err := obj.Transform.Insert(classifier.Transform, obj.Features, classifier.Features, obj.Kmers, classifier.Kmers); err != nil {
       return err
