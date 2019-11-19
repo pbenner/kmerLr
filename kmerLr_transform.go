@@ -24,6 +24,7 @@ import   "math"
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import . "github.com/pbenner/gonetics"
+import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
 
@@ -40,7 +41,7 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
   }
   PrintStderr(config, 1, "Fitting data transform... ")
   n := len(data)
-  m := data[0].Dim() - 1
+  m := data[0].Dim()-1
   mu    := []float64{}
   sigma := []float64{}
   if config.Cooccurrence {
@@ -51,71 +52,69 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
     sigma = make([]float64, m+1)
   }
   // compute mu
-  for i := 0; i < n; i++ {
-    it := data[i].ConstIterator()
-    // skip first element
-    it.Next()
-    for ; it.Ok(); it.Next() {
-      j := it.Index()
-      mu[j] += it.GetValue()
+  for i_ := 0; i_ < n; i_++ {
+    if data[i_].Dim() != m+1 {
+      panic("internal error")
+    }
+    i := data[i_].(SparseConstRealVector).GetSparseIndices()
+    v := data[i_].(SparseConstRealVector).GetSparseValues ()
+    q := len(i)
+
+    for j := 1; j < q; j++ {
+      mu[i[j]] += v[j]
     }
     if config.Cooccurrence {
-      it1 := data[i].ConstIterator()
-      // skip first element
-      it1.Next()
-      for ; it1.Ok(); it1.Next() {
-        it2 := it1.CloneConstIterator()
-        it2.Next()
-        for ; it2.Ok(); it2.Next() {
-          i1 := it1.Index()-1
-          i2 := it2.Index()-1
-          j  := CoeffIndex(m).Ind2Sub(i1, i2)
-          mu[j] += it1.GetValue()*it2.GetValue()
+      config.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
+        for j2 := j1+1; j2 < q; j2++ {
+          i1    := i[j1]-1
+          i2    := i[j2]-1
+          j     := CoeffIndex(m).Ind2Sub(i1, i2)
+          mu[j] += v[j1]*v[j2]
         }
-      }
+        return nil
+      })
     }
   }
+  // normalize mean (probably less floating point operations if normalization is here)
   for j := 1; j < len(mu); j++ {
     mu[j] /= float64(n)
   }
   k := make([]int, len(mu))
   // compute sigma
-  for i := 0; i < n; i++ {
-    it := data[i].ConstIterator()
-    // skip first element
-    it.Next()
-    for ; it.Ok(); it.Next() {
-      j := it.Index()
-      v := it.GetValue()
-      k    [j] += 1
-      sigma[j] += (v-mu[j])*(v-mu[j])
+  for i_ := 0; i_ < n; i_++ {
+    if data[i_].Dim() != m+1 {
+      panic("internal error")
+    }
+    i := data[i_].(SparseConstRealVector).GetSparseIndices()
+    v := data[i_].(SparseConstRealVector).GetSparseValues ()
+    q := len(i)
+
+    for j := 1; j < q; j++ {
+      j_        := i[j]
+      k    [j_] += 1
+      sigma[j_] += (v[j]-mu[j_])*(v[j]-mu[j_])
     }
     if config.Cooccurrence {
-      it1 := data[i].ConstIterator()
-      // skip first element
-      it1.Next()
-      for ; it1.Ok(); it1.Next() {
-        it2 := it1.CloneConstIterator()
-        it2.Next()
-        for ; it2.Ok(); it2.Next() {
-          i1 := it1.Index()-1
-          i2 := it2.Index()-1
+      config.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
+        for j2 := j1+1; j2 < q; j2++ {
+          i1 := i[j1]-1
+          i2 := i[j2]-1
           j  := CoeffIndex(m).Ind2Sub(i1, i2)
-          v  := it1.GetValue()*it2.GetValue()
           k    [j] += 1
-          sigma[j] += (v-mu[j])*(v-mu[j])
+          sigma[j] += (v[j1]*v[j2]-mu[j])*(v[j1]*v[j2]-mu[j])
         }
-      }
+        return nil
+      })
     }
   }
   for j := 1; j < len(sigma); j++ {
-    sigma[j] += float64(n-k[j])*mu[j]*mu[j]
-  }
-  for j := 1; j < len(sigma); j++ {
-    if sigma[j] == 0.0 {
+    // account for zero entries
+    sj := sigma[j] + float64(n-k[j])*mu[j]*mu[j]
+    // compute standard deviation
+    if sj == 0.0 {
       sigma[j] = 1.0
     } else {
-      sigma[j] = math.Sqrt(sigma[j]/float64(n))
+      sigma[j] = math.Sqrt(sj/float64(n))
     }
   }
   mu   [0]  = 0.0
