@@ -91,11 +91,6 @@ func NewHook(config Config, trace *Trace, icv int, data []ConstVector, c []bool,
       fmt.Println()
     }
     t = time.Now()
-    if trace != nil && config.EpsilonVar != 0.0 {
-      if r := trace.CompVar(10); r < config.EpsilonVar {
-        return true
-      }
-    }
     if estimator.EpsilonLoss == 0.0 {
       return false
     } else {

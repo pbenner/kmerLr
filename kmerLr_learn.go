@@ -35,7 +35,7 @@ import   "github.com/pborman/getopt"
 func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t TransformFull, icv int, basename_out string) *KmerLr {
   // hook and trace
   var trace *Trace
-  if config.SaveTrace || config.EpsilonVar != 0.0 {
+  if config.SaveTrace {
     trace = &Trace{}
   }
 
@@ -118,10 +118,9 @@ func main_learn(config Config, args []string) {
   optMaxAmbiguous    := options. StringLong("max-ambiguous",    0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
   optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
   optMaxIterations   := options.    IntLong("max-iterations",   0 ,            0, "maximum number of iterations")
-  optEpsilon         := options. StringLong("epsilon",          0 ,       "1e-4", "optimization tolerance level for parameters")
+  optEpsilon         := options. StringLong("epsilon",          0 ,       "0e-0", "optimization tolerance level for parameters")
   optEpsilonLambda   := options. StringLong("epsilon-lambda",   0 ,       "0e-0", "optimization tolerance level for lambda parameter")
-  optEpsilonLoss     := options. StringLong("epsilon-loss",     0 ,       "0e-0", "optimization tolerance level for loss function")
-  optEpsilonVar      := options. StringLong("epsilon-var",      0 ,       "0e-0", "optimization tolerance level for variance of the number of components")
+  optEpsilonLoss     := options. StringLong("epsilon-loss",     0 ,       "1e-5", "optimization tolerance level for loss function")
   optSaveTrace       := options.   BoolLong("save-trace",       0 ,               "save trace to file")
   optEvalLoss        := options.   BoolLong("eval-loss",        0 ,               "evaluate loss function after each epoch")
   optNoNormalization := options.   BoolLong("no-normalization", 0 ,               "do not normalize data")
@@ -190,11 +189,6 @@ func main_learn(config Config, args []string) {
     log.Fatal(err)
   } else {
     config.EpsilonLoss = s
-  }
-  if s, err := strconv.ParseFloat(*optEpsilonVar, 64); err != nil {
-    log.Fatal(err)
-  } else {
-    config.EpsilonVar = s
   }
   if v, err := strconv.ParseFloat(*optScaleStepSize, 64); err != nil {
     log.Fatal(err)
