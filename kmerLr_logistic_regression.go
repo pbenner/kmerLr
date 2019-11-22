@@ -68,12 +68,14 @@ func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, y bool) float
     }
     if obj.Cooccurrence {
       s := make([]float64, q)
-      obj.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
-        for j2 := j1+1; j2 < q; j2++ {
-          i1 := i[j1]-1
-          i2 := i[j2]-1
-          j  := CoeffIndex(n).Ind2Sub(i1, i2)
-          s[j1] += v[j1]*v[j2]*obj.Theta[j]
+      obj.Pool.RangeJob_(1, q, func(jFrom, jTo int, pool threadpool.ThreadPool, erf func() error) error {
+        for j1 := jFrom; j1 < jTo; j1++ {
+          for j2 := j1+1; j2 < q; j2++ {
+            i1 := i[j1]-1
+            i2 := i[j2]-1
+            j  := CoeffIndex(n).Ind2Sub(i1, i2)
+            s[j1] += v[j1]*v[j2]*obj.Theta[j]
+          }
         }
         return nil
       })
@@ -87,12 +89,14 @@ func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, y bool) float
     }
     if obj.Cooccurrence {
       s := make([]float64, q)
-      obj.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
-        for j2 := j1+1; j2 < q; j2++ {
-          i1 := i[j1]-1
-          i2 := i[j2]-1
-          j  := CoeffIndex(n).Ind2Sub(i1, i2)
-          s[j1] += obj.Transform.Apply(v[j1]*v[j2], j)*obj.Theta[j]
+      obj.Pool.RangeJob_(1, q, func(jFrom, jTo int, pool threadpool.ThreadPool, erf func() error) error {
+        for j1 := jFrom; j1 < jTo; j1++ {
+          for j2 := j1+1; j2 < q; j2++ {
+            i1 := i[j1]-1
+            i2 := i[j2]-1
+            j  := CoeffIndex(n).Ind2Sub(i1, i2)
+            s[j1] += obj.Transform.Apply(v[j1]*v[j2], j)*obj.Theta[j]
+          }
         }
         return nil
       })
@@ -145,12 +149,14 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
         g[i[j]] += w*v[j]
       }
       if obj.Cooccurrence {
-        obj.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
-          for j2 := j1+1; j2 < q; j2++ {
-            i1 := i[j1]-1
-            i2 := i[j2]-1
-            j  := CoeffIndex(n).Ind2Sub(i1, i2)
-            g[j] += w*v[j1]*v[j2]
+        obj.Pool.RangeJob_(1, q, func(jFrom, jTo int, pool threadpool.ThreadPool, erf func() error) error {
+          for j1 := jFrom; j1 < jTo; j1++ {
+            for j2 := j1+1; j2 < q; j2++ {
+              i1 := i[j1]-1
+              i2 := i[j2]-1
+              j  := CoeffIndex(n).Ind2Sub(i1, i2)
+              g[j] += w*v[j1]*v[j2]
+            }
           }
           return nil
         })
@@ -160,12 +166,14 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
         g[i[j]] += w*obj.Transform.Apply(v[j], i[j])
       }
       if obj.Cooccurrence {
-        obj.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
-          for j2 := j1+1; j2 < q; j2++ {
-            i1 := i[j1]-1
-            i2 := i[j2]-1
-            j  := CoeffIndex(n).Ind2Sub(i1, i2)
-            g[j] += w*obj.Transform.Apply(v[j1]*v[j2], j)
+        obj.Pool.RangeJob_(1, q, func(jFrom, jTo int, pool threadpool.ThreadPool, erf func() error) error {
+          for j1 := jFrom; j1 < jTo; j1++ {
+            for j2 := j1+1; j2 < q; j2++ {
+              i1 := i[j1]-1
+              i2 := i[j2]-1
+              j  := CoeffIndex(n).Ind2Sub(i1, i2)
+              g[j] += w*obj.Transform.Apply(v[j1]*v[j2], j)
+            }
           }
           return nil
         })
