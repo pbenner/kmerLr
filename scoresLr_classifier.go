@@ -161,6 +161,9 @@ func (obj *ScoresLr) Min(classifiers []*ScoresLr) error {
 /* -------------------------------------------------------------------------- */
 
 func (obj *ScoresLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
+  if config.Name != "scoresLr" {
+    return fmt.Errorf("wrong classifier type")
+  }
   if len(config.Distributions) != 2 {
     return fmt.Errorf("invalid config file")
   }

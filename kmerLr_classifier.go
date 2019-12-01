@@ -161,6 +161,9 @@ func (obj *KmerLr) Min(classifiers []*KmerLr) error {
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
+  if config.Name != "kmerLr" {
+    return fmt.Errorf("wrong classifier type")
+  }
   if len(config.Distributions) != 2 {
     return fmt.Errorf("invalid config file")
   }
