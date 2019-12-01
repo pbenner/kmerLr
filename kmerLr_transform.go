@@ -228,6 +228,34 @@ func (t1 Transform) Insert(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
   return nil
 }
 
+func (t1 Transform) InsertScores(t2 Transform, f1, f2 FeatureIndices) error {
+  if t1.Dim() != len(f1)+1 {
+    panic("internal error")
+  }
+  if t2.Dim() != len(f2)+1 {
+    panic("internal error")
+  }
+  // create index
+  m := make(map[[2]int]int)
+  for i, feature := range f1 {
+    m[feature] = i
+  }
+  for j, feature := range f2 {
+    // insert only if feature is present in target transform
+    if i, ok := m[feature]; ok {
+      if t1.Mu[i+1] == 0.0 {
+        t1.Mu[i+1] = t2.Mu[j+1]
+      } else
+      if t2.Mu[j+1] != 0.0 {
+        if math.Abs(t1.Mu[i+1] - t2.Mu[j+1]) > 1e-12 {
+          fmt.Errorf("joining transforms failed: transforms are incompatible")
+        }
+      }
+    }
+  }
+  return nil
+}
+
 func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClassList) bool {
   // compare mu
   m := make(map[[2]KmerClassId]float64)
