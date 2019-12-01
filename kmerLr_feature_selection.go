@@ -35,25 +35,27 @@ type featureSelector struct {
   Transform       TransformFull
   Cooccurrence    bool
   N               int
+  M               int
   Epsilon         float64
   Pool            threadpool.ThreadPool
 }
 
 /* -------------------------------------------------------------------------- */
 
-func newFeatureSelector(config Config, kmers KmerClassList, cooccurrence bool, labels []bool, transform TransformFull, class_weights [2]float64, n int, epsilon float64) featureSelector {
-  m := make(map[KmerClassId]int)
+func newFeatureSelector(config Config, kmers KmerClassList, cooccurrence bool, labels []bool, transform TransformFull, class_weights [2]float64, m, n int, epsilon float64) featureSelector {
+  kmersMap := make(map[KmerClassId]int)
   for i := 0; i < len(kmers); i++ {
-    m[kmers[i].KmerClassId] = i
+    kmersMap[kmers[i].KmerClassId] = i
   }
   r := featureSelector{
     Kmers       : kmers,
-    KmersMap    : m,
+    KmersMap    : kmersMap,
     Transform   : transform,
     Labels      : labels,
     ClassWeights: class_weights,
     Cooccurrence: cooccurrence,
     N           : n,
+    M           : m,
     Epsilon     : epsilon,
     Pool        : config.Pool }
   return r
@@ -62,6 +64,9 @@ func newFeatureSelector(config Config, kmers KmerClassList, cooccurrence bool, l
 /* -------------------------------------------------------------------------- */
 
 func (obj featureSelector) Select(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, lambda float64) (featureSelection, float64, bool) {
+  if obj.M != data[0].Dim()-1 {
+    panic("internal error")
+  }
   ok := false
   // copy all features i with theta_{i+1} != 0
   t, c, b := obj.restoreNonzero(theta, features, kmers)
@@ -108,7 +113,7 @@ func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndic
   t := []float64(nil)
   b := []bool   (nil)
   c := 0
-  m := len(obj.Kmers)
+  m := obj.M
   if obj.Cooccurrence {
     t = make([]float64, CoeffIndex(m).Dim())
     b = make([]bool   , CoeffIndex(m).Dim())
@@ -142,9 +147,9 @@ func (obj featureSelector) gradient(data []ConstVector, theta []float64) []float
 func (obj featureSelector) selectKmers(b []bool) (KmerClassList, FeatureIndices) {
   r := KmerClassList{}
   f := FeatureIndices{}
-  m := len(obj.Kmers)
-  z := make([]bool, len(obj.Kmers))
-  i := make([]int , len(obj.Kmers))
+  m := obj.M
+  z := make([]bool, m)
+  i := make([]int , m)
   for j := 1; j < len(b); j++ {
     if b[j] {
       i1, i2 := CoeffIndex(m).Sub2Ind(j-1)
@@ -152,7 +157,7 @@ func (obj featureSelector) selectKmers(b []bool) (KmerClassList, FeatureIndices)
       z[i2] = true
     }
   }
-  for k := 0; k < len(obj.Kmers); k++ {
+  for k := 0; k < m; k++ {
     if z[k] {
       i[k] = len(r)
       r    = append(r, obj.Kmers[k])

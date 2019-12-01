@@ -76,14 +76,17 @@ func (obj *KmerLrEstimator) CloneVectorEstimator() VectorEstimator {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) n_params(config Config) int {
-  if config.LambdaAuto != 0 {
-    return config.LambdaAuto
+func (obj *KmerLrEstimator) n_params(config Config, data []ConstVector) (int, int) {
+  if len(obj.Kmers) != data[0].Dim()-1 {
+    panic("internal error")
+  }
+  if m := data[0].Dim()-1; config.LambdaAuto != 0 {
+    return m, config.LambdaAuto
   } else {
-    if m := obj.Kmers.Len(); config.Cooccurrence {
-      return CoeffIndex(m).Dim()
+    if config.Cooccurrence {
+      return m, CoeffIndex(m).Dim()
     } else {
-      return m
+      return m, m
     }
   }
 }
@@ -148,7 +151,10 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, la
 }
 
 func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull) *KmerLr {
-  n := obj.n_params(config)
+  if len(data_train) == 0 {
+    return nil
+  }
+  m, n := obj.n_params(config, data_train)
   // compute class weights
   obj.LogisticRegression.SetLabels(labels)
   // create a copy of data arrays, from which to select subsets
@@ -160,7 +166,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   for i, x := range data_test {
     copy_data_test [i] = x
   }
-  s := newFeatureSelector(config, obj.Kmers, obj.Cooccurrence, labels, transform, obj.ClassWeights, n, config.EpsilonLambda)
+  s := newFeatureSelector(config, obj.Kmers, obj.Cooccurrence, labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
     // select features on the initial data set
