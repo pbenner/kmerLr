@@ -123,12 +123,23 @@ func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndic
   }
   b[0] = true
   t[0] = theta[0]
-  for i, feature := range features {
-    j := CoeffIndex(m).Ind2Sub(obj.KmersMap[kmers[feature[0]].KmerClassId], obj.KmersMap[kmers[feature[1]].KmerClassId])
-    if theta[i+1] != 0.0 {
-      t[j] = theta[i+1]
-      b[j] = true
-      c   += 1
+  if len(obj.Kmers) == 0 {
+    for i, feature := range features {
+      j := CoeffIndex(m).Ind2Sub(feature[0], feature[1])
+      if theta[i+1] != 0.0 {
+        t[j] = theta[i+1]
+        b[j] = true
+        c   += 1
+      }
+    }
+  } else {
+    for i, feature := range features {
+      j := CoeffIndex(m).Ind2Sub(obj.KmersMap[kmers[feature[0]].KmerClassId], obj.KmersMap[kmers[feature[1]].KmerClassId])
+      if theta[i+1] != 0.0 {
+        t[j] = theta[i+1]
+        b[j] = true
+        c   += 1
+      }
     }
   }
   return t, c, b
@@ -157,10 +168,12 @@ func (obj featureSelector) selectKmers(b []bool) (KmerClassList, FeatureIndices)
       z[i2] = true
     }
   }
-  for k := 0; k < m; k++ {
-    if z[k] {
-      i[k] = len(r)
-      r    = append(r, obj.Kmers[k])
+  if len(obj.Kmers) != 0 {
+    for k := 0; k < m; k++ {
+      if z[k] {
+        i[k] = len(r)
+        r    = append(r, obj.Kmers[k])
+      }
     }
   }
   for j := 1; j < len(b); j++ {
@@ -198,7 +211,7 @@ func (obj featureSelection) Theta() DenseBareRealVector {
 
 func (obj featureSelection) Data(config Config, data_dst, data []ConstVector) {
   k := []int{}
-  m := len(obj.featureSelector.Kmers)
+  m := obj.featureSelector.M
   // remap data indices
   for j := 0; j < len(obj.b); j++ {
     if obj.b[j] {
