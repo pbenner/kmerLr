@@ -27,35 +27,45 @@ import . "github.com/pbenner/gonetics"
 
 func convert_scores(config Config, scores []float64, features FeatureIndices) ConstVector {
   n := 0
-  i := []int    {0  }
-  v := []float64{1.0}
+  i := []int    {}
+  v := []float64{}
   if len(features) == 0 {
-    return AsSparseConstRealVector(NewVector(BareRealType, scores))
+    n = len(scores)+1
+    i = make([]int    , n)
+    v = make([]float64, n)
+    i[0] = 0
+    v[0] = 1.0
+    for j := 0; j < len(scores); j++ {
+      i[j+1] = j+1
+      v[j+1] = scores[j]
+    }
   } else {
     n = len(features)+1
+    i = []int    {0  }
+    v = []float64{1.0}
     for j, feature := range features {
       i1 := feature[0]
       i2 := feature[1]
       if i1 == i2 {
-        c := scores[i1]
+        c := scores[i1+1]
         if c != 0.0 {
           i = append(i, j+1)
           v = append(v, float64(c))
         }
       } else {
-        c1 := scores[i1]
-        c2 := scores[i2]
+        c1 := scores[i1+1]
+        c2 := scores[i2+1]
         if c1 != 0.0 && c2 != 0.0 {
           i = append(i, j+1)
           v = append(v, float64(c1*c2))
         }
       }
     }
-    // resize slice and restrict capacity
-    i = append([]int    {}, i[0:len(i)]...)
-    v = append([]float64{}, v[0:len(v)]...)
-    return UnsafeSparseConstRealVector(i, v, n)
   }
+  // resize slice and restrict capacity
+  i = append([]int    {}, i[0:len(i)]...)
+  v = append([]float64{}, v[0:len(v)]...)
+  return UnsafeSparseConstRealVector(i, v, n)
 }
 
 /* -------------------------------------------------------------------------- */
