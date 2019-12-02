@@ -186,11 +186,18 @@ func (obj featureSelector) selectKmers(b []bool) (KmerClassList, FeatureIndices)
         r    = append(r, obj.Kmers[k])
       }
     }
-  }
-  for j := 1; j < len(b); j++ {
-    if b[j] {
-      i1, i2 := CoeffIndex(m).Sub2Ind(j-1)
-      f = append(f, [2]int{i[i1], i[i2]})
+    for j := 1; j < len(b); j++ {
+      if b[j] {
+        i1, i2 := CoeffIndex(m).Sub2Ind(j-1)
+        f = append(f, [2]int{i[i1], i[i2]})
+      }
+    }
+  } else {
+    for j := 1; j < len(b); j++ {
+      if b[j] {
+        i1, i2 := CoeffIndex(m).Sub2Ind(j-1)
+      f = append(f, [2]int{i1, i2})
+      }
     }
   }
   return r, f
