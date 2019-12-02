@@ -25,7 +25,42 @@ import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
-func import_scores(config Config, filename string) []ConstVector {
+func convert_scores(config Config, scores []float64, features FeatureIndices) ConstVector {
+  n := 0
+  i := []int    {0  }
+  v := []float64{1.0}
+  if len(features) == 0 {
+    return AsSparseConstRealVector(NewVector(BareRealType, scores))
+  } else {
+    n = len(features)+1
+    for j, feature := range features {
+      i1 := feature[0]
+      i2 := feature[1]
+      if i1 == i2 {
+        c := scores[i1]
+        if c != 0.0 {
+          i = append(i, j+1)
+          v = append(v, float64(c))
+        }
+      } else {
+        c1 := scores[i1]
+        c2 := scores[i2]
+        if c1 != 0.0 && c2 != 0.0 {
+          i = append(i, j+1)
+          v = append(v, float64(c1*c2))
+        }
+      }
+    }
+    // resize slice and restrict capacity
+    i = append([]int    {}, i[0:len(i)]...)
+    v = append([]float64{}, v[0:len(v)]...)
+    return UnsafeSparseConstRealVector(i, v, n)
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+
+func import_scores(config Config, filename string, features FeatureIndices) []ConstVector {
   granges := GRanges{}
   PrintStderr(config, 1, "Reading pwm scores from `%s'... ", filename)  
   if err := granges.ImportTable(filename, []string{"counts"}, []string{"[][]float64"}); err != nil {
@@ -34,17 +69,20 @@ func import_scores(config Config, filename string) []ConstVector {
   }
   PrintStderr(config, 1, "done\n")
   counts := []ConstVector{}
+  if granges.Length() == 0 {
+    return counts
+  }
   for _, c := range granges.GetMeta("counts").([][]float64) {
-    counts = append(counts, AsSparseConstRealVector(NewVector(BareRealType, c)))
+    counts = append(counts, convert_scores(config, c, features))
   }
   return counts
 }
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data_scores(config Config, filename_fg, filename_bg string) ([]ConstVector, []bool) {
-  scores_fg := import_scores(config, filename_fg)
-  scores_bg := import_scores(config, filename_bg)
+func compile_training_data_scores(config Config, features FeatureIndices, filename_fg, filename_bg string) ([]ConstVector, []bool) {
+  scores_fg := import_scores(config, filename_fg, features)
+  scores_bg := import_scores(config, filename_bg, features)
   // define labels (assign foreground regions a label of 1)
   labels := make([]bool, len(scores_fg)+len(scores_bg))
   for i := 0; i < len(scores_fg); i++ {
@@ -53,6 +91,6 @@ func compile_training_data_scores(config Config, filename_fg, filename_bg string
   return append(scores_fg, scores_bg...), labels
 }
 
-func compile_test_data_scores(config Config, filename string) []ConstVector {
-  return import_scores(config, filename)
+func compile_test_data_scores(config Config, features FeatureIndices, filename string) []ConstVector {
+  return import_scores(config, filename, features)
 }

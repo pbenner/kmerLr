@@ -126,6 +126,8 @@ func main() {
     main_learn_scores(config, options.Args())
   case "loss":
     main_loss(config, options.Args())
+  case "loss-scores":
+    main_loss_scores(config, options.Args())
   case "predict":
     main_predict(config, options.Args())
   case "combine":

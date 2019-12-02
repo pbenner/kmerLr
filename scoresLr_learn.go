@@ -75,7 +75,7 @@ func learn_scores(config Config, filename_json, filename_fg, filename_bg, basena
     classifier = ImportScoresLr(&config, filename_json)
     features   = classifier.Features
   }
-  data, labels := compile_training_data_scores(config, filename_fg, filename_bg)
+  data, labels := compile_training_data_scores(config, FeatureIndices{}, filename_fg, filename_bg)
 
   t := TransformFull{}
   // estimate transform on full data set so that all estimated
