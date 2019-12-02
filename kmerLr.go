@@ -84,13 +84,15 @@ func main() {
 
   options.SetParameters("<COMMAND>\n\n" +
     " Commands:\n" +
-    "     learn        - estimate logistic regression parameters\n" +
-    "     loss         - compute logistic loss\n" +
-    "     predict      - use an estimated model to predict labels\n" +
-    "     combine      - combine estimated models\n" +
-    "     coefficients - pretty-print coefficients\n" +
-    " Commands [PWM Scores]\n" +
-    "     learn-scores - estimate logistic regression parameters\n")
+    "     learn          - estimate logistic regression parameters\n" +
+    "     loss           - compute logistic loss\n" +
+    "     predict        - use an estimated model to predict labels\n" +
+    "     combine        - combine estimated models\n" +
+    "     coefficients   - pretty-print coefficients\n" +
+    " Commands [PWM Scores]:\n" +
+    "     learn-scores   - estimate logistic regression parameters\n" +
+    "     loss-scores    - compute logistic loss\n" +
+    "     predict-scores - use an estimated model to predict labels\n")
   options.Parse(os.Args)
 
   // command options
@@ -130,6 +132,8 @@ func main() {
     main_loss_scores(config, options.Args())
   case "predict":
     main_predict(config, options.Args())
+  case "predict-scores":
+    main_predict_scores(config, options.Args())
   case "combine":
     main_combine(config, options.Args())
   case "coefficients":
