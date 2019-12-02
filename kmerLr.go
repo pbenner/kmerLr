@@ -88,7 +88,9 @@ func main() {
     "     loss         - compute logistic loss\n" +
     "     predict      - use an estimated model to predict labels\n" +
     "     combine      - combine estimated models\n" +
-    "     coefficients - pretty-print coefficients\n")
+    "     coefficients - pretty-print coefficients\n" +
+    " Commands [PWM Scores]\n" +
+    "     learn-scores - estimate logistic regression parameters\n")
   options.Parse(os.Args)
 
   // command options
@@ -120,6 +122,8 @@ func main() {
   switch command {
   case "learn":
     main_learn(config, options.Args())
+  case "learn-scores":
+    main_learn_scores(config, options.Args())
   case "loss":
     main_loss(config, options.Args())
   case "predict":

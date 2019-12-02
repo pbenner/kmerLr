@@ -86,6 +86,17 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
       c        += 1
     }
   }
+  // add old features if not enough were found
+  for k := 0; k < len(i); k++ {
+    if c >= obj.N {
+      break
+    }
+    if !b[i[k]+1] {
+      // feature was previously used
+      b[i[k]+1] = true
+      c        += 1
+    }
+  }
   l    := obj.computeLambda(b, g, g_)
   k, f := obj.selectKmers(b)
   tr   := obj.Transform.Select(b)
