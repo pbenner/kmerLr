@@ -76,11 +76,12 @@ func main() {
   config  := Config{}
   options := getopt.New()
 
-  optThreads := options.    IntLong("threads",  0 ,  1, "number of threads")
-  optSeed    := options.    IntLong("seed",     0 ,  1, "seed for the random number generateor")
-  optHelp    := options.   BoolLong("help",    'h',     "print help")
-  optVerbose := options.CounterLong("verbose", 'v',     "verbose level [-v or -vv]")
-  optVersion := options.   BoolLong("version",  0 ,     "print version")
+  optType    := options. StringLong("type",     0 ,  "kmerLr", "classifier type [kmerLr, scoresLr]")
+  optThreads := options.    IntLong("threads",  0 ,         1, "number of threads")
+  optSeed    := options.    IntLong("seed",     0 ,         1, "seed for the random number generateor")
+  optHelp    := options.   BoolLong("help",    'h',            "print help")
+  optVerbose := options.CounterLong("verbose", 'v',            "verbose level [-v or -vv]")
+  optVersion := options.   BoolLong("version",  0 ,            "print version")
 
   options.SetParameters("<COMMAND>\n\n" +
     " Commands:\n" +
@@ -121,27 +122,44 @@ func main() {
   }
   command := options.Args()[0]
 
-  switch command {
-  case "learn":
-    main_learn(config, options.Args())
-  case "learn-scores":
-    main_learn_scores(config, options.Args())
-  case "loss":
-    main_loss(config, options.Args())
-  case "loss-scores":
-    main_loss_scores(config, options.Args())
-  case "predict":
-    main_predict(config, options.Args())
-  case "predict-scores":
-    main_predict_scores(config, options.Args())
-  case "combine":
-    main_combine(config, options.Args())
-  case "coefficients":
-    main_coefficients(config, options.Args())
-  case "similarity":
-    main_similarity(config, options.Args())
+  switch *optType {
+  case "kmerLr":
+    switch command {
+    case "learn":
+      main_learn(config, options.Args())
+    case "loss":
+      main_loss(config, options.Args())
+    case "predict":
+      main_predict(config, options.Args())
+    case "combine":
+      main_combine(config, options.Args())
+    case "coefficients":
+      main_coefficients(config, options.Args())
+    case "similarity":
+      main_similarity(config, options.Args())
+    default:
+      options.PrintUsage(os.Stderr)
+      os.Exit(1)
+    }
+  case "scoresLr":
+    switch command {
+    case "learn":
+      main_learn_scores(config, options.Args())
+    case "loss":
+      main_loss_scores(config, options.Args())
+    case "predict":
+      main_predict_scores(config, options.Args())
+    case "combine":
+      panic("not implemented")
+    case "coefficients":
+      panic("not implemented")
+    case "similarity":
+      panic("not implemented")
+    default:
+      options.PrintUsage(os.Stderr)
+      os.Exit(1)
+    }
   default:
-    options.PrintUsage(os.Stderr)
-    os.Exit(1)
+    log.Fatal("invalid classifier type")
   }
 }
