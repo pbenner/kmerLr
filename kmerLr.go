@@ -89,11 +89,7 @@ func main() {
     "     loss           - compute logistic loss\n" +
     "     predict        - use an estimated model to predict labels\n" +
     "     combine        - combine estimated models\n" +
-    "     coefficients   - pretty-print coefficients\n" +
-    " Commands [PWM Scores]:\n" +
-    "     learn-scores   - estimate logistic regression parameters\n" +
-    "     loss-scores    - compute logistic loss\n" +
-    "     predict-scores - use an estimated model to predict labels\n")
+    "     coefficients   - pretty-print coefficients\n")
   options.Parse(os.Args)
 
   // command options
