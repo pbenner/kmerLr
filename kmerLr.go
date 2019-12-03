@@ -146,7 +146,7 @@ func main() {
     case "predict":
       main_predict_scores(config, options.Args())
     case "combine":
-      panic("not implemented")
+      main_combine_scores(config, options.Args())
     case "coefficients":
       panic("not implemented")
     case "similarity":

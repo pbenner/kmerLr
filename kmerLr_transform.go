@@ -292,6 +292,34 @@ func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
   return true
 }
 
+func (t1 Transform) EqualsScores(t2 Transform, f1, f2 FeatureIndices) bool {
+  // compare mu
+  m := make(map[[2]int]float64)
+  for i, feature := range f1 {
+    m[[2]int{feature[0], feature[1]}] = t1.Mu[i+1]
+  }
+  for i, feature := range f2 {
+    if v, ok := m[[2]int{feature[0], feature[1]}]; ok {
+      if math.Abs(v - t2.Mu[i+1]) > 1e-12 {
+        return false
+      }
+    }
+  }
+  // compare sigma
+  m = make(map[[2]int]float64)
+  for i, feature := range f1 {
+    m[[2]int{feature[0], feature[1]}] = t1.Sigma[i+1]
+  }
+  for i, feature := range f2 {
+    if v, ok := m[[2]int{feature[0], feature[1]}]; ok {
+      if math.Abs(v - t2.Sigma[i+1]) > 1e-12 {
+        return false
+      }
+    }
+  }
+  return true
+}
+
 func (obj Transform) Apply(config Config, data []ConstVector) {
   if len(data) == 0 {
     return
