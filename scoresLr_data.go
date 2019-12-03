@@ -47,14 +47,14 @@ func convert_scores(config Config, scores []float64, features FeatureIndices) Co
       i1 := feature[0]
       i2 := feature[1]
       if i1 == i2 {
-        c := scores[i1+1]
+        c := scores[i1]
         if c != 0.0 {
           i = append(i, j+1)
           v = append(v, float64(c))
         }
       } else {
-        c1 := scores[i1+1]
-        c2 := scores[i2+1]
+        c1 := scores[i1]
+        c2 := scores[i2]
         if c1 != 0.0 && c2 != 0.0 {
           i = append(i, j+1)
           v = append(v, float64(c1*c2))
