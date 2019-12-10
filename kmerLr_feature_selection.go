@@ -54,7 +54,9 @@ func newFeatureSelector(config Config, kmers KmerClassList, cooccurrence bool, l
     Labels      : labels,
     ClassWeights: class_weights,
     Cooccurrence: cooccurrence,
+    // number of features to select
     N           : n,
+    // data dimension (without co-occurrences)
     M           : m,
     Epsilon     : epsilon,
     Pool        : config.Pool }

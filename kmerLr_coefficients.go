@@ -181,7 +181,7 @@ func main_coefficients(config Config, args []string) {
   options := getopt.New()
 
   optRelated := options.BoolLong("related",   0 ,  "print related coefficients")
-  optRescale := options.BoolLong("rescale",   0 ,  "rescale coefficients to untransform data")
+  optRescale := options.BoolLong("rescale",   0 ,  "rescale coefficients to untransformed data")
   optHelp    := options.BoolLong("help",     'h',  "print help")
 
   options.SetParameters("<MODEL.json> [<FOREGROUND.fa> <BACKGROUND.fa>]")

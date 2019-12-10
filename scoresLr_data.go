@@ -18,10 +18,59 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
+import   "bufio"
+import   "io"
+import   "log"
+import   "os"
+import   "strconv"
+import   "strings"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
+
+/* -------------------------------------------------------------------------- */
+
+func bufioReadLine(reader *bufio.Reader) (string, error) {
+  l, err := reader.ReadString('\n')
+  if err != nil {
+    // ignore EOF errors if some bytes were read
+    if len(l) > 0 && err == io.EOF {
+      return l, nil
+    }
+    return l, err
+  }
+  // remove newline character
+  return l[0:len(l)-1], err
+}
+
+func read_scores_table(r io.Reader) ([][]float64, error) {
+  reader := bufio.NewReader(r)
+  entry  := [][]float64{}
+  for i_ := 1;; i_++ {
+    l, err := bufioReadLine(reader)
+    if err == io.EOF {
+      break
+    }
+    if err != nil {
+      return entry, err
+    }
+    if len(l) == 0 {
+      continue
+    }
+    data := strings.FieldsFunc(l, func(x rune) bool { return x == ',' })
+    entry = append(entry, make([]float64, len(data)))
+    // loop over count vector
+    for i := 0; i < len(data); i++ {
+      v, err := strconv.ParseFloat(strings.TrimSpace(data[i]), 64)
+      if err != nil {
+        return entry, fmt.Errorf("parsing scores failed at line `%d': %v", i_, err)
+      }
+      entry[len(entry)-1][i] = v
+    }
+  }
+  return entry, nil
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -71,19 +120,39 @@ func convert_scores(config Config, scores []float64, features FeatureIndices) Co
 /* -------------------------------------------------------------------------- */
 
 func import_scores(config Config, filename string, features FeatureIndices) []ConstVector {
+  f, err := os.Open(filename)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer f.Close()
+
+  counts  := []ConstVector{}
   granges := GRanges{}
-  PrintStderr(config, 1, "Reading pwm scores from `%s'... ", filename)  
-  if err := granges.ImportTable(filename, []string{"counts"}, []string{"[][]float64"}); err != nil {
-    PrintStderr(config, 1, "failed\n")
-    panic(err)
-  }
-  PrintStderr(config, 1, "done\n")
-  counts := []ConstVector{}
-  if granges.Length() == 0 {
-    return counts
-  }
-  for _, c := range granges.GetMeta("counts").([][]float64) {
-    counts = append(counts, convert_scores(config, c, features))
+  PrintStderr(config, 1, "Reading scores from `%s'... ", filename)
+  if err := granges.ReadTable(f, []string{"counts"}, []string{"[][]float64"}); err == nil {
+    // scores are in GRanges format
+    PrintStderr(config, 1, "done\n")
+    counts := []ConstVector{}
+    if granges.Length() == 0 {
+      return counts
+    }
+    for _, c := range granges.GetMeta("counts").([][]float64) {
+      counts = append(counts, convert_scores(config, c, features))
+    }
+  } else {
+    if _, err := f.Seek(0, io.SeekStart); err != nil {
+      PrintStderr(config, 1, "failed\n")
+      log.Fatal(err)
+    }
+    if scores, err := read_scores_table(f); err != nil {
+      PrintStderr(config, 1, "failed\n")
+      log.Fatal(err)
+    } else {
+      PrintStderr(config, 1, "done\n")
+      for _, c := range scores {
+        counts = append(counts, convert_scores(config, c, features))
+      }
+    }
   }
   return counts
 }

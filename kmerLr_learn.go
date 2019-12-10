@@ -85,6 +85,9 @@ func learn(config Config, filename_json, filename_fg, filename_bg, basename_out 
   data, labels, kmers := compile_training_data(config, kmersCounter, kmers, features, filename_fg, filename_bg)
   kmersCounter = nil
 
+  if len(data) == 0 {
+    log.Fatal("Error: no training data given")
+  }
   t := TransformFull{}
   // estimate transform on full data set so that all estimated
   // classifiers share the same transform
