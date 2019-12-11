@@ -126,35 +126,42 @@ func import_scores(config Config, filename string, features FeatureIndices) []Co
   }
   defer f.Close()
 
-  counts  := []ConstVector{}
+  scores  := []ConstVector{}
   granges := GRanges{}
   PrintStderr(config, 1, "Reading scores from `%s'... ", filename)
   if err := granges.ReadTable(f, []string{"counts"}, []string{"[][]float64"}); err == nil {
     // scores are in GRanges format
     PrintStderr(config, 1, "done\n")
-    counts := []ConstVector{}
+    scores := []ConstVector{}
     if granges.Length() == 0 {
-      return counts
+      return scores
     }
-    for _, c := range granges.GetMeta("counts").([][]float64) {
-      counts = append(counts, convert_scores(config, c, features))
+    data := granges.GetMeta("counts").([][]float64)
+    for _, c := range data {
+      if len(c) != len(data[0]) {
+        log.Fatal("Error: data has variable number of features")
+      }
+      scores = append(scores, convert_scores(config, c, features))
     }
   } else {
     if _, err := f.Seek(0, io.SeekStart); err != nil {
       PrintStderr(config, 1, "failed\n")
       log.Fatal(err)
     }
-    if scores, err := read_scores_table(f); err != nil {
+    if data, err := read_scores_table(f); err != nil {
       PrintStderr(config, 1, "failed\n")
       log.Fatal(err)
     } else {
       PrintStderr(config, 1, "done\n")
-      for _, c := range scores {
-        counts = append(counts, convert_scores(config, c, features))
+      for _, c := range data {
+        if len(c) != len(data[0]) {
+          log.Fatal("Error: data has variable number of features")
+        }
+        scores = append(scores, convert_scores(config, c, features))
       }
     }
   }
-  return counts
+  return scores
 }
 
 /* -------------------------------------------------------------------------- */
