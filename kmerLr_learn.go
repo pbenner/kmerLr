@@ -115,6 +115,7 @@ func main_learn(config Config, args []string) {
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model k-mer co-occurrences")
+  optCopreselection  := options.    IntLong("co-preselection",  0 ,            0, "pre-select a subset of k-mers for co-occurrence modeling")
   optComplement      := options.   BoolLong("complement",       0 ,               "consider complement sequences")
   optReverse         := options.   BoolLong("reverse",          0 ,               "consider reverse sequences")
   optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
@@ -232,6 +233,7 @@ func main_learn(config Config, args []string) {
   config.Binarize        = *optBinarize
   config.Complement      = *optComplement
   config.Cooccurrence    = *optCooccurrence
+  config.Copreselection  = *optCopreselection
   config.LambdaAuto      = *optLambdaAuto
   config.KFoldCV         = *optKFoldCV
   config.Reverse         = *optReverse

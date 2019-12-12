@@ -35,6 +35,7 @@ type Config struct {
   Balance         bool
   Binarize        bool
   Cooccurrence    bool
+  Copreselection  int
   Lambda          float64
   LambdaAuto      int
   Epsilon         float64
