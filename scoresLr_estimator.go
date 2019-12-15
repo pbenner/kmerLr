@@ -106,11 +106,11 @@ func (obj *ScoresLrEstimator) estimate(config Config, data_train []ConstVector, 
   }
 }
 
-func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull, lambdaAuto int, cooccurrence bool) *ScoresLr {
+func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull) *ScoresLr {
   if len(data_train) == 0 {
     return nil
   }
-  m, n := obj.n_params(config, data_train, lambdaAuto, cooccurrence)
+  m, n := obj.n_params(config, data_train, config.LambdaAuto, obj.Cooccurrence)
   // compute class weights
   obj.LogisticRegression.SetLabels(labels)
   // create a copy of data arrays, from which to select subsets
@@ -122,7 +122,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test
   for i, x := range data_test {
     copy_data_test [i] = x
   }
-  s := newFeatureSelector(config, KmerClassList{}, cooccurrence, labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
+  s := newFeatureSelector(config, KmerClassList{}, obj.Cooccurrence, labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*ScoresLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
     // select features on the initial data set
@@ -149,12 +149,4 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test
     r.Transform = selection.Transform()
   }
   return r
-}
-
-func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull) *ScoresLr {
-  if obj.Cooccurrence && config.Copreselection != 0 {
-    // reduce data_train and data_test to pre-selected features
-    obj.estimate_loop(config, data_train, data_test, labels, transform, config.Copreselection, false)
-  }
-  return obj.estimate_loop(config, data_train, data_test, labels, transform, config.LambdaAuto, obj.Cooccurrence)
 }

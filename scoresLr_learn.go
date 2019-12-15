@@ -105,7 +105,6 @@ func main_learn_scores(config Config, args []string) {
   optLambdaAuto      := options.    IntLong("lambda-auto",      0 ,            0, "select lambda automatically so that [value] coefficients are non-zero")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model co-occurrences")
-  optCopreselection  := options.    IntLong("co-preselection",  0 ,            0, "pre-select a subset of k-mers for co-occurrence modeling")
   optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
   optMaxIterations   := options.    IntLong("max-iterations",   0 ,            0, "maximum number of iterations")
   optEpsilon         := options. StringLong("epsilon",          0 ,       "0e-0", "optimization tolerance level for parameters")
@@ -181,7 +180,6 @@ func main_learn_scores(config Config, args []string) {
   }
   config.Balance         = *optBalance
   config.Cooccurrence    = *optCooccurrence
-  config.Copreselection  = *optCopreselection
   config.LambdaAuto      = *optLambdaAuto
   config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss
