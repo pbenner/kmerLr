@@ -35,7 +35,7 @@ type TransformFull struct {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *TransformFull) Fit(config Config, data []ConstVector) {
+func (obj *TransformFull) Fit(config Config, data []ConstVector, cooccurrence bool) {
   if len(data) == 0 {
     return
   }
@@ -44,7 +44,7 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
   m := data[0].Dim()-1
   mu    := []float64{}
   sigma := []float64{}
-  if config.Cooccurrence {
+  if cooccurrence {
     mu    = make([]float64, CoeffIndex(m).Dim()+1)
     sigma = make([]float64, CoeffIndex(m).Dim()+1)
   } else {
@@ -63,7 +63,7 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
     for j := 1; j < q; j++ {
       mu[i[j]] += v[j]
     }
-    if config.Cooccurrence {
+    if cooccurrence {
       config.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
         for j2 := j1+1; j2 < q; j2++ {
           i1    := i[j1]-1
@@ -94,7 +94,7 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
       k    [j_] += 1
       sigma[j_] += (v[j]-mu[j_])*(v[j]-mu[j_])
     }
-    if config.Cooccurrence {
+    if cooccurrence {
       config.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
         for j2 := j1+1; j2 < q; j2++ {
           i1 := i[j1]-1

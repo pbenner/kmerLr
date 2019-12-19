@@ -150,9 +150,15 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, la
   }
 }
 
-func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull, lambdaAuto int, cooccurrence bool) *KmerLr {
+func (obj *KmerLrEstimator) estimate_loop(config Config, data, data_train, data_test []ConstVector, labels []bool, lambdaAuto int, cooccurrence bool) *KmerLr {
   if len(data_train) == 0 {
     return nil
+  }
+  transform := TransformFull{}
+  // estimate transform on full data set so that all estimated
+  // classifiers share the same transform
+  if !config.NoNormalization {
+    transform.Fit(config, data, cooccurrence)
   }
   m, n := obj.n_params(config, data_train, lambdaAuto, cooccurrence)
   // compute class weights
@@ -196,10 +202,10 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test [
   return r
 }
 
-func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull) *KmerLr {
+func (obj *KmerLrEstimator) Estimate(config Config, data, data_train, data_test []ConstVector, labels []bool) *KmerLr {
   if obj.Cooccurrence && config.Copreselection != 0 {
     // reduce data_train and data_test to pre-selected features
-    obj.estimate_loop(config, data_train, data_test, labels, transform, config.Copreselection, false)
+    obj.estimate_loop(config, data, data_train, data_test, labels, config.Copreselection, false)
   }
-  return obj.estimate_loop(config, data_train, data_test, labels, transform, config.LambdaAuto, obj.Cooccurrence)
+  return obj.estimate_loop(config, data, data_train, data_test, labels, config.LambdaAuto, obj.Cooccurrence)
 }

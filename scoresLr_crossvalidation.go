@@ -26,7 +26,7 @@ import   "github.com/pbenner/threadpool"
 /* -------------------------------------------------------------------------- */
 
 func scoresCrossvalidation(config Config, data []ConstVector, labels []bool,
-  learnClassifier func(i int, data_train, data_all []ConstVector, c []bool) *ScoresLr,
+  learnClassifier func(i int, data, data_train, data_all []ConstVector, c []bool) *ScoresLr,
    testClassifier func(i int, data []ConstVector, classifier *ScoresLr) []float64) ([]float64, []bool) {
   groups := getCvGroups(len(data), config.KFoldCV, config.Seed)
 
@@ -36,7 +36,7 @@ func scoresCrossvalidation(config Config, data []ConstVector, labels []bool,
   config.PoolCV.RangeJob(0, config.KFoldCV, func(i int, pool threadpool.ThreadPool, erf func() error) error {
     data_test, labels_test, data_train, labels_train := filterCvGroup(data, labels, groups, i)
 
-    classifier := learnClassifier(i, data_train, data_test, labels_train)
+    classifier := learnClassifier(i, data, data_train, data_test, labels_train)
 
     r_predictions[i] = testClassifier(i, data_test, classifier)
     r_labels     [i] = labels_test
