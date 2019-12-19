@@ -106,7 +106,7 @@ func (obj *ScoresLrEstimator) estimate(config Config, data_train []ConstVector, 
   }
 }
 
-func (obj *ScoresLrEstimator) Estimate(config Config, data, data_train, data_test []ConstVector, labels []bool) *ScoresLr {
+func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) *ScoresLr {
   if len(data_train) == 0 {
     return nil
   }
@@ -114,7 +114,7 @@ func (obj *ScoresLrEstimator) Estimate(config Config, data, data_train, data_tes
   // estimate transform on full data set so that all estimated
   // classifiers share the same transform
   if !config.NoNormalization {
-    transform.Fit(config, data, config.Cooccurrence)
+    transform.Fit(config, append(data_train, data_test...), config.Cooccurrence)
   }
   m, n := obj.n_params(config, data_train, config.LambdaAuto, obj.Cooccurrence)
   // compute class weights

@@ -30,7 +30,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_scores_parameters(config Config, data, data_train, data_test []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, icv int, basename_out string) *ScoresLr {
+func learn_scores_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, icv int, basename_out string) *ScoresLr {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
@@ -41,7 +41,7 @@ func learn_scores_parameters(config Config, data, data_train, data_test []ConstV
   if classifier != nil {
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
-  classifier = estimator.Estimate(config, data, data_train, data_test, labels)
+  classifier = estimator.Estimate(config, data_train, data_test, labels)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   filename_json  := fmt.Sprintf("%s.json" , basename_out)
@@ -56,9 +56,9 @@ func learn_scores_parameters(config Config, data, data_train, data_test []ConstV
 }
 
 func learn_scores_cv(config Config, data []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, basename_out string) {
-  learnClassifier := func(i int, data, data_train, data_test []ConstVector, labels []bool) *ScoresLr {
+  learnClassifier := func(i int, data_train, data_test []ConstVector, labels []bool) *ScoresLr {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_scores_parameters(config, data, data_train, data_test, labels, classifier, features, i, basename_out)
+    return learn_scores_parameters(config, data_train, data_test, labels, classifier, features, i, basename_out)
   }
   testClassifier := func(i int, data []ConstVector, classifier *ScoresLr) []float64 {
     return classifier.Predict(config, data)
@@ -85,7 +85,7 @@ func learn_scores(config Config, filename_json, filename_fg, filename_bg, basena
     data[i].(SparseConstRealVector).CreateIndex()
   }
   if config.KFoldCV <= 1 {
-    learn_scores_parameters(config, data, data, nil, labels, classifier, features, -1, basename_out)
+    learn_scores_parameters(config, data, nil, labels, classifier, features, -1, basename_out)
   } else {
     learn_scores_cv(config, data, labels, classifier, features, basename_out)
   }

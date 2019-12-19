@@ -32,7 +32,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, basename_out string) *KmerLr {
+func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, basename_out string) *KmerLr {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
@@ -43,7 +43,7 @@ func learn_parameters(config Config, data, data_train, data_test []ConstVector, 
   if classifier != nil {
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
-  classifier = estimator.Estimate(config, data, data_train, data_test, labels)
+  classifier = estimator.Estimate(config, data_train, data_test, labels)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   filename_json  := fmt.Sprintf("%s.json" , basename_out)
@@ -58,9 +58,9 @@ func learn_parameters(config Config, data, data_train, data_test []ConstVector, 
 }
 
 func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, basename_out string) {
-  learnClassifier := func(i int, data, data_train, data_test []ConstVector, labels []bool) *KmerLr {
+  learnClassifier := func(i int, data_train, data_test []ConstVector, labels []bool) *KmerLr {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_parameters(config, data, data_train, data_test, labels, classifier, kmers, features, i, basename_out)
+    return learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, i, basename_out)
   }
   testClassifier := func(i int, data []ConstVector, classifier *KmerLr) []float64 {
     return classifier.Predict(config, data)
@@ -93,7 +93,7 @@ func learn(config Config, filename_json, filename_fg, filename_bg, basename_out 
     data[i].(SparseConstRealVector).CreateIndex()
   }
   if config.KFoldCV <= 1 {
-    learn_parameters(config, data, data, nil, labels, classifier, kmers, features, -1, basename_out)
+    learn_parameters(config, data, nil, labels, classifier, kmers, features, -1, basename_out)
   } else {
     learn_cv(config, data, labels, classifier, kmers, features, basename_out)
   }
