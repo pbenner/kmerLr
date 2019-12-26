@@ -257,6 +257,22 @@ func (t1 Transform) InsertScores(t2 Transform, f1, f2 FeatureIndices) error {
 }
 
 func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClassList) bool {
+  { // check if transforms are nil
+    b1 := false
+    b2 := false
+    if t1.Nil() && len(f1) != 0 {
+      b1 = true
+    }
+    if t2.Nil() && len(f2) != 0 {
+      b2 = true
+    }
+    if b1 != b2 {
+      return false
+    }
+    if b1 == true && b2 == true {
+      return true
+    }
+  }
   // compare mu
   m := make(map[[2]KmerClassId]float64)
   for i, feature := range f1 {
@@ -293,6 +309,22 @@ func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
 }
 
 func (t1 Transform) EqualsScores(t2 Transform, f1, f2 FeatureIndices) bool {
+  { // check if transforms are nil
+    b1 := false
+    b2 := false
+    if t1.Nil() && len(f1) != 0 {
+      b1 = true
+    }
+    if t2.Nil() && len(f2) != 0 {
+      b2 = true
+    }
+    if b1 != b2 {
+      return false
+    }
+    if b1 == true && b2 == true {
+      return true
+    }
+  }
   // compare mu
   m := make(map[[2]int]float64)
   for i, feature := range f1 {
