@@ -132,7 +132,6 @@ func import_scores(config Config, filename string, features FeatureIndices) []Co
   if err := granges.ReadTable(f, []string{"counts"}, []string{"[][]float64"}); err == nil {
     // scores are in GRanges format
     PrintStderr(config, 1, "done\n")
-    scores := []ConstVector{}
     if granges.Length() == 0 {
       return scores
     }
