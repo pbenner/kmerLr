@@ -150,7 +150,7 @@ func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []Co
     selection.Data(config, data_train, copy_data_train)
     selection.Data(config, data_test , copy_data_test)
 
-    PrintStderr(config, 1, "Estimating parameters with lambda=%f...\n", lambda)
+    PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
     r = obj.estimate(config, data_train, labels)
     r.Transform = selection.Transform()
   }
