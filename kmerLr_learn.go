@@ -21,6 +21,7 @@ package main
 import   "fmt"
 import   "log"
 import   "os"
+import   "sort"
 import   "strconv"
 import   "strings"
 
@@ -225,6 +226,7 @@ func main_learn(config Config, args []string) {
         config.LambdaAuto = append(config.LambdaAuto, int(n))
       }
     }
+    sort.Ints(config.LambdaAuto)
   }
   if alphabet, err := alphabet_from_string(*optAlphabet); err != nil {
     options.PrintUsage(os.Stderr)

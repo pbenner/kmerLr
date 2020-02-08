@@ -21,6 +21,7 @@ package main
 import   "fmt"
 import   "log"
 import   "os"
+import   "sort"
 import   "strconv"
 import   "strings"
 
@@ -181,6 +182,7 @@ func main_learn_scores(config Config, args []string) {
         config.LambdaAuto = append(config.LambdaAuto, int(n))
       }
     }
+    sort.Ints(config.LambdaAuto)
   }
   if *optKFoldCV < 1 {
     options.PrintUsage(os.Stdout)
