@@ -32,7 +32,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t TransformFull, icv int, basename_out string) *KmerLr {
+func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t TransformFull, icv int, basename_out string) []*KmerLr {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
@@ -43,31 +43,38 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
   if classifier != nil {
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
-  classifier = estimator.Estimate(config, data_train, data_test, labels, t)
+  classifiers := estimator.Estimate(config, data_train, data_test, labels, t)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
-  filename_json  := fmt.Sprintf("%s.json" , basename_out)
   // export trace
   if config.SaveTrace {
     SaveTrace(config, filename_trace, trace)
   }
-  // export model
-  SaveModel(config, filename_json, classifier)
-
-  return classifier
+  for i, classifier := range classifiers {
+    filename_json := fmt.Sprintf("%s_%d.json" , basename_out, config.LambdaAuto[i])
+    // export models
+    SaveModel(config, filename_json, classifier)
+  }
+  return classifiers
 }
 
 func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t TransformFull, basename_out string) {
-  learnClassifier := func(i int, data_train, data_test []ConstVector, labels []bool) *KmerLr {
+  learnClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) []*KmerLr {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
     return learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, t, i, basename_out)
   }
-  testClassifier := func(i int, data []ConstVector, classifier *KmerLr) []float64 {
-    return classifier.Predict(config, data)
+  testClassifiers := func(i int, data []ConstVector, classifiers []*KmerLr) [][]float64 {
+    r := make([][]float64, len(classifiers))
+    for i, classifier := range classifiers {
+      r[i] = classifier.Predict(config, data)
+    }
+    return r
   }
-  predictions, labels := crossvalidation(config, data, labels, learnClassifier, testClassifier)
+  cvrs := crossvalidation(config, data, labels, learnClassifiers, testClassifiers)
 
-  SaveCrossvalidation(config, fmt.Sprintf("%s.table", basename_out), predictions, labels)
+  for i, cvr := range cvrs {
+    SaveCrossvalidation(config, fmt.Sprintf("%s_%d.table", basename_out, i), cvr)
+  }
 }
 
 func learn(config Config, filename_json, filename_fg, filename_bg, basename_out string) {
@@ -111,7 +118,7 @@ func main_learn(config Config, args []string) {
   options := getopt.New()
 
   optAlphabet        := options. StringLong("alphabet",         0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
-  optLambdaAuto      := options.    IntLong("lambda-auto",      0 ,            0, "select lambda automatically so that [value] coefficients are non-zero")
+  optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "select lambda automatically so that [value] coefficients are non-zero")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model k-mer co-occurrences")
@@ -213,6 +220,18 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stderr)
     os.Exit(1)
   }
+  if fields := strings.Split(*optLambdaAuto, ","); len(fields) == 0 {
+    options.PrintUsage(os.Stderr)
+    os.Exit(1)
+  } else {
+    for _, str := range fields {
+      if n, err := strconv.ParseInt(str, 10, 64); err != nil {
+        log.Fatal(err)
+      } else {
+        config.LambdaAuto = append(config.LambdaAuto, int(n))
+      }
+    }
+  }
   if alphabet, err := alphabet_from_string(*optAlphabet); err != nil {
     options.PrintUsage(os.Stderr)
     os.Exit(1)
@@ -234,7 +253,6 @@ func main_learn(config Config, args []string) {
   config.Complement      = *optComplement
   config.Cooccurrence    = *optCooccurrence
   config.Copreselection  = *optCopreselection
-  config.LambdaAuto      = *optLambdaAuto
   config.KFoldCV         = *optKFoldCV
   config.Reverse         = *optReverse
   config.Revcomp         = *optRevcomp

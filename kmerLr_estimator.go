@@ -196,10 +196,14 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test [
   return r
 }
 
-func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull) *KmerLr {
+func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull) []*KmerLr {
   if obj.Cooccurrence && config.Copreselection != 0 {
     // reduce data_train and data_test to pre-selected features
     obj.estimate_loop(config, data_train, data_test, labels, transform, config.Copreselection, false)
   }
-  return obj.estimate_loop(config, data_train, data_test, labels, transform, config.LambdaAuto, obj.Cooccurrence)
+  r := make([]*KmerLr, len(config.LambdaAuto))
+  for i, lambda := range config.LambdaAuto {
+    r[i] = obj.estimate_loop(config, data_train, data_test, labels, transform, lambda, obj.Cooccurrence)
+  }
+  return r
 }

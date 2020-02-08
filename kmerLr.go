@@ -37,7 +37,7 @@ type Config struct {
   Cooccurrence    bool
   Copreselection  int
   Lambda          float64
-  LambdaAuto      int
+  LambdaAuto    []int
   Epsilon         float64
   EpsilonLambda   float64
   EpsilonLoss     float64

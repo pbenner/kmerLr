@@ -106,11 +106,11 @@ func (obj *ScoresLrEstimator) estimate(config Config, data_train []ConstVector, 
   }
 }
 
-func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull) *ScoresLr {
+func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test []ConstVector, labels []bool, lambda int, transform TransformFull) *ScoresLr {
   if len(data_train) == 0 {
     return nil
   }
-  m, n := obj.n_params(config, data_train, config.LambdaAuto, obj.Cooccurrence)
+  m, n := obj.n_params(config, data_train, lambda, obj.Cooccurrence)
   // compute class weights
   obj.LogisticRegression.SetLabels(labels)
   // create a copy of data arrays, from which to select subsets
@@ -147,6 +147,14 @@ func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []Co
     PrintStderr(config, 1, "Estimating parameters with lambda=%f...\n", lambda)
     r = obj.estimate(config, data_train, labels)
     r.Transform = selection.Transform()
+  }
+  return r
+}
+
+func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull) []*ScoresLr {
+  r := make([]*ScoresLr, len(config.LambdaAuto))
+  for i, lambda := range config.LambdaAuto {
+    r[i] = obj.estimate_loop(config, data_train, data_test, labels, lambda, transform)
   }
   return r
 }

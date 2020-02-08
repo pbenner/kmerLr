@@ -28,6 +28,13 @@ import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
 
+type CVResult struct {
+  Predictions []float64
+  Labels      []bool
+}
+
+/* -------------------------------------------------------------------------- */
+
 func shuffleInts(vals []int, seed int64) {
   r := rand.New(rand.NewSource(seed))
   for len(vals) > 0 {
@@ -70,7 +77,7 @@ func filterCvGroup(data []ConstVector, labels []bool, groups []int, i int) ([]Co
 
 /* -------------------------------------------------------------------------- */
 
-func saveCrossvalidation(filename string, predictions []float64, labels []bool) error {
+func saveCrossvalidation(filename string, cvr CVResult) error {
   f, err := os.Create(filename)
   if err != nil {
     return err
@@ -81,11 +88,11 @@ func saveCrossvalidation(filename string, predictions []float64, labels []bool) 
   defer w.Flush()
 
   fmt.Fprintf(w, "%15s\t%6s\n", "prediction", "labels")
-  for i := 0; i < len(predictions); i++ {
-    if labels[i] {
-      fmt.Fprintf(w, "%15e\t%6d\n", predictions[i], 1)
+  for i := 0; i < len(cvr.Predictions); i++ {
+    if cvr.Labels[i] {
+      fmt.Fprintf(w, "%15e\t%6d\n", cvr.Predictions[i], 1)
     } else {
-      fmt.Fprintf(w, "%15e\t%6d\n", predictions[i], 0)
+      fmt.Fprintf(w, "%15e\t%6d\n", cvr.Predictions[i], 0)
     }
   }
   return nil
@@ -94,28 +101,29 @@ func saveCrossvalidation(filename string, predictions []float64, labels []bool) 
 /* -------------------------------------------------------------------------- */
 
 func crossvalidation(config Config, data []ConstVector, labels []bool,
-  learnClassifier func(i int, data_train, data_all []ConstVector, c []bool) *KmerLr,
-   testClassifier func(i int, data []ConstVector, classifier *KmerLr) []float64) ([]float64, []bool) {
+  learnClassifiers func(i int, data_train, data_all []ConstVector, c []bool) []*KmerLr,
+   testClassifiers func(i int, data []ConstVector, classifiers []*KmerLr) [][]float64) []CVResult {
   groups := getCvGroups(len(data), config.KFoldCV, config.Seed)
 
-  r_predictions := make([][]float64, config.KFoldCV)
-  r_labels      := make([][]bool,    config.KFoldCV)
+  r_predictions := make([][][]float64, config.KFoldCV)
+  r_labels      := make(  [][]bool,    config.KFoldCV)
 
   config.PoolCV.RangeJob(0, config.KFoldCV, func(i int, pool threadpool.ThreadPool, erf func() error) error {
     data_test, labels_test, data_train, labels_train := filterCvGroup(data, labels, groups, i)
 
-    classifier := learnClassifier(i, data_train, data_test, labels_train)
+    classifier := learnClassifiers(i, data_train, data_test, labels_train)
 
-    r_predictions[i] = testClassifier(i, data_test, classifier)
+    r_predictions[i] = testClassifiers(i, data_test, classifier)
     r_labels     [i] = labels_test
     return nil
   })
   // join results
-  predictions := []float64{}
-  labels       = []bool   {}
+  result := make([]CVResult, len(config.LambdaAuto))
   for i := 0; i < config.KFoldCV; i++ {
-    predictions = append(predictions, r_predictions[i]...)
-    labels      = append(labels     , r_labels     [i]...)
+    for j := 0; j < len(config.LambdaAuto); j++ {
+      result[j].Predictions = append(result[j].Predictions, r_predictions[i][j]...)
+      result[j].Labels      = append(result[j].Labels     , r_labels     [i]   ...)
+    }
   }
-  return predictions, labels
+  return result
 }

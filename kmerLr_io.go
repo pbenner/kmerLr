@@ -34,9 +34,9 @@ func PrintStderr(config Config, level int, format string, args ...interface{}) {
 
 /* -------------------------------------------------------------------------- */
 
-func SaveCrossvalidation(config Config, filename string, predictions []float64, labels []bool) {
+func SaveCrossvalidation(config Config, filename string, cvr CVResult) {
   PrintStderr(config, 1, "Exporting cross-validation results to `%s'... ", filename)
-  if err := saveCrossvalidation(filename, predictions, labels); err != nil {
+  if err := saveCrossvalidation(filename, cvr); err != nil {
     PrintStderr(config, 1, "failed\n")
     log.Fatal(err)
   }

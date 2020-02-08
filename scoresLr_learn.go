@@ -22,6 +22,7 @@ import   "fmt"
 import   "log"
 import   "os"
 import   "strconv"
+import   "strings"
 
 import . "github.com/pbenner/autodiff"
 import   "github.com/pbenner/threadpool"
@@ -30,7 +31,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_scores_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, t TransformFull, icv int, basename_out string) *ScoresLr {
+func learn_scores_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, t TransformFull, icv int, basename_out string) []*ScoresLr {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
@@ -41,31 +42,38 @@ func learn_scores_parameters(config Config, data_train, data_test []ConstVector,
   if classifier != nil {
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
-  classifier = estimator.Estimate(config, data_train, data_test, labels, t)
+  classifiers := estimator.Estimate(config, data_train, data_test, labels, t)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
-  filename_json  := fmt.Sprintf("%s.json" , basename_out)
   // export trace
   if config.SaveTrace {
     SaveTrace(config, filename_trace, trace)
   }
-  // export model
-  SaveModel(config, filename_json, classifier)
-
-  return classifier
+  for i, classifier := range classifiers {
+    filename_json := fmt.Sprintf("%s_%d.json" , basename_out, config.LambdaAuto[i])
+    // export models
+    SaveModel(config, filename_json, classifier)
+  }
+  return classifiers
 }
 
 func learn_scores_cv(config Config, data []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, t TransformFull, basename_out string) {
-  learnClassifier := func(i int, data_train, data_test []ConstVector, labels []bool) *ScoresLr {
+  learnClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) []*ScoresLr {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
     return learn_scores_parameters(config, data_train, data_test, labels, classifier, features, t, i, basename_out)
   }
-  testClassifier := func(i int, data []ConstVector, classifier *ScoresLr) []float64 {
-    return classifier.Predict(config, data)
+  testClassifiers := func(i int, data []ConstVector, classifiers []*ScoresLr) [][]float64 {
+    r := make([][]float64, len(classifiers))
+    for i, classifier := range classifiers {
+      r[i] = classifier.Predict(config, data)
+    }
+    return r
   }
-  predictions, labels := scoresCrossvalidation(config, data, labels, learnClassifier, testClassifier)
+  cvrs := scoresCrossvalidation(config, data, labels, learnClassifiers, testClassifiers)
 
-  SaveCrossvalidation(config, fmt.Sprintf("%s.table", basename_out), predictions, labels)
+  for i, cvr := range cvrs {
+    SaveCrossvalidation(config, fmt.Sprintf("%s_%d.table", basename_out, i), cvr)
+  }
 }
 
 func learn_scores(config Config, filename_json, filename_fg, filename_bg, basename_out string) {
@@ -102,7 +110,7 @@ func learn_scores(config Config, filename_json, filename_fg, filename_bg, basena
 func main_learn_scores(config Config, args []string) {
   options := getopt.New()
 
-  optLambdaAuto      := options.    IntLong("lambda-auto",      0 ,            0, "select lambda automatically so that [value] coefficients are non-zero")
+  optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "select lambda automatically so that [value] coefficients are non-zero")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model co-occurrences")
   optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
@@ -168,6 +176,18 @@ func main_learn_scores(config Config, args []string) {
   } else {
     config.StepSizeFactor = v
   }
+  if fields := strings.Split(*optLambdaAuto, ","); len(fields) == 0 {
+    options.PrintUsage(os.Stderr)
+    os.Exit(1)
+  } else {
+    for _, str := range fields {
+      if n, err := strconv.ParseInt(str, 10, 64); err != nil {
+        log.Fatal(err)
+      } else {
+        config.LambdaAuto = append(config.LambdaAuto, int(n))
+      }
+    }
+  }
   if *optKFoldCV < 1 {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
@@ -180,7 +200,6 @@ func main_learn_scores(config Config, args []string) {
   }
   config.Balance         = *optBalance
   config.Cooccurrence    = *optCooccurrence
-  config.LambdaAuto      = *optLambdaAuto
   config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss
   config.MaxEpochs       = *optMaxEpochs

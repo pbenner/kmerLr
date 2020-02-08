@@ -126,7 +126,7 @@ func Test4(test *testing.T) {
   config := Config{}
   config.Verbose        = 0
   config.StepSizeFactor = 1.0
-  config.LambdaAuto     = 8
+  config.LambdaAuto     = []int{8}
   config.EvalLoss       = true
   config.EpsilonLoss    = 1e-6
 
