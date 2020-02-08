@@ -34,7 +34,7 @@ func combine_scores(config Config, summary, filename_out string, filename_ins ..
     if  classifiers[i].Cooccurrence != classifiers[0].Cooccurrence {
       log.Fatalf("data binarization is not consistent across classifiers")
     }
-    if !classifiers[i].Transform.EqualsScores(classifiers[0].Transform, classifiers[0].Features, classifiers[i].Features) {
+    if !classifiers[0].Transform.EqualsScores(classifiers[i].Transform, classifiers[0].Features, classifiers[i].Features) {
       log.Fatalf("data transform is not consistent across classifiers")
     }
   }

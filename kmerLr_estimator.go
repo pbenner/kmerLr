@@ -150,9 +150,15 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, la
   }
 }
 
-func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull, lambdaAuto int, cooccurrence bool) *KmerLr {
+func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test []ConstVector, labels []bool, lambdaAuto int, cooccurrence bool) *KmerLr {
   if len(data_train) == 0 {
     return nil
+  }
+  transform := TransformFull{}
+  // estimate transform on full data set so that all estimated
+  // classifiers share the same transform
+  if !config.NoNormalization {
+    transform.Fit(config, append(data_train, data_test...), cooccurrence)
   }
   m, n := obj.n_params(config, data_train, lambdaAuto, cooccurrence)
   // compute class weights
@@ -189,21 +195,21 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test [
     selection.Data(config, data_train, copy_data_train)
     selection.Data(config, data_test , copy_data_test)
 
-    PrintStderr(config, 1, "Estimating parameters with lambda=%f...\n", lambda)
+    PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
     r = obj.estimate(config, data_train, labels)
     r.Transform = selection.Transform()
   }
   return r
 }
 
-func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, transform TransformFull) []*KmerLr {
+func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) []*KmerLr {
   if obj.Cooccurrence && config.Copreselection != 0 {
     // reduce data_train and data_test to pre-selected features
-    obj.estimate_loop(config, data_train, data_test, labels, transform, config.Copreselection, false)
+    obj.estimate_loop(config, data_train, data_test, labels, config.Copreselection, false)
   }
   r := make([]*KmerLr, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
-    r[i] = obj.estimate_loop(config, data_train, data_test, labels, transform, lambda, obj.Cooccurrence)
+    r[i] = obj.estimate_loop(config, data_train, data_test, labels, lambda, obj.Cooccurrence)
   }
   return r
 }

@@ -26,8 +26,8 @@ import   "github.com/pbenner/threadpool"
 /* -------------------------------------------------------------------------- */
 
 func scoresCrossvalidation(config Config, data []ConstVector, labels []bool,
-  learnClassifiers func(i int, data_train, data_all []ConstVector, c []bool) []*ScoresLr,
-   testClassifiers func(i int, data []ConstVector, classifier []*ScoresLr) [][]float64) []CVResult {
+  learnClassifiers func(i int, data_train, data_test []ConstVector, c []bool) []*ScoresLr,
+   testClassifiers func(i int, data []ConstVector, classifiers []*ScoresLr) [][]float64) []CVResult {
   groups := getCvGroups(len(data), config.KFoldCV, config.Seed)
 
   r_predictions := make([][][]float64, config.KFoldCV)

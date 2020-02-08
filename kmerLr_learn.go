@@ -32,7 +32,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t TransformFull, icv int, basename_out string) []*KmerLr {
+func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, basename_out string) []*KmerLr {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
@@ -43,7 +43,7 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
   if classifier != nil {
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
-  classifiers := estimator.Estimate(config, data_train, data_test, labels, t)
+  classifiers := estimator.Estimate(config, data_train, data_test, labels)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   // export trace
@@ -58,10 +58,10 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
   return classifiers
 }
 
-func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, t TransformFull, basename_out string) {
+func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, basename_out string) {
   learnClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) []*KmerLr {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, t, i, basename_out)
+    return learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, i, basename_out)
   }
   testClassifiers := func(i int, data []ConstVector, classifiers []*KmerLr) [][]float64 {
     r := make([][]float64, len(classifiers))
@@ -95,20 +95,14 @@ func learn(config Config, filename_json, filename_fg, filename_bg, basename_out 
   if len(data) == 0 {
     log.Fatal("Error: no training data given")
   }
-  t := TransformFull{}
-  // estimate transform on full data set so that all estimated
-  // classifiers share the same transform
-  if !config.NoNormalization {
-    t.Fit(config, data)
-  }
   // create index for sparse data
   for i, _ := range data {
     data[i].(SparseConstRealVector).CreateIndex()
   }
   if config.KFoldCV <= 1 {
-    learn_parameters(config, data, nil, labels, classifier, kmers, features, t, -1, basename_out)
+    learn_parameters(config, data, nil, labels, classifier, kmers, features, -1, basename_out)
   } else {
-    learn_cv(config, data, labels, classifier, kmers, features, t, basename_out)
+    learn_cv(config, data, labels, classifier, kmers, features, basename_out)
   }
 }
 

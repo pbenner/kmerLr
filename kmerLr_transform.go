@@ -35,7 +35,7 @@ type TransformFull struct {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *TransformFull) Fit(config Config, data []ConstVector) {
+func (obj *TransformFull) Fit(config Config, data []ConstVector, cooccurrence bool) {
   if len(data) == 0 {
     return
   }
@@ -44,7 +44,7 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
   m := data[0].Dim()-1
   mu    := []float64{}
   sigma := []float64{}
-  if config.Cooccurrence {
+  if cooccurrence {
     mu    = make([]float64, CoeffIndex(m).Dim()+1)
     sigma = make([]float64, CoeffIndex(m).Dim()+1)
   } else {
@@ -63,7 +63,7 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
     for j := 1; j < q; j++ {
       mu[i[j]] += v[j]
     }
-    if config.Cooccurrence {
+    if cooccurrence {
       config.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
         for j2 := j1+1; j2 < q; j2++ {
           i1    := i[j1]-1
@@ -94,7 +94,7 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector) {
       k    [j_] += 1
       sigma[j_] += (v[j]-mu[j_])*(v[j]-mu[j_])
     }
-    if config.Cooccurrence {
+    if cooccurrence {
       config.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
         for j2 := j1+1; j2 < q; j2++ {
           i1 := i[j1]-1
@@ -257,6 +257,22 @@ func (t1 Transform) InsertScores(t2 Transform, f1, f2 FeatureIndices) error {
 }
 
 func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClassList) bool {
+  { // check if transforms are nil
+    b1 := false
+    b2 := false
+    if t1.Nil() && len(f1) != 0 {
+      b1 = true
+    }
+    if t2.Nil() && len(f2) != 0 {
+      b2 = true
+    }
+    if b1 != b2 {
+      return false
+    }
+    if b1 == true && b2 == true {
+      return true
+    }
+  }
   // compare mu
   m := make(map[[2]KmerClassId]float64)
   for i, feature := range f1 {
@@ -293,6 +309,22 @@ func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
 }
 
 func (t1 Transform) EqualsScores(t2 Transform, f1, f2 FeatureIndices) bool {
+  { // check if transforms are nil
+    b1 := false
+    b2 := false
+    if t1.Nil() && len(f1) != 0 {
+      b1 = true
+    }
+    if t2.Nil() && len(f2) != 0 {
+      b2 = true
+    }
+    if b1 != b2 {
+      return false
+    }
+    if b1 == true && b2 == true {
+      return true
+    }
+  }
   // compare mu
   m := make(map[[2]int]float64)
   for i, feature := range f1 {

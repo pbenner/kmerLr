@@ -31,7 +31,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_scores_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, t TransformFull, icv int, basename_out string) []*ScoresLr {
+func learn_scores_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, icv int, basename_out string) []*ScoresLr {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
@@ -42,7 +42,7 @@ func learn_scores_parameters(config Config, data_train, data_test []ConstVector,
   if classifier != nil {
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
-  classifiers := estimator.Estimate(config, data_train, data_test, labels, t)
+  classifiers := estimator.Estimate(config, data_train, data_test, labels)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   // export trace
@@ -57,10 +57,10 @@ func learn_scores_parameters(config Config, data_train, data_test []ConstVector,
   return classifiers
 }
 
-func learn_scores_cv(config Config, data []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, t TransformFull, basename_out string) {
+func learn_scores_cv(config Config, data []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, basename_out string) {
   learnClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) []*ScoresLr {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_scores_parameters(config, data_train, data_test, labels, classifier, features, t, i, basename_out)
+    return learn_scores_parameters(config, data_train, data_test, labels, classifier, features, i, basename_out)
   }
   testClassifiers := func(i int, data []ConstVector, classifiers []*ScoresLr) [][]float64 {
     r := make([][]float64, len(classifiers))
@@ -88,20 +88,14 @@ func learn_scores(config Config, filename_json, filename_fg, filename_bg, basena
   if len(data) == 0 {
     log.Fatal("Error: no training data given")
   }
-  t := TransformFull{}
-  // estimate transform on full data set so that all estimated
-  // classifiers share the same transform
-  if !config.NoNormalization {
-    t.Fit(config, data)
-  }
   // create index for sparse data
   for i, _ := range data {
     data[i].(SparseConstRealVector).CreateIndex()
   }
   if config.KFoldCV <= 1 {
-    learn_scores_parameters(config, data, nil, labels, classifier, features, t, -1, basename_out)
+    learn_scores_parameters(config, data, nil, labels, classifier, features, -1, basename_out)
   } else {
-    learn_scores_cv(config, data, labels, classifier, features, t, basename_out)
+    learn_scores_cv(config, data, labels, classifier, features, basename_out)
   }
 }
 

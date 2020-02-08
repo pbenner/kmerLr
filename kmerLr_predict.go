@@ -24,9 +24,42 @@ import   "io"
 import   "log"
 import   "os"
 
+import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
+import   "github.com/pbenner/threadpool"
 
 import   "github.com/pborman/getopt"
+
+/* -------------------------------------------------------------------------- */
+
+func saveWindowPredictions(filename string, predictions [][]float64) {
+  var writer io.Writer
+  if filename == "" {
+    writer = os.Stdout
+  } else {
+    f, err := os.Create(filename)
+    if err != nil {
+      panic(err)
+    }
+    defer f.Close()
+
+    w := bufio.NewWriter(f)
+    defer w.Flush()
+
+    writer = w
+  }
+  fmt.Fprintf(writer, "%15s\n", "prediction")
+  for i := 0; i < len(predictions); i++ {
+    for j := 0; j < len(predictions[i]); j++ {
+      if j == 0 {
+        fmt.Fprintf(writer, "%15e", predictions[i])
+      } else {
+        fmt.Fprintf(writer, " %15e", predictions[i])
+      }
+    }
+    fmt.Fprintf(writer, "\n")
+  }
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -54,10 +87,38 @@ func savePredictions(filename string, predictions []float64) {
 
 /* -------------------------------------------------------------------------- */
 
+func predict_window(config Config, filename_json, filename_in, filename_out string, window_size, window_step int) {
+  classifier := ImportKmerLr(&config, filename_json)
+  sequences  := import_fasta(config, filename_in)
+  job_group  := config.Pool.NewJobGroup()
+  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
+    log.Fatal(err)
+  }
+  predictions := make([][]float64, len(sequences))
+  for i, sequence := range sequences {
+    if n := len(sequence)-window_size; n > 0 {
+      predictions[i] = make([]float64, n)
+    }
+  }
+  for i, _ := range sequences {
+    i        := i
+    sequence := sequences[i]
+    config.Pool.AddRangeJob(0, len(sequence)-window_size, job_group, func(j int, pool threadpool.ThreadPool, erf func() error) error {
+      counts := scan_sequence(config, kmersCounter, []byte(sequence[i:i+window_size]))
+      data   := convert_counts(config, counts, classifier.Features)
+      predictions[i][j] = classifier.Predict(config, []ConstVector{data})[0]
+      return nil
+    })
+  }
+  saveWindowPredictions(filename_out, predictions)
+}
+
+/* -------------------------------------------------------------------------- */
+
 func predict(config Config, filename_json, filename_in, filename_out string) {
   classifier := ImportKmerLr(&config, filename_json)
 
-  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
+  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
     log.Fatal(err)
   }
   data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_in)
@@ -73,7 +134,9 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
 func main_predict(config Config, args []string) {
   options := getopt.New()
 
-  optHelp   := options.BoolLong("help", 'h', "print help")
+  optSlidingWindow     := options.   IntLong("sliding-window",       0 ,        0, "make predictions by sliding a window along the sequence")
+  optSlidingWindowStep := options.   IntLong("sliding-window-step",  0 ,        0, "step size for sliding window")
+  optHelp              := options.  BoolLong("help",                'h',           "print help")
 
   options.SetParameters("<MODEL.json> <SEQUENCES.fa> [RESULT.table]")
   options.Parse(args)
@@ -96,5 +159,9 @@ func main_predict(config Config, args []string) {
   if len(options.Args()) == 3 {
     filename_out = options.Args()[2]
   }
-  predict(config, filename_json, filename_in, filename_out)
+  if *optSlidingWindow > 0 {
+    predict_window(config, filename_json, filename_in, filename_out, *optSlidingWindow, *optSlidingWindowStep)
+  } else {
+    predict(config, filename_json, filename_in, filename_out)
+  }
 }

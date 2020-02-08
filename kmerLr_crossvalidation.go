@@ -101,7 +101,7 @@ func saveCrossvalidation(filename string, cvr CVResult) error {
 /* -------------------------------------------------------------------------- */
 
 func crossvalidation(config Config, data []ConstVector, labels []bool,
-  learnClassifiers func(i int, data_train, data_all []ConstVector, c []bool) []*KmerLr,
+  learnClassifiers func(i int, data_train, data_test []ConstVector, c []bool) []*KmerLr,
    testClassifiers func(i int, data []ConstVector, classifiers []*KmerLr) [][]float64) []CVResult {
   groups := getCvGroups(len(data), config.KFoldCV, config.Seed)
 
