@@ -68,7 +68,7 @@ func learn_cv(config Config, data []ConstVector, labels []bool, classifier *Kmer
   cvrs := crossvalidation(config, data, labels, learnAndTestClassifiers)
 
   for i, cvr := range cvrs {
-    SaveCrossvalidation(config, fmt.Sprintf("%s_%d.table", basename_out, i), cvr)
+    SaveCrossvalidation(config, fmt.Sprintf("%s_%d.table", basename_out, config.LambdaAuto[i]), cvr)
   }
 }
 
