@@ -107,7 +107,7 @@ func main_learn(config Config, args []string) {
   options := getopt.New()
 
   optAlphabet        := options. StringLong("alphabet",         0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
-  optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "select lambda automatically so that [value] coefficients are non-zero")
+  optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "comma separated list of integers specifying the number of features to select; for each value a separate classifier is estimated")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model k-mer co-occurrences")

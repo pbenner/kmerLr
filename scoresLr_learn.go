@@ -99,7 +99,7 @@ func learn_scores(config Config, filename_json, filename_fg, filename_bg, basena
 func main_learn_scores(config Config, args []string) {
   options := getopt.New()
 
-  optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "select lambda automatically so that [value] coefficients are non-zero")
+  optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "comma separated list of integers specifying the number of features to select; for each value a separate classifier is estimated")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model co-occurrences")
   optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
