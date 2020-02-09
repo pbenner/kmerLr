@@ -33,18 +33,18 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, basename_out string) []*KmerLr {
+func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, basename_out string) ([]*KmerLr, [][]float64) {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
     trace = &Trace{}
   }
 
-  estimator := NewKmerLrEstimator(config, kmers, trace, icv, data_train, features, labels)
+  estimator := NewKmerLrEstimator(config, kmers, trace, icv, features, labels)
   if classifier != nil {
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
-  classifiers := estimator.Estimate(config, data_train, data_test, labels)
+  classifiers, predictions := estimator.Estimate(config, data_train, data_test, labels)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   // export trace
@@ -56,22 +56,16 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
     // export models
     SaveModel(config, filename_json, classifier)
   }
-  return classifiers
+  return classifiers, predictions
 }
 
 func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, basename_out string) {
-  learnClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) []*KmerLr {
+  learnAndTestClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) [][]float64 {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    return learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, i, basename_out)
+    _, predictions := learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, i, basename_out)
+    return predictions
   }
-  testClassifiers := func(i int, data []ConstVector, classifiers []*KmerLr) [][]float64 {
-    r := make([][]float64, len(classifiers))
-    for i, classifier := range classifiers {
-      r[i] = classifier.Predict(config, data)
-    }
-    return r
-  }
-  cvrs := crossvalidation(config, data, labels, learnClassifiers, testClassifiers)
+  cvrs := crossvalidation(config, data, labels, learnAndTestClassifiers)
 
   for i, cvr := range cvrs {
     SaveCrossvalidation(config, fmt.Sprintf("%s_%d.table", basename_out, i), cvr)

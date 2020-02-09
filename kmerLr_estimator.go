@@ -37,11 +37,14 @@ type KmerLrEstimator struct {
   Kmers        KmerClassList
   Features     FeatureIndices
   EpsilonLoss  float64
+  // reduced data sets
+  reduced_data_train []ConstVector
+  reduced_data_test  []ConstVector
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, data []ConstVector, features FeatureIndices, labels []bool) *KmerLrEstimator {
+func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, features FeatureIndices, labels []bool) *KmerLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
     log.Fatal(err)
     return nil
@@ -56,7 +59,7 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv in
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
-    r.LogisticRegression.Hook           = NewHook(config, trace, icv, data, labels, &r)
+    r.LogisticRegression.Hook           = NewHook(config, trace, icv, labels, &r)
     if config.MaxIterations != 0 {
       r.LogisticRegression.MaxIterations = config.MaxIterations
     }
@@ -164,14 +167,8 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test [
   // compute class weights
   obj.LogisticRegression.SetLabels(labels)
   // create a copy of data arrays, from which to select subsets
-  copy_data_train := make([]ConstVector, len(data_train))
-  copy_data_test  := make([]ConstVector, len(data_test))
-  for i, x := range data_train {
-    copy_data_train[i] = x
-  }
-  for i, x := range data_test {
-    copy_data_test [i] = x
-  }
+  obj.reduced_data_train = make([]ConstVector, len(data_train))
+  obj.reduced_data_test  = make([]ConstVector, len(data_test ))
   s := newFeatureSelector(config, obj.Kmers, cooccurrence, labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
@@ -182,7 +179,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test [
       d := r.Nonzero()
       PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features... ", d, n-d)
     }
-    selection, lambda, ok := s.Select(copy_data_train, obj.Theta.GetValues(), obj.Features, obj.Kmers, obj.L1Reg)
+    selection, lambda, ok := s.Select(data_train, obj.Theta.GetValues(), obj.Features, obj.Kmers, obj.L1Reg)
     PrintStderr(config, 1, "done\n")
     if !ok && r != nil {
       break
@@ -192,24 +189,26 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test [
     obj.Kmers    = selection.Kmers()
     obj.Theta    = selection.Theta()
     // create actual training and validation data sets
-    selection.Data(config, data_train, copy_data_train)
-    selection.Data(config, data_test , copy_data_test)
+    selection.Data(config, obj.reduced_data_train, data_train)
+    selection.Data(config, obj.reduced_data_test , data_test )
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
-    r = obj.estimate(config, data_train, labels)
+    r = obj.estimate(config, obj.reduced_data_train, labels)
     r.Transform = selection.Transform()
   }
   return r
 }
 
-func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) []*KmerLr {
+func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) ([]*KmerLr, [][]float64) {
   if obj.Cooccurrence && config.Copreselection != 0 {
     // reduce data_train and data_test to pre-selected features
     obj.estimate_loop(config, data_train, data_test, labels, config.Copreselection, false)
   }
-  r := make([]*KmerLr, len(config.LambdaAuto))
+  classifiers := make([]*KmerLr  , len(config.LambdaAuto))
+  predictions := make([][]float64, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
-    r[i] = obj.estimate_loop(config, data_train, data_test, labels, lambda, obj.Cooccurrence)
+    classifiers[i] = obj.estimate_loop(config, data_train, data_test, labels, lambda, obj.Cooccurrence)
+    predictions[i] = classifiers[i].Predict(config, obj.reduced_data_test)
   }
-  return r
+  return classifiers, predictions
 }

@@ -109,7 +109,7 @@ func Test3(test *testing.T) {
   } else {
     data, labels, kmers := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
 
-    estimator := NewKmerLrEstimator(config, kmers, trace, 0, data, nil, labels)
+    estimator := NewKmerLrEstimator(config, kmers, trace, 0, nil, labels)
     estimator.Estimate(config, data, nil, labels)
 
     for _, x := range data {
@@ -137,7 +137,7 @@ func Test4(test *testing.T) {
   } else {
     data, labels, kmers := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
 
-    estimator := NewKmerLrEstimator(config, kmers, trace, 0, data, nil, labels)
+    estimator := NewKmerLrEstimator(config, kmers, trace, 0, nil, labels)
     estimator.Estimate(config, data, nil, labels)
 
     for _, x := range data {

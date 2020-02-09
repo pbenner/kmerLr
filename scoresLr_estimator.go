@@ -35,11 +35,14 @@ type ScoresLrEstimator struct {
   Cooccurrence bool
   Features     FeatureIndices
   EpsilonLoss  float64
+  // reduced data sets
+  reduced_data_train []ConstVector
+  reduced_data_test  []ConstVector
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewScoresLrEstimator(config Config, trace *Trace, icv int, data []ConstVector, features FeatureIndices, labels []bool) *ScoresLrEstimator {
+func NewScoresLrEstimator(config Config, trace *Trace, icv int, features FeatureIndices, labels []bool) *ScoresLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
     log.Fatal(err)
     return nil
@@ -53,7 +56,7 @@ func NewScoresLrEstimator(config Config, trace *Trace, icv int, data []ConstVect
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
-    r.LogisticRegression.Hook           = NewScoresHook(config, trace, icv, data, labels, &r)
+    r.LogisticRegression.Hook           = NewScoresHook(config, trace, icv, labels, &r)
     if config.MaxIterations != 0 {
       r.LogisticRegression.MaxIterations = config.MaxIterations
     }
@@ -120,14 +123,8 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test
   // compute class weights
   obj.LogisticRegression.SetLabels(labels)
   // create a copy of data arrays, from which to select subsets
-  copy_data_train := make([]ConstVector, len(data_train))
-  copy_data_test  := make([]ConstVector, len(data_test))
-  for i, x := range data_train {
-    copy_data_train[i] = x
-  }
-  for i, x := range data_test {
-    copy_data_test [i] = x
-  }
+  obj.reduced_data_train = make([]ConstVector, len(data_train))
+  obj.reduced_data_test  = make([]ConstVector, len(data_test ))
   s := newFeatureSelector(config, KmerClassList{}, obj.Cooccurrence, labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*ScoresLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
@@ -138,7 +135,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test
       d := r.Nonzero()
       PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features... ", d, n-d)
     }
-    selection, lambda, ok := s.Select(copy_data_train, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.L1Reg)
+    selection, lambda, ok := s.Select(data_train, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.L1Reg)
     PrintStderr(config, 1, "done\n")
     if !ok && r != nil {
       break
@@ -147,20 +144,22 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test
     obj.Features = selection.Features()
     obj.Theta    = selection.Theta()
     // create actual training and validation data sets
-    selection.Data(config, data_train, copy_data_train)
-    selection.Data(config, data_test , copy_data_test)
+    selection.Data(config, obj.reduced_data_train, data_train)
+    selection.Data(config, obj.reduced_data_test , data_test)
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
-    r = obj.estimate(config, data_train, labels)
+    r = obj.estimate(config, obj.reduced_data_train, labels)
     r.Transform = selection.Transform()
   }
   return r
 }
 
-func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) []*ScoresLr {
-  r := make([]*ScoresLr, len(config.LambdaAuto))
+func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) ([]*ScoresLr, [][]float64) {
+  classifiers := make([]*ScoresLr, len(config.LambdaAuto))
+  predictions := make([][]float64, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
-    r[i] = obj.estimate_loop(config, data_train, data_test, labels, lambda)
+    classifiers[i] = obj.estimate_loop(config, data_train, data_test, labels, lambda)
+    predictions[i] = classifiers[i].Predict(config, obj.reduced_data_test)
   }
-  return r
+  return classifiers, predictions
 }
