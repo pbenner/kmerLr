@@ -38,11 +38,12 @@ type ScoresLrEstimator struct {
   // reduced data sets
   reduced_data_train []ConstVector
   reduced_data_test  []ConstVector
+  labels             []bool
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewScoresLrEstimator(config Config, trace *Trace, icv int, features FeatureIndices, labels []bool) *ScoresLrEstimator {
+func NewScoresLrEstimator(config Config, trace *Trace, icv int, features FeatureIndices) *ScoresLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
     log.Fatal(err)
     return nil
@@ -56,7 +57,7 @@ func NewScoresLrEstimator(config Config, trace *Trace, icv int, features Feature
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
-    r.LogisticRegression.Hook           = NewScoresHook(config, trace, icv, labels, &r)
+    r.LogisticRegression.Hook           = NewScoresHook(config, trace, icv, &r)
     if config.MaxIterations != 0 {
       r.LogisticRegression.MaxIterations = config.MaxIterations
     }
@@ -125,6 +126,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test
   // create a copy of data arrays, from which to select subsets
   obj.reduced_data_train = make([]ConstVector, len(data_train))
   obj.reduced_data_test  = make([]ConstVector, len(data_test ))
+  obj.labels             = labels
   s := newFeatureSelector(config, KmerClassList{}, obj.Cooccurrence, labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*ScoresLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {

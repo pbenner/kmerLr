@@ -40,11 +40,12 @@ type KmerLrEstimator struct {
   // reduced data sets
   reduced_data_train []ConstVector
   reduced_data_test  []ConstVector
+  labels             []bool
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv int, features FeatureIndices, labels []bool) *KmerLrEstimator {
+func NewKmerLrEstimator(config Config, kmers KmerClassList, features FeatureIndices, trace *Trace, icv int) *KmerLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
     log.Fatal(err)
     return nil
@@ -59,7 +60,7 @@ func NewKmerLrEstimator(config Config, kmers KmerClassList, trace *Trace, icv in
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
-    r.LogisticRegression.Hook           = NewHook(config, trace, icv, labels, &r)
+    r.LogisticRegression.Hook           = NewHook(config, trace, icv, &r)
     if config.MaxIterations != 0 {
       r.LogisticRegression.MaxIterations = config.MaxIterations
     }
@@ -169,6 +170,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test [
   // create a copy of data arrays, from which to select subsets
   obj.reduced_data_train = make([]ConstVector, len(data_train))
   obj.reduced_data_test  = make([]ConstVector, len(data_test ))
+  obj.labels             = labels
   s := newFeatureSelector(config, kmers, cooccurrence, labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
@@ -199,12 +201,11 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test [
   return r
 }
 
-func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) ([]*KmerLr, [][]float64) {
+func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool, kmers KmerClassList) ([]*KmerLr, [][]float64) {
   if obj.Cooccurrence && config.Copreselection != 0 {
     // reduce data_train and data_test to pre-selected features
     obj.estimate_loop(config, data_train, data_test, obj.Kmers, labels, config.Copreselection, false)
   }
-  kmers       := obj.Kmers
   classifiers := make([]*KmerLr  , len(config.LambdaAuto))
   predictions := make([][]float64, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {

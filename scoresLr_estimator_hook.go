@@ -26,7 +26,7 @@ import . "github.com/pbenner/autodiff"
 
 /* -------------------------------------------------------------------------- */
 
-func NewScoresHook(config Config, trace *Trace, icv int, c []bool, estimator *ScoresLrEstimator) HookType {
+func NewScoresHook(config Config, trace *Trace, icv int, estimator *ScoresLrEstimator) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
   loss := func(x ConstVector, lambda ConstScalar) float64 {
@@ -34,7 +34,7 @@ func NewScoresHook(config Config, trace *Trace, icv int, c []bool, estimator *Sc
     lr.Theta        = x.GetValues()
     lr.Lambda       = lambda.GetValue()
     lr.ClassWeights = estimator.ClassWeights
-    return lr.Loss(estimator.reduced_data_train, c)
+    return lr.Loss(estimator.reduced_data_train, estimator.labels)
   }
   t := time.Now()
   s := time.Now()

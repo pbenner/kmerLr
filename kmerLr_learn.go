@@ -40,11 +40,11 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
     trace = &Trace{}
   }
 
-  estimator := NewKmerLrEstimator(config, kmers, trace, icv, features, labels)
+  estimator := NewKmerLrEstimator(config, kmers, features, trace, icv)
   if classifier != nil {
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
-  classifiers, predictions := estimator.Estimate(config, data_train, data_test, labels)
+  classifiers, predictions := estimator.Estimate(config, data_train, data_test, labels, kmers)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   // export trace

@@ -30,7 +30,7 @@ type HookType func(x ConstVector, change, lambda ConstScalar, epoch int) bool
 
 /* -------------------------------------------------------------------------- */
 
-func NewHook(config Config, trace *Trace, icv int, c []bool, estimator *KmerLrEstimator) HookType {
+func NewHook(config Config, trace *Trace, icv int, estimator *KmerLrEstimator) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
   loss := func(x ConstVector, lambda ConstScalar) float64 {
@@ -38,7 +38,7 @@ func NewHook(config Config, trace *Trace, icv int, c []bool, estimator *KmerLrEs
     lr.Theta        = x.GetValues()
     lr.Lambda       = lambda.GetValue()
     lr.ClassWeights = estimator.ClassWeights
-    return lr.Loss(estimator.reduced_data_train, c)
+    return lr.Loss(estimator.reduced_data_train, estimator.labels)
   }
   t := time.Now()
   s := time.Now()

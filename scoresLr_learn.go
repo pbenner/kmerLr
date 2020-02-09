@@ -39,7 +39,7 @@ func learn_scores_parameters(config Config, data_train, data_test []ConstVector,
     trace = &Trace{}
   }
 
-  estimator := NewScoresLrEstimator(config, trace, icv, features, labels)
+  estimator := NewScoresLrEstimator(config, trace, icv, features)
   if classifier != nil {
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
