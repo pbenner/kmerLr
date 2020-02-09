@@ -158,6 +158,7 @@ func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []Co
   classifiers := make([]*ScoresLr, len(config.LambdaAuto))
   predictions := make([][]float64, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
+    PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambda)
     classifiers[i] = obj.estimate_loop(config, data_train, data_test, labels, lambda)
     predictions[i] = classifiers[i].Predict(config, obj.reduced_data_test)
   }
