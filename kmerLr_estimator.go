@@ -80,6 +80,9 @@ func (obj *KmerLrEstimator) CloneVectorEstimator() VectorEstimator {
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrEstimator) n_params(config Config, data []ConstVector, lambdaAuto int, cooccurrence bool) (int, int) {
+  if len(obj.Kmers) != data[0].Dim()-1 {
+    panic("internal error")
+  }
   if m := data[0].Dim()-1; lambdaAuto != 0 {
     return m, lambdaAuto
   } else {
@@ -197,12 +200,6 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test [
 }
 
 func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) ([]*KmerLr, [][]float64) {
-  if len(obj.Kmers) != data_train[0].Dim()-1 {
-    panic("internal error")
-  }
-  if len(obj.Kmers) != data_test[0].Dim()-1 {
-    panic("internal error")
-  }
   if obj.Cooccurrence && config.Copreselection != 0 {
     // reduce data_train and data_test to pre-selected features
     obj.estimate_loop(config, data_train, data_test, obj.Kmers, labels, config.Copreselection, false)
