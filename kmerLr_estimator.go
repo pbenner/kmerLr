@@ -205,8 +205,11 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test []Cons
   if obj.Cooccurrence && config.Copreselection != 0 {
     // reduce data_train and data_test to pre-selected features
     obj.estimate_loop(config, data_train, data_test, obj.Kmers, labels, config.Copreselection, false)
+    data_train = obj.reduced_data_train
+    data_test  = obj.reduced_data_test
+    kmers      = obj.Kmers
   }
-  classifiers := make([]*KmerLr  , len(config.LambdaAuto))
+  classifiers := make(  []*KmerLr, len(config.LambdaAuto))
   predictions := make([][]float64, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
     PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambda)
