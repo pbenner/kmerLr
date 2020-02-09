@@ -151,11 +151,11 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train []ConstVector, la
 }
 
 func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test []ConstVector, kmers KmerClassList, labels []bool, lambdaAuto int, cooccurrence bool) *KmerLr {
-  if len(kmers) != data[0].Dim()-1 {
-    panic("internal error")
-  }
   if len(data_train) == 0 {
     return nil
+  }
+  if len(kmers) != data_train[0].Dim()-1 {
+    panic("internal error")
   }
   transform := TransformFull{}
   // estimate transform on full data set so that all estimated
