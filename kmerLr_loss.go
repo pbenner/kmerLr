@@ -32,14 +32,14 @@ import   "github.com/pborman/getopt"
 func loss(config Config, filename_json, filename_fg, filename_bg string) {
   classifier := ImportKmerLr(&config, filename_json)
 
-  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
+  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
     log.Fatal(err)
   }
-  data, c, _  := compile_training_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_fg, filename_bg)
+  data := compile_training_data(config, kmersCounter, nil, nil, filename_fg, filename_bg)
   kmersCounter = nil
-  classifier.Transform.Apply(config, data)
+  classifier.Transform.Apply(config, data.Data)
 
-  fmt.Println(classifier.Loss(config, data, c))
+  fmt.Println(classifier.Loss(config, data.Data, data.Labels))
 }
 
 /* -------------------------------------------------------------------------- */

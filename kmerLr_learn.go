@@ -33,18 +33,28 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, icv int, basename_out string) ([]*KmerLr, [][]float64) {
+type KmerDataSet struct {
+  Data   []ConstVector
+  Labels []bool
+  Kmers    KmerClassList
+}
+
+/* -------------------------------------------------------------------------- */
+
+func learn_parameters(config Config, data_train, data_test KmerDataSet, classifier *KmerLr, icv int, basename_out string) ([]*KmerLr, [][]float64) {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
     trace = &Trace{}
   }
 
-  estimator := NewKmerLrEstimator(config, kmers, features, trace, icv)
+  estimator := NewKmerLrEstimator(config, trace, icv)
   if classifier != nil {
+    estimator.Kmers    = classifier.Kmers
+    estimator.Features = classifier.Features
     estimator.SetParameters(classifier.GetParameters().CloneVector())
   }
-  classifiers, predictions := estimator.Estimate(config, data_train, data_test, labels, kmers)
+  classifiers, predictions := estimator.Estimate(config, data_train, data_test)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   // export trace
@@ -59,13 +69,13 @@ func learn_parameters(config Config, data_train, data_test []ConstVector, labels
   return classifiers, predictions
 }
 
-func learn_cv(config Config, data []ConstVector, labels []bool, classifier *KmerLr, kmers KmerClassList, features FeatureIndices, basename_out string) {
-  learnAndTestClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) [][]float64 {
+func learn_cv(config Config, data KmerDataSet, classifier *KmerLr, basename_out string) {
+  learnAndTestClassifiers := func(i int, data_train, data_test KmerDataSet) [][]float64 {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    _, predictions := learn_parameters(config, data_train, data_test, labels, classifier, kmers, features, i, basename_out)
+    _, predictions := learn_parameters(config, data_train, data_test, classifier, i, basename_out)
     return predictions
   }
-  cvrs := crossvalidation(config, data, labels, learnAndTestClassifiers)
+  cvrs := crossvalidation(config, data, learnAndTestClassifiers)
 
   for i, cvr := range cvrs {
     SaveCrossvalidation(config, fmt.Sprintf("%s_%d.table", basename_out, config.LambdaAuto[i]), cvr)
@@ -74,30 +84,26 @@ func learn_cv(config Config, data []ConstVector, labels []bool, classifier *Kmer
 
 func learn(config Config, filename_json, filename_fg, filename_bg, basename_out string) {
   var classifier *KmerLr
-  var kmers       KmerClassList
-  var features    FeatureIndices
   if filename_json != "" {
     classifier = ImportKmerLr(&config, filename_json)
-    kmers      = classifier.Kmers
-    features   = classifier.Features
   }
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data, labels, kmers := compile_training_data(config, kmersCounter, kmers, features, filename_fg, filename_bg)
+  data := compile_training_data(config, kmersCounter, nil, nil, filename_fg, filename_bg)
   kmersCounter = nil
 
-  if len(data) == 0 {
+  if len(data.Data) == 0 {
     log.Fatal("Error: no training data given")
   }
   // create index for sparse data
-  for i, _ := range data {
-    data[i].(SparseConstRealVector).CreateIndex()
+  for i, _ := range data.Data {
+    data.Data[i].(SparseConstRealVector).CreateIndex()
   }
   if config.KFoldCV <= 1 {
-    learn_parameters(config, data, nil, labels, classifier, kmers, features, -1, basename_out)
+    learn_parameters(config, data, KmerDataSet{}, classifier, -1, basename_out)
   } else {
-    learn_cv(config, data, labels, classifier, kmers, features, basename_out)
+    learn_cv(config, data, classifier, basename_out)
   }
 }
 

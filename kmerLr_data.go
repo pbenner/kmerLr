@@ -160,7 +160,7 @@ func scan_sequences(config Config, kmersCounter *KmerCounter, sequences []string
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, filename_fg, filename_bg string) ([]ConstVector, []bool, KmerClassList) {
+func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, filename_fg, filename_bg string) KmerDataSet {
   fg := import_fasta(config, filename_fg)
   bg := import_fasta(config, filename_bg)
   labels := make([]bool, len(fg)+len(bg))
@@ -177,15 +177,15 @@ func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerC
   counts_list_bg := counts_list.Slice(len(fg), len(fg)+len(bg))
   r_fg := convert_counts_list(config, &counts_list_fg, features)
   r_bg := convert_counts_list(config, &counts_list_bg, features)
-  return append(r_fg, r_bg...), labels, counts_list.Kmers
+  return KmerDataSet{append(r_fg, r_bg...), labels, counts_list.Kmers}
 }
 
-func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, filename string) ([]ConstVector, KmerClassList) {
+func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, filename string) KmerDataSet {
   sequences   := import_fasta(config, filename)
   counts      := scan_sequences(config, kmersCounter, sequences)
   counts_list := NewKmerCountsList(counts...)
   // set counts_list.Kmers to the set of kmers on which the
   // classifier was trained on
   counts_list.SetKmers(kmers)
-  return convert_counts_list(config, &counts_list, features), counts_list.Kmers
+  return KmerDataSet{convert_counts_list(config, &counts_list, features), nil, counts_list.Kmers}
 }

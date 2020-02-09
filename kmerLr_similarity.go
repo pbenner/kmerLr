@@ -99,22 +99,22 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
       }
     }
   }
-  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
+  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
     log.Fatal(err)
   }
-  data, _ := compile_test_data(config, kmersCounter, classifier.Kmers, classifier.Features, filenameFasta)
-  classifier.Transform.Apply(config, data)
+  data := compile_test_data(config, kmersCounter, nil, nil, filenameFasta)
+  classifier.Transform.Apply(config, data.Data)
 
   // allocate result
-  result := make([][]float64, len(data))
-  for i := 0; i < len(data); i++ {
-    result[i] = make([]float64, len(data))
+  result := make([][]float64, len(data.Data))
+  for i := 0; i < len(data.Data); i++ {
+    result[i] = make([]float64, len(data.Data))
     // create sparse vector index
-    data[i].ValueAt(1)
+    data.Data[i].ValueAt(1)
   }
-  config.Pool.RangeJob(0, len(data), func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    for j := i; j < len(data); j++ {
-      result[i][j] = compute_similarity(config, classifier.Theta, data[i], data[j])
+  config.Pool.RangeJob(0, len(data.Data), func(i int, pool threadpool.ThreadPool, erf func() error) error {
+    for j := i; j < len(data.Data); j++ {
+      result[i][j] = compute_similarity(config, classifier.Theta, data.Data[i], data.Data[j])
       result[j][i] = result[i][j]
     }
     return nil

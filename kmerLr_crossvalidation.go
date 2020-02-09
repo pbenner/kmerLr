@@ -58,21 +58,23 @@ func getCvGroups(n, fold int, seed int64) []int {
   return groups
 }
 
-func filterCvGroup(data []ConstVector, labels []bool, groups []int, i int) ([]ConstVector, []bool, []ConstVector, []bool) {
+func filterCvGroup(data KmerDataSet, groups []int, i int) (KmerDataSet, KmerDataSet) {
   r_test         := []ConstVector{}
   r_test_labels  := []bool{}
   r_train        := []ConstVector{}
   r_train_labels := []bool{}
-  for j := 0; j < len(data); j++ {
+  for j := 0; j < len(data.Data); j++ {
     if groups[j] == i {
-      r_test         = append(r_test        , data[j])
-      r_test_labels  = append(r_test_labels , labels[j])
+      r_test         = append(r_test        , data.Data  [j])
+      r_test_labels  = append(r_test_labels , data.Labels[j])
     } else {
-      r_train        = append(r_train       , data[j])
-      r_train_labels = append(r_train_labels, labels[j])
+      r_train        = append(r_train       , data.Data  [j])
+      r_train_labels = append(r_train_labels, data.Labels[j])
     }
   }
-  return r_test, r_test_labels, r_train, r_train_labels
+  data_train := KmerDataSet{r_test, r_test_labels, data.Kmers}
+  data_test  := KmerDataSet{r_train, r_train_labels, data.Kmers}
+  return data_train, data_test
 }
 
 /* -------------------------------------------------------------------------- */
@@ -100,18 +102,18 @@ func saveCrossvalidation(filename string, cvr CVResult) error {
 
 /* -------------------------------------------------------------------------- */
 
-func crossvalidation(config Config, data []ConstVector, labels []bool,
-  learnAndTestClassifiers func(i int, data_train, data_test []ConstVector, c []bool) [][]float64) []CVResult {
-  groups := getCvGroups(len(data), config.KFoldCV, config.Seed)
+func crossvalidation(config Config, data KmerDataSet,
+  learnAndTestClassifiers func(i int, data_train, data_test KmerDataSet) [][]float64) []CVResult {
+  groups := getCvGroups(len(data.Data), config.KFoldCV, config.Seed)
 
   r_predictions := make([][][]float64, config.KFoldCV)
   r_labels      := make(  [][]bool,    config.KFoldCV)
 
   config.PoolCV.RangeJob(0, config.KFoldCV, func(i int, pool threadpool.ThreadPool, erf func() error) error {
-    data_test, labels_test, data_train, labels_train := filterCvGroup(data, labels, groups, i)
+    data_train, data_test := filterCvGroup(data, groups, i)
 
-    r_predictions[i] = learnAndTestClassifiers(i, data_train, data_test, labels_train)
-    r_labels     [i] = labels_test
+    r_predictions[i] = learnAndTestClassifiers(i, data_train, data_test)
+    r_labels     [i] = data_test.Labels
     return nil
   })
   // join results

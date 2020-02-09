@@ -111,13 +111,12 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
   features     := classifier.Features
   graph        := KmerGraph{}
 
-  data := []ConstVector{}
-  c    := []bool{}
+  data := KmerDataSet{}
   if filename_fg != "" && filename_bg != "" {
-    kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
+    kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
       log.Fatal(err)
     }
-    data, c, _ = compile_training_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_fg, filename_bg)
+    data = compile_training_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_fg, filename_bg)
   }
 
   // insert coefficients into the map
@@ -157,9 +156,9 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
     if v == 0.0 {
       break
     }
-    if len(data) > 0 {
-      fmt.Printf("%6.2f%% ", kmer_abundance(data, c, k, true )*100.0)
-      fmt.Printf("%6.2f%% ", kmer_abundance(data, c, k, false)*100.0)
+    if len(data.Data) > 0 {
+      fmt.Printf("%6.2f%% ", kmer_abundance(data.Data, data.Labels, k, true )*100.0)
+      fmt.Printf("%6.2f%% ", kmer_abundance(data.Data, data.Labels, k, false)*100.0)
     }
     k1 := features[k][0]
     k2 := features[k][1]
