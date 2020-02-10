@@ -121,7 +121,7 @@ func predict(config Config, filename_json, filename_in, filename_out string) {
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
     log.Fatal(err)
   }
-  data := compile_test_data(config, kmersCounter, nil, nil, filename_in)
+  data := compile_test_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_in)
   classifier.Transform.Apply(config, data.Data)
 
   predictions := classifier.Predict(config, data.Data)

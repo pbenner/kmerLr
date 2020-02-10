@@ -35,7 +35,7 @@ func loss(config Config, filename_json, filename_fg, filename_bg string) {
   kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
     log.Fatal(err)
   }
-  data := compile_training_data(config, kmersCounter, nil, nil, filename_fg, filename_bg)
+  data := compile_training_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_fg, filename_bg)
   kmersCounter = nil
   classifier.Transform.Apply(config, data.Data)
 
