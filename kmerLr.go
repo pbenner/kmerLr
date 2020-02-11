@@ -128,6 +128,8 @@ func main() {
       main_loss(config, options.Args())
     case "predict":
       main_predict(config, options.Args())
+    case "predict-genomic":
+      main_predict_genomic(config, options.Args())
     case "combine":
       main_combine(config, options.Args())
     case "coefficients":
