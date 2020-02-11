@@ -157,7 +157,7 @@ func predict_window_genomic(config Config, filename_json, filename_fa, filename_
   predictions := make([][]float64, len(sequences))
   for i, sequence := range sequences {
     if n := len(sequence)-window_size; n > 0 {
-      predictions[i] = make([]float64, (n+window_step-1)/window_step)
+      predictions[i] = make([]float64, n/window_step+1)
     }
   }
   job_group := config.Pool.NewJobGroup()
