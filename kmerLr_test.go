@@ -33,34 +33,34 @@ func Test1(test *testing.T) {
   kmersCounter, err := NewKmerCounter(4, 8, false, false, true, nil, GappedNucleotideAlphabet{}); if err != nil {
     test.Error(err)
   } else {
-    data1, _, kmers := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test.fa", "kmerLr_test.fa")
+    data1 := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test.fa", "kmerLr_test.fa")
 
-    features := newFeatureIndices(len(kmers), false)
+    features := newFeatureIndices(len(data1.Kmers), false)
     features  = append(features, [2]int{4671 , 4672 }) // gntanc|gntanc     = 3, gntcaa|ttganc     = 0
     features  = append(features, [2]int{5068 , 5486 }) // aaagaaa|tttcttt   = 1, aagannt|anntctt   = 7
     features  = append(features, [2]int{19270, 57071}) // aacgcgna|tncgcgtt = 1, tgaatgca|tgcattca = 1
     features  = append(features, [2]int{4671 , 5486 }) // gntanc|gntanc     = 3, aagannt|anntctt   = 7
 
-    data2, _, kmers := compile_training_data(config, kmersCounter, kmers, features, "kmerLr_test.fa", "kmerLr_test.fa")
+    data2 := compile_training_data(config, kmersCounter, data1.Kmers, features, "kmerLr_test.fa", "kmerLr_test.fa")
 
     for i, _ := range features[0:len(features)-4] {
-      if data1[0].ValueAt(i+1) != data2[0].ValueAt(i+1) {
+      if data1.Data[0].ValueAt(i+1) != data2.Data[0].ValueAt(i+1) {
         test.Error("test failed")
       }
-      if data1[1].ValueAt(i+1) != data2[1].ValueAt(i+1) {
+      if data1.Data[1].ValueAt(i+1) != data2.Data[1].ValueAt(i+1) {
         test.Error("test failed")
       }
     }
-    if data2[0].ValueAt(len(features)-3) != 0 {
+    if data2.Data[0].ValueAt(len(features)-3) != 0 {
       test.Error("test failed")
     }
-    if data2[0].ValueAt(len(features)-2) != 7 {
+    if data2.Data[0].ValueAt(len(features)-2) != 7 {
       test.Error("test failed")
     }
-    if data2[0].ValueAt(len(features)-1) != 1 {
+    if data2.Data[0].ValueAt(len(features)-1) != 1 {
       test.Error("test failed")
     }
-    if data2[0].ValueAt(len(features)-0) != 21 {
+    if data2.Data[0].ValueAt(len(features)-0) != 21 {
       test.Error("test failed")
     }
   }
@@ -74,21 +74,21 @@ func Test2(test *testing.T) {
   kmersCounter, err := NewKmerCounter(4, 8, false, false, true, nil, GappedNucleotideAlphabet{}); if err != nil {
     test.Error(err)
   } else {
-    data1, _, kmers := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test.fa", "kmerLr_test.fa")
+    data1 := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test.fa", "kmerLr_test.fa")
 
-    features := newFeatureIndices(len(kmers), false)
+    features := newFeatureIndices(len(data1.Kmers), false)
 
-    kmersCounter, _ = NewKmerCounter(4, 8, false, false, true, nil, GappedNucleotideAlphabet{}, kmers...)
-    data2, _, kmers := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test.fa", "kmerLr_test.fa")
+    kmersCounter, _ = NewKmerCounter(4, 8, false, false, true, nil, GappedNucleotideAlphabet{}, data1.Kmers...)
+    data2 := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test.fa", "kmerLr_test.fa")
 
-    if data1[0].Dim() != data2[0].Dim() {
+    if data1.Data[0].Dim() != data2.Data[0].Dim() {
       test.Error("test failed")
     } else {
       for i, _ := range features {
-        if data1[0].ValueAt(i+1) != data2[0].ValueAt(i+1) {
+        if data1.Data[0].ValueAt(i+1) != data2.Data[0].ValueAt(i+1) {
           test.Error("test failed")
         }
-        if data1[1].ValueAt(i+1) != data2[1].ValueAt(i+1) {
+        if data1.Data[1].ValueAt(i+1) != data2.Data[1].ValueAt(i+1) {
           test.Error("test failed")
         }
       }
@@ -107,12 +107,12 @@ func Test3(test *testing.T) {
   kmersCounter, err := NewKmerCounter(8, 8, false, false, true, nil, NucleotideAlphabet{}); if err != nil {
     test.Error(err)
   } else {
-    data, labels, kmers := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
+    data := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
 
-    estimator := NewKmerLrEstimator(config, kmers, trace, 0, nil, labels)
-    estimator.Estimate(config, data, nil, labels)
+    estimator := NewKmerLrEstimator(config, trace, 0)
+    estimator.Estimate(config, data, KmerDataSet{})
 
-    for _, x := range data {
+    for _, x := range data.Data {
       for it := x.ConstIterator(); it.Ok(); it.Next() {
         if it.GetValue() == 0.0 {
           test.Error("test failed")
@@ -135,12 +135,12 @@ func Test4(test *testing.T) {
   kmersCounter, err := NewKmerCounter(8, 8, false, false, true, nil, NucleotideAlphabet{}); if err != nil {
     test.Error(err)
   } else {
-    data, labels, kmers := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
+    data := compile_training_data(config, kmersCounter, nil, nil, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
 
-    estimator := NewKmerLrEstimator(config, kmers, trace, 0, nil, labels)
-    estimator.Estimate(config, data, nil, labels)
+    estimator := NewKmerLrEstimator(config, trace, 0)
+    estimator.Estimate(config, data, KmerDataSet{})
 
-    for _, x := range data {
+    for _, x := range data.Data {
       for it := x.ConstIterator(); it.Ok(); it.Next() {
         if it.GetValue() == 0.0 {
           test.Error("test failed")
