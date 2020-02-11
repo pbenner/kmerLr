@@ -54,7 +54,7 @@ func saveWindowPredictionsWiggle(filename string, regions GRanges, predictions [
   for i := 0; i < len(predictions); i++ {
     fmt.Fprintf(writer, "fixedStep chrom=%s start=%d step=%d span=%d\n", regions.Seqnames[i], regions.Ranges[i].From+window_size/2, window_step, window_step)
     for j := 0; j < len(predictions[i]); j++ {
-      fmt.Fprintf(writer, "%15f\n", math.Exp(predictions[i][j]))
+      fmt.Fprintf(writer, "%0.15f\n", math.Exp(predictions[i][j]))
     }
   }
 }
