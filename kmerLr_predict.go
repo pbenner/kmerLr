@@ -103,14 +103,19 @@ func predict_window(config Config, filename_json, filename_in, filename_out stri
   for i, _ := range sequences {
     i        := i
     sequence := sequences[i]
-    config.Pool.AddRangeJob(0, len(sequence)-window_size, job_group, func(j int, pool threadpool.ThreadPool, erf func() error) error {
-      counts := scan_sequence(config, kmersCounter, []byte(sequence[j:j+window_size]))
-      counts.SetKmers(classifier.Kmers)
-      data   := convert_counts(config, counts, classifier.Features)
-      predictions[i][j] = classifier.Predict(config, []ConstVector{data})[0]
-      return nil
-    })
+    for j := 0; j < len(sequence)-window_size; j += window_step {
+      j := j
+      config.Pool.AddJob(job_group, func(pool threadpool.ThreadPool, erf func() error) error {
+        counts := scan_sequence(config, kmersCounter, []byte(sequence[j:j+window_size]))
+        counts.SetKmers(classifier.Kmers)
+        data   := convert_counts(config, counts, classifier.Features)
+        predictions[i][j] = classifier.Predict(config, []ConstVector{data})[0]
+        return nil
+      })
+    }
   }
+  config.Pool.Wait(job_group)
+
   saveWindowPredictions(filename_out, predictions)
 }
 

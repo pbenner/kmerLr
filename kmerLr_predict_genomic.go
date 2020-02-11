@@ -172,6 +172,8 @@ func predict_window_genomic(config Config, filename_json, filename_fa, filename_
       })
     }
   }
+  config.Pool.Wait(job_group)
+
   saveWindowPredictionsWiggle(filename_out, regions, predictions, track_name, window_size, window_step)
 }
 
