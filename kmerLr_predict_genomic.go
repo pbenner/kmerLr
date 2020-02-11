@@ -127,7 +127,7 @@ func importJointKmerLr(config Config, filename_json string) jointKmerLr {
   for i, filename := range filenames {
     configs    [i] = config
     classifiers[i] = ImportKmerLr(&configs[i], filename)
-    if counter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifiers[i].Kmers...); err != nil {
+    if counter, err := NewKmerCounter(configs[i].M, configs[i].N, configs[i].Complement, configs[i].Reverse, configs[i].Revcomp, configs[i].MaxAmbiguous, configs[i].Alphabet, classifiers[i].Kmers...); err != nil {
       log.Fatal(err)
     } else {
       counters[i] = counter
@@ -157,7 +157,7 @@ func predict_window_genomic(config Config, filename_json, filename_fa, filename_
   predictions := make([][]float64, len(sequences))
   for i, sequence := range sequences {
     if n := len(sequence)-window_size; n > 0 {
-      predictions[i] = make([]float64, n)
+      predictions[i] = make([]float64, (n+window_step-1)/window_step)
     }
   }
   job_group := config.Pool.NewJobGroup()
@@ -167,7 +167,7 @@ func predict_window_genomic(config Config, filename_json, filename_fa, filename_
     for j := 0; j < len(sequence)-window_size; j += window_step {
       j := j
       config.Pool.AddJob(job_group, func(pool threadpool.ThreadPool, erf func() error) error {
-        predictions[i][j] = classifier.Predict([]byte(sequence[j:j+window_size]))
+        predictions[i][j/window_step] = classifier.Predict([]byte(sequence[j:j+window_size]))
         return nil
       })
     }
