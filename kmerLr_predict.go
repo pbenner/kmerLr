@@ -52,9 +52,9 @@ func saveWindowPredictions(filename string, predictions [][]float64) {
   for i := 0; i < len(predictions); i++ {
     for j := 0; j < len(predictions[i]); j++ {
       if j == 0 {
-        fmt.Fprintf(writer, "%15e", predictions[i])
+        fmt.Fprintf(writer, "%15e", predictions[i][j])
       } else {
-        fmt.Fprintf(writer, " %15e", predictions[i])
+        fmt.Fprintf(writer, " %15e", predictions[i][j])
       }
     }
     fmt.Fprintf(writer, "\n")
@@ -104,7 +104,8 @@ func predict_window(config Config, filename_json, filename_in, filename_out stri
     i        := i
     sequence := sequences[i]
     config.Pool.AddRangeJob(0, len(sequence)-window_size, job_group, func(j int, pool threadpool.ThreadPool, erf func() error) error {
-      counts := scan_sequence(config, kmersCounter, []byte(sequence[i:i+window_size]))
+      counts := scan_sequence(config, kmersCounter, []byte(sequence[j:j+window_size]))
+      counts.SetKmers(classifier.Kmers)
       data   := convert_counts(config, counts, classifier.Features)
       predictions[i][j] = classifier.Predict(config, []ConstVector{data})[0]
       return nil
