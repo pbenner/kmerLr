@@ -58,13 +58,12 @@ func write_similarity_matrix(config Config, similarities [][]float64, filenameOu
 
 /* -------------------------------------------------------------------------- */
 
-func compute_similarity(config Config, theta ConstVector, x1, x2 ConstVector) float64 {
+func compute_similarity(config Config, theta []float64, x1, x2 ConstVector) float64 {
   r0 := 0.0
   r1 := 0.0
   r2 := 0.0
-  for it := theta.ConstIterator(); it.Ok(); it.Next() {
-    i  := it.Index()
-    vt := it.GetValue()
+  for i := 0; i < len(theta); i++ {
+    vt := theta[i]
     v1 := x1.ValueAt(i)
     v2 := x2.ValueAt(i)
     r0 += v1*vt*v2
@@ -85,17 +84,17 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
 
   // remove negative entries
   if negate {
-    for i := 0; i < classifier.Theta.Dim(); i++ {
-      if v := classifier.Theta.ValueAt(i); v > 0 {
-        classifier.Theta.At(i).SetValue(0.0)
+    for i := 0; i < len(classifier.Theta); i++ {
+      if v := classifier.Theta[i]; v > 0 {
+        classifier.Theta[i] = 0.0
       } else {
-        classifier.Theta.At(i).SetValue(-v)
+        classifier.Theta[i] = -v
       }
     }
   } else {
-    for i := 0; i < classifier.Theta.Dim(); i++ {
-      if v := classifier.Theta.ValueAt(i); v < 0 {
-        classifier.Theta.At(i).SetValue(0.0)
+    for i := 0; i < len(classifier.Theta); i++ {
+      if v := classifier.Theta[i]; v < 0 {
+        classifier.Theta[i] = 0.0
       }
     }
   }

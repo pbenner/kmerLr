@@ -88,25 +88,26 @@ func savePredictions(filename string, predictions []float64) {
 /* -------------------------------------------------------------------------- */
 
 func predict_window(config Config, filename_json, filename_in, filename_out string, window_size, window_step int) {
-  classifier := ImportKmerLr(&config, filename_json)
-  sequences  := import_fasta(config, filename_in)
-  job_group  := config.Pool.NewJobGroup()
-  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
-    log.Fatal(err)
-  }
+  classifier  := ImportKmerLr(&config, filename_json)
+  sequences   := import_fasta(config, filename_in)
   predictions := make([][]float64, len(sequences))
+  counters    := make([]*KmerCounter, config.Pool.NumberOfThreads())
+  for i := 0; i < len(counters); i++ {
+    counters[i] = classifier.GetKmerCounter()
+  }
   for i, sequence := range sequences {
     if n := len(sequence)-window_size; n > 0 {
       predictions[i] = make([]float64, n)
     }
   }
+  job_group := config.Pool.NewJobGroup()
   for i, _ := range sequences {
     i        := i
     sequence := sequences[i]
     for j := 0; j < len(sequence)-window_size; j += window_step {
       j := j
       config.Pool.AddJob(job_group, func(pool threadpool.ThreadPool, erf func() error) error {
-        counts := scan_sequence(config, kmersCounter, []byte(sequence[j:j+window_size]))
+        counts := scan_sequence(config, counters[pool.GetThreadId()], []byte(sequence[j:j+window_size]))
         counts.SetKmers(classifier.Kmers)
         data   := convert_counts(config, counts, classifier.Features)
         predictions[i][j] = classifier.Predict(config, []ConstVector{data})[0]

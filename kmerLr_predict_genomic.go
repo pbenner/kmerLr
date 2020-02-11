@@ -114,33 +114,31 @@ func extractFasta(config Config, filenameFasta string, regions GRanges) []string
 /* -------------------------------------------------------------------------- */
 
 type jointKmerLr struct {
-  classifiers []*KmerLr
-  counters    []*KmerCounter
-  configs     []Config
+  classifiers   []*KmerLr
+  counters    [][]*KmerCounter
+  configs       []Config
 }
 
 func importJointKmerLr(config Config, filename_json string) jointKmerLr {
   filenames   := strings.Split(filename_json, ",")
-  configs     := make([]Config      , len(filenames))
-  counters    := make([]*KmerCounter, len(filenames))
-  classifiers := make([]*KmerLr     , len(filenames))
+  configs     := make(  []Config      , len(filenames))
+  counters    := make([][]*KmerCounter, len(filenames))
+  classifiers := make(  []*KmerLr     , len(filenames))
   for i, filename := range filenames {
     configs    [i] = config
     classifiers[i] = ImportKmerLr(&configs[i], filename)
-    if counter, err := NewKmerCounter(configs[i].M, configs[i].N, configs[i].Complement, configs[i].Reverse, configs[i].Revcomp, configs[i].MaxAmbiguous, configs[i].Alphabet, classifiers[i].Kmers...); err != nil {
-      log.Fatal(err)
-    } else {
-      counters[i] = counter
+    counters   [i] = make([]*KmerCounter, config.Pool.NumberOfThreads())
+    for j := 0; j < config.Pool.NumberOfThreads(); j++ {
+      counters[i][j] = classifiers[i].GetKmerCounter()
     }
-      
   }
   return jointKmerLr{classifiers, counters, configs}
 }
 
-func (obj jointKmerLr) Predict(subseq []byte) float64 {
+func (obj jointKmerLr) Predict(subseq []byte, j int) float64 {
   r := 0.0
   for i, _ := range obj.classifiers {
-    counts := scan_sequence(obj.configs[i], obj.counters[i], subseq)
+    counts := scan_sequence(obj.configs[i], obj.counters[i][j], subseq)
     counts.SetKmers(obj.classifiers[i].Kmers)
     data   := convert_counts(obj.configs[i], counts, obj.classifiers[i].Features)
     r      += obj.classifiers[i].Predict(obj.configs[i], []ConstVector{data})[0]
@@ -162,12 +160,11 @@ func predict_window_genomic(config Config, filename_json, filename_fa, filename_
   }
   job_group := config.Pool.NewJobGroup()
   for i, _ := range sequences {
-    i        := i
-    sequence := sequences[i]
-    for j := 0; j < len(sequence)-window_size; j += window_step {
+    for j := 0; j < len(sequences[i])-window_size; j += window_step {
+      i := i
       j := j
       config.Pool.AddJob(job_group, func(pool threadpool.ThreadPool, erf func() error) error {
-        predictions[i][j/window_step] = classifier.Predict([]byte(sequence[j:j+window_size]))
+        predictions[i][j/window_step] = classifier.Predict([]byte(sequences[i][j:j+window_size]), pool.GetThreadId())
         return nil
       })
     }

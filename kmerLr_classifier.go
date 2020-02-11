@@ -24,53 +24,53 @@ import   "log"
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
+import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
 type KmerLr struct {
-  vectorDistribution.LogisticRegression
   KmerLrFeatures
-  Transform Transform
+  Theta     []float64
+  Transform   Transform
 }
 
 /* -------------------------------------------------------------------------- */
 
 func NewKmerLr(theta Vector, alphabet KmerLrFeatures) *KmerLr {
-  if lr, err := vectorDistribution.NewLogisticRegression(theta); err != nil {
-    log.Fatal(err)
-    return nil
-  } else {
-    return &KmerLr{LogisticRegression: *lr, KmerLrFeatures: alphabet}
-  }
+  return &KmerLr{Theta: theta.GetValues(), KmerLrFeatures: alphabet}
 }
 
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLr) Clone() *KmerLr {
   r := KmerLr{}
-  r.LogisticRegression = *obj.LogisticRegression.Clone()
-  r.KmerLrFeatures     =  obj.KmerLrFeatures    .Clone()
+  r.Theta = make([]float64, len(obj.Theta))
+  for i := 0; i < len(obj.Theta); i++ {
+    r.Theta[i] = obj.Theta[i]
+  }
+  r.KmerLrFeatures = obj.KmerLrFeatures.Clone()
   return &r
 }
 
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLr) Predict(config Config, data []ConstVector) []float64 {
+  lr := logisticRegression{}
+  lr.Theta  = obj.Theta
+  lr.Lambda = config.Lambda
+  lr.Pool   = config.Pool
   r := make([]float64, len(data))
-  t := BareReal(0.0)
   for i, _ := range data {
-    if err := obj.LogPdf(&t, data[i]); err != nil {
-      log.Fatal(err)
-    }
-    r[i] = t.GetValue()
+    r[i] = lr.LogPdf(data[i].(SparseConstRealVector))
   }
   return r
 }
 
 func (obj *KmerLr) Loss(config Config, data []ConstVector, c []bool) float64 {
   lr := logisticRegression{}
-  lr.Theta  = obj.Theta.GetValues()
+  lr.Theta  = obj.Theta
   lr.Lambda = config.Lambda
+  lr.Pool   = config.Pool
   if config.Balance {
     lr.ClassWeights = compute_class_weights(c)
   } else {
@@ -84,12 +84,8 @@ func (obj *KmerLr) Loss(config Config, data []ConstVector, c []bool) float64 {
 
 func (obj *KmerLr) Nonzero() int {
   n  := 0
-  it := obj.Theta.ConstIterator()
-  if it.Ok() && it.Index() == 0 {
-    it.Next()
-  }
-  for ; it.Ok(); it.Next() {
-    if it.GetValue() != 0.0 {
+  for i := 1; i < len(obj.Theta); i++ {
+    if obj.Theta[i] != 0.0 {
       n++
     }
   }
@@ -100,17 +96,28 @@ func (obj *KmerLr) Nonzero() int {
 
 func (obj *KmerLr) GetCoefficients() *KmerLrCoefficientsSet {
   r := NewKmerLrCoefficientsSet()
-  r.Offset = obj.Theta.ValueAt(0)
+  r.Offset = obj.Theta[0]
   for i, feature := range obj.Features {
     k1 := feature[0]
     k2 := feature[1]
     if k1 == k2 {
-      r.Set(obj.Kmers[k1], obj.Theta.ValueAt(i+1))
+      r.Set(obj.Kmers[k1], obj.Theta[i+1])
     } else {
-      r.SetPair(obj.Kmers[k1], obj.Kmers[k2], obj.Theta.ValueAt(i+1))
+      r.SetPair(obj.Kmers[k1], obj.Kmers[k2], obj.Theta[i+1])
     }
   }
   return r
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj *KmerLr) GetKmerCounter() *KmerCounter {
+  if counter, err := NewKmerCounter(obj.M, obj.N, obj.Complement, obj.Reverse, obj.Revcomp, obj.MaxAmbiguous, obj.Alphabet, obj.Kmers...); err != nil {
+    log.Fatal(err)
+    return nil
+  } else {
+    return counter
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -167,8 +174,11 @@ func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
   if len(config.Distributions) != 2 {
     return fmt.Errorf("invalid config file")
   }
-  if err := obj.LogisticRegression.ImportConfig(config.Distributions[0], t); err != nil {
+  lr := vectorDistribution.LogisticRegression{}
+  if err := lr.ImportConfig(config.Distributions[0], t); err != nil {
     return err
+  } else {
+    obj.Theta = lr.Theta.GetValues()
   }
   if err := obj.Transform.ImportConfig(config.Distributions[1], t); err != nil {
     return err
@@ -176,7 +186,7 @@ func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
   if err := obj.KmerLrFeatures.ImportConfig(config, t); err != nil {
     return err
   } else {
-    if obj.Theta.Dim() != len(obj.Features)+1 {
+    if len(obj.Theta) != len(obj.Features)+1 {
       return fmt.Errorf("invalid config file")
     }
   }
@@ -184,13 +194,46 @@ func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
 }
 
 func (obj *KmerLr) ExportConfig() ConfigDistribution {
-  config := obj.KmerLrFeatures.ExportConfig()
-  config.Name          = "kmerLr"
-  config.Distributions = []ConfigDistribution{
-    obj.LogisticRegression.ExportConfig(),
-    obj.Transform         .ExportConfig() }
+  if lr, err := vectorDistribution.NewLogisticRegression(obj.GetParameters()); err != nil {
+    panic("internal error")
+  } else {
+    config := obj.KmerLrFeatures.ExportConfig()
+    config.Name          = "kmerLr"
+    config.Distributions = []ConfigDistribution{
+      lr           .ExportConfig(),
+      obj.Transform.ExportConfig() }
+    return config
+  }
+}
 
-  return config
+/* -------------------------------------------------------------------------- */
+
+func (obj *KmerLr) Dim() int {
+  return len(obj.Theta)-1
+}
+
+func (obj *KmerLr) CloneVectorPdf() VectorPdf {
+  return obj.Clone()
+}
+
+func (obj *KmerLr) LogPdf(r Scalar, x ConstVector) error {
+  panic("internal error")
+}
+
+func (obj *KmerLr) ScalarType() ScalarType {
+  return BareRealType
+}
+
+func (obj *KmerLr) GetParameters() Vector {
+  return NewDenseBareRealVector(obj.Theta)
+}
+
+func (obj *KmerLr) SetParameters(parameters Vector) error {
+  if parameters.Dim() != len(obj.Theta) {
+    return fmt.Errorf("invalid number of parameters for logistic regression model")
+  }
+  obj.Theta = parameters.GetValues()
+  return nil
 }
 
 /* -------------------------------------------------------------------------- */

@@ -116,7 +116,7 @@ func (obj *KmerLrEstimator) estimate_debug(config Config, data_train KmerDataSet
     return nil
   } else {
     r := &KmerLr{}
-    r.LogisticRegression             = *r_.(*vectorDistribution.LogisticRegression)
+    r.Theta                          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
     r.KmerLrFeatures.Binarize        = config.Binarize
     r.KmerLrFeatures.Cooccurrence    = obj   .Cooccurrence
     r.KmerLrFeatures.Features        = obj   .Features
@@ -138,7 +138,7 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train KmerDataSet) *Kme
     return nil
   } else {
     r := &KmerLr{}
-    r.LogisticRegression             = *r_.(*vectorDistribution.LogisticRegression)
+    r.Theta                          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
     r.KmerLrFeatures.Binarize        = config.Binarize
     r.KmerLrFeatures.Cooccurrence    = obj   .Cooccurrence
     r.KmerLrFeatures.Features        = obj   .Features

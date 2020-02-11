@@ -105,7 +105,7 @@ func coefficients_format(kmers KmerClassList, features FeatureIndices, coefficie
 
 func coefficients(config Config, filename, filename_fg, filename_bg string, related, rescale bool) {
   classifier   := ImportKmerLr(&config, filename)
-  coefficients := NewAbsFloatInt(classifier.Theta.Dim()-1)
+  coefficients := NewAbsFloatInt(len(classifier.Theta)-1)
   coeffmap     := make(map[KmerClassId]float64)
   kmers        := classifier.Kmers
   features     := classifier.Features
@@ -121,12 +121,12 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
 
   // insert coefficients into the map
   if rescale && len(classifier.Transform.Sigma) > 0 {
-    for i, v := range classifier.Theta.GetValues()[1:] {
+    for i, v := range classifier.Theta[1:] {
       coefficients.a[i] = v*classifier.Transform.Sigma[i+1]
       coefficients.b[i] = i
     }
   } else {
-    for i, v := range classifier.Theta.GetValues()[1:] {
+    for i, v := range classifier.Theta[1:] {
       coefficients.a[i] = v
       coefficients.b[i] = i
     }
