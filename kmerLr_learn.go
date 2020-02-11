@@ -52,7 +52,7 @@ func learn_parameters(config Config, data_train, data_test KmerDataSet, classifi
   if classifier != nil {
     estimator.Kmers    = classifier.Kmers
     estimator.Features = classifier.Features
-    estimator.SetParameters(classifier.GetParameters().CloneVector())
+    estimator.SetParameters(NewDenseBareRealVector(classifier.Theta))
   }
   classifiers, predictions := estimator.Estimate(config, data_train, data_test)
 

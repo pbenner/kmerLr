@@ -194,7 +194,7 @@ func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
 }
 
 func (obj *KmerLr) ExportConfig() ConfigDistribution {
-  if lr, err := vectorDistribution.NewLogisticRegression(obj.GetParameters()); err != nil {
+  if lr, err := vectorDistribution.NewLogisticRegression(NewDenseBareRealVector(obj.Theta)); err != nil {
     panic("internal error")
   } else {
     config := obj.KmerLrFeatures.ExportConfig()
@@ -204,36 +204,6 @@ func (obj *KmerLr) ExportConfig() ConfigDistribution {
       obj.Transform.ExportConfig() }
     return config
   }
-}
-
-/* -------------------------------------------------------------------------- */
-
-func (obj *KmerLr) Dim() int {
-  return len(obj.Theta)-1
-}
-
-func (obj *KmerLr) CloneVectorPdf() VectorPdf {
-  return obj.Clone()
-}
-
-func (obj *KmerLr) LogPdf(r Scalar, x ConstVector) error {
-  panic("internal error")
-}
-
-func (obj *KmerLr) ScalarType() ScalarType {
-  return BareRealType
-}
-
-func (obj *KmerLr) GetParameters() Vector {
-  return NewDenseBareRealVector(obj.Theta)
-}
-
-func (obj *KmerLr) SetParameters(parameters Vector) error {
-  if parameters.Dim() != len(obj.Theta) {
-    return fmt.Errorf("invalid number of parameters for logistic regression model")
-  }
-  obj.Theta = parameters.GetValues()
-  return nil
 }
 
 /* -------------------------------------------------------------------------- */

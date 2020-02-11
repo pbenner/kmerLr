@@ -56,7 +56,7 @@ func SaveTrace(config Config, filename string, trace *Trace) {
 
 /* -------------------------------------------------------------------------- */
 
-func SaveModel(config Config, filename string, classifier VectorPdf) {
+func SaveModel(config Config, filename string, classifier Configurable) {
   PrintStderr(config, 1, "Exporting model to `%s'... ", filename)
   if err := ExportDistribution(filename, classifier); err != nil {
     PrintStderr(config, 1, "failed\n")
