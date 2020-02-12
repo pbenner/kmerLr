@@ -28,7 +28,6 @@ import   "os"
 import   "github.com/pborman/getopt"
 
 import . "github.com/pbenner/autodiff"
-import . "github.com/pbenner/gonetics"
 import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
@@ -80,7 +79,8 @@ func compute_similarity(config Config, theta []float64, x1, x2 ConstVector) floa
 /* -------------------------------------------------------------------------- */
 
 func similarity(config Config, filenameModel, filenameFasta, filenameOut string, negate bool) {
-  classifier := ImportKmerLr(&config, filenameModel)
+  classifier := ImportKmerLr(config, filenameModel)
+  counter    := classifier.GetKmerCounter()
 
   // remove negative entries
   if negate {
@@ -98,10 +98,7 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
       }
     }
   }
-  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
-    log.Fatal(err)
-  }
-  data := compile_test_data(config, kmersCounter, nil, nil, filenameFasta)
+  data := compile_test_data(config, counter, nil, nil, classifier.Binarize, filenameFasta)
   classifier.Transform.Apply(config, data.Data)
 
   // allocate result

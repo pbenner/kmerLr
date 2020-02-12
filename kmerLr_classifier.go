@@ -20,6 +20,7 @@ package main
 
 import   "fmt"
 import   "log"
+import   "strings"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -36,8 +37,8 @@ type KmerLr struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLr(theta Vector, alphabet KmerLrFeatures) *KmerLr {
-  return &KmerLr{Theta: theta.GetValues(), KmerLrFeatures: alphabet}
+func NewKmerLr(theta []float64, alphabet KmerLrFeatures) *KmerLr {
+  return &KmerLr{Theta: theta, KmerLrFeatures: alphabet}
 }
 
 /* -------------------------------------------------------------------------- */
@@ -208,17 +209,32 @@ func (obj *KmerLr) ExportConfig() ConfigDistribution {
 
 /* -------------------------------------------------------------------------- */
 
-func ImportKmerLr(config *Config, filename string) *KmerLr {
-  classifier := new(KmerLr)
-  // export model
-  PrintStderr(*config, 1, "Importing distribution from `%s'... ", filename)
-  if err := ImportDistribution(filename, classifier, BareRealType); err != nil {
-    PrintStderr(*config, 1, "failed\n")
-    log.Fatal(err)
+type jointKmerLr struct {
+  classifiers   []*KmerLr
+  counters    [][]*KmerCounter
+}
+
+func importJointKmerLr(config Config, filename_json string) jointKmerLr {
+  filenames   := strings.Split(filename_json, ",")
+  counters    := make([][]*KmerCounter, len(filenames))
+  classifiers := make(  []*KmerLr     , len(filenames))
+  for i, filename := range filenames {
+    classifiers[i] = ImportKmerLr(config, filename)
+    counters   [i] = make([]*KmerCounter, config.Pool.NumberOfThreads())
+    for j := 0; j < config.Pool.NumberOfThreads(); j++ {
+      counters[i][j] = classifiers[i].GetKmerCounter()
+    }
   }
-  PrintStderr(*config, 1, "done\n")
-  config.Cooccurrence    = classifier.Cooccurrence || config.Cooccurrence
-  config.KmerEquivalence = classifier.KmerLrFeatures.KmerEquivalence
-  config.Binarize        = classifier.Binarize
-  return classifier
+  return jointKmerLr{classifiers, counters}
+}
+
+func (obj jointKmerLr) Predict(config Config, subseq []byte, j int) float64 {
+  r := 0.0
+  for i, _ := range obj.classifiers {
+    counts := scan_sequence(config, obj.counters[i][j], obj.classifiers[i].Binarize, subseq)
+    counts.SetKmers(obj.classifiers[i].Kmers)
+    data   := convert_counts(config, counts, obj.classifiers[i].Features)
+    r      += obj.classifiers[i].Predict(config, []ConstVector{data})[0]
+  }
+  return r
 }

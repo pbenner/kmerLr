@@ -23,20 +23,14 @@ import   "log"
 import   "os"
 import   "strconv"
 
-import . "github.com/pbenner/gonetics"
-
 import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
 func loss(config Config, filename_json, filename_fg, filename_bg string) {
-  classifier := ImportKmerLr(&config, filename_json)
-
-  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
-    log.Fatal(err)
-  }
-  data := compile_training_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_fg, filename_bg)
-  kmersCounter = nil
+  classifier := ImportKmerLr(config, filename_json)
+  counter    := classifier.GetKmerCounter()
+  data       := compile_training_data(config, counter, classifier.Kmers, classifier.Features, classifier.Binarize, filename_fg, filename_bg)
   classifier.Transform.Apply(config, data.Data)
 
   fmt.Println(classifier.Loss(config, data.Data, data.Labels))

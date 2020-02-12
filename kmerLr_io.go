@@ -22,6 +22,7 @@ import   "fmt"
 import   "log"
 import   "os"
 
+import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
 
 /* -------------------------------------------------------------------------- */
@@ -30,6 +31,20 @@ func PrintStderr(config Config, level int, format string, args ...interface{}) {
   if config.Verbose >= level {
     fmt.Fprintf(os.Stderr, format, args...)
   }
+}
+
+/* -------------------------------------------------------------------------- */
+
+func ImportKmerLr(config Config, filename string) *KmerLr {
+  classifier := new(KmerLr)
+  // export model
+  PrintStderr(config, 1, "Importing distribution from `%s'... ", filename)
+  if err := ImportDistribution(filename, classifier, BareRealType); err != nil {
+    PrintStderr(config, 1, "failed\n")
+    log.Fatal(err)
+  }
+  PrintStderr(config, 1, "done\n")
+  return classifier
 }
 
 /* -------------------------------------------------------------------------- */

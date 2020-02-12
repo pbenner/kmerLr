@@ -41,17 +41,15 @@ type KmerDataSet struct {
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, data_train, data_test KmerDataSet, classifier *KmerLr, icv int, basename_out string) ([]*KmerLr, [][]float64) {
+func learn_parameters(config Config, classifier *KmerLr, data_train, data_test KmerDataSet, icv int, basename_out string) ([]*KmerLr, [][]float64) {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
     trace = &Trace{}
   }
 
-  estimator := NewKmerLrEstimator(config, trace, icv)
+  estimator := NewKmerLrEstimator(config, classifier, trace, icv)
   if classifier != nil {
-    estimator.Kmers    = classifier.Kmers
-    estimator.Features = classifier.Features
     estimator.SetParameters(NewDenseBareRealVector(classifier.Theta))
   }
   classifiers, predictions := estimator.Estimate(config, data_train, data_test)
@@ -69,10 +67,10 @@ func learn_parameters(config Config, data_train, data_test KmerDataSet, classifi
   return classifiers, predictions
 }
 
-func learn_cv(config Config, data KmerDataSet, classifier *KmerLr, basename_out string) {
+func learn_cv(config Config, classifier *KmerLr, data KmerDataSet, basename_out string) {
   learnAndTestClassifiers := func(i int, data_train, data_test KmerDataSet) [][]float64 {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    _, predictions := learn_parameters(config, data_train, data_test, classifier, i, basename_out)
+    _, predictions := learn_parameters(config, classifier, data_train, data_test, i, basename_out)
     return predictions
   }
   cvrs := crossvalidation(config, data, learnAndTestClassifiers)
@@ -82,15 +80,15 @@ func learn_cv(config Config, data KmerDataSet, classifier *KmerLr, basename_out 
   }
 }
 
-func learn(config Config, filename_json, filename_fg, filename_bg, basename_out string) {
-  var classifier *KmerLr
+func learn(config Config, classifier *KmerLr, filename_json, filename_fg, filename_bg, basename_out string) {
   if filename_json != "" {
-    classifier = ImportKmerLr(&config, filename_json)
+    classifier = ImportKmerLr(config, filename_json)
   }
-  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet); if err != nil {
+  // do not use classifier.GetKmerCounter() since we do not want to fix the set of kmers!
+  kmersCounter, err := NewKmerCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data := compile_training_data(config, kmersCounter, nil, nil, filename_fg, filename_bg)
+  data := compile_training_data(config, kmersCounter, nil, nil, classifier.Binarize, filename_fg, filename_bg)
   kmersCounter = nil
 
   if len(data.Data) == 0 {
@@ -101,9 +99,9 @@ func learn(config Config, filename_json, filename_fg, filename_bg, basename_out 
     data.Data[i].(SparseConstRealVector).CreateIndex()
   }
   if config.KFoldCV <= 1 {
-    learn_parameters(config, data, KmerDataSet{}, classifier, -1, basename_out)
+    learn_parameters(config, classifier, data, KmerDataSet{}, -1, basename_out)
   } else {
-    learn_cv(config, data, classifier, basename_out)
+    learn_cv(config, classifier, data, basename_out)
   }
 }
 
@@ -145,6 +143,7 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
+  classifier   := &KmerLr{}
   filename_in  := ""
   filename_fg  := ""
   filename_bg  := ""
@@ -154,15 +153,15 @@ func main_learn(config Config, args []string) {
       options.PrintUsage(os.Stderr)
       os.Exit(1)
     } else {
-      config.M = int(m)
+      classifier.M = int(m)
     }
     if n, err := strconv.ParseInt(options.Args()[1], 10, 64); err != nil {
       options.PrintUsage(os.Stderr)
       os.Exit(1)
     } else {
-      config.N = int(n)
+      classifier.N = int(n)
     }
-    if config.M < 1 || config.N < config.M {
+    if classifier.M < 1 || classifier.N < classifier.M {
       options.PrintUsage(os.Stderr)
       os.Exit(1)
     }
@@ -174,6 +173,33 @@ func main_learn(config Config, args []string) {
     filename_fg  = options.Args()[1]
     filename_bg  = options.Args()[2]
     basename_out = options.Args()[3]
+  }
+  // parse classifier options
+  //////////////////////////////////////////////////////////////////////////////
+  classifier.Binarize     = *optBinarize
+  classifier.Cooccurrence = *optCooccurrence
+  classifier.Complement   = *optComplement
+  classifier.Reverse      = *optReverse
+  classifier.Revcomp      = *optRevcomp
+  if alphabet, err := alphabet_from_string(*optAlphabet); err != nil {
+    options.PrintUsage(os.Stderr)
+    os.Exit(1)
+  } else {
+    classifier.Alphabet = alphabet
+  }
+  if fields := strings.Split(*optMaxAmbiguous, ","); len(fields) == 1 || len(fields) == int(classifier.M-classifier.N+1) {
+    classifier.MaxAmbiguous = make([]int, len(fields))
+    for i := 0; i < len(fields); i++ {
+      if t, err := strconv.ParseInt(fields[i], 10, 64); err != nil {
+        options.PrintUsage(os.Stderr)
+        os.Exit(1)
+      } else {
+        classifier.MaxAmbiguous[i] = int(t)
+      }
+    }
+  } else {
+    options.PrintUsage(os.Stderr)
+    os.Exit(1)
   }
   // parse options
   //////////////////////////////////////////////////////////////////////////////
@@ -201,20 +227,6 @@ func main_learn(config Config, args []string) {
   } else {
     config.StepSizeFactor = v
   }
-  if fields := strings.Split(*optMaxAmbiguous, ","); len(fields) == 1 || len(fields) == int(config.M-config.N+1) {
-    config.MaxAmbiguous = make([]int, len(fields))
-    for i := 0; i < len(fields); i++ {
-      if t, err := strconv.ParseInt(fields[i], 10, 64); err != nil {
-        options.PrintUsage(os.Stderr)
-        os.Exit(1)
-      } else {
-        config.MaxAmbiguous[i] = int(t)
-      }
-    }
-  } else {
-    options.PrintUsage(os.Stderr)
-    os.Exit(1)
-  }
   if fields := strings.Split(*optLambdaAuto, ","); len(fields) == 0 {
     options.PrintUsage(os.Stderr)
     os.Exit(1)
@@ -228,12 +240,6 @@ func main_learn(config Config, args []string) {
     }
     sort.Ints(config.LambdaAuto)
   }
-  if alphabet, err := alphabet_from_string(*optAlphabet); err != nil {
-    options.PrintUsage(os.Stderr)
-    os.Exit(1)
-  } else {
-    config.Alphabet = alphabet
-  }
   if *optKFoldCV < 1 {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
@@ -245,13 +251,8 @@ func main_learn(config Config, args []string) {
     config.PoolSaga = threadpool.New(*optThreadsSaga, 100)
   }
   config.Balance         = *optBalance
-  config.Binarize        = *optBinarize
-  config.Complement      = *optComplement
-  config.Cooccurrence    = *optCooccurrence
   config.Copreselection  = *optCopreselection
   config.KFoldCV         = *optKFoldCV
-  config.Reverse         = *optReverse
-  config.Revcomp         = *optRevcomp
   config.EvalLoss        = *optEvalLoss
   config.MaxEpochs       = *optMaxEpochs
   config.MaxIterations   = *optMaxIterations
@@ -260,5 +261,5 @@ func main_learn(config Config, args []string) {
   if config.EpsilonLoss != 0.0 {
     config.EvalLoss = true
   }
-  learn(config, filename_in, filename_fg, filename_bg, basename_out)
+  learn(config, classifier, filename_in, filename_fg, filename_bg, basename_out)
 }

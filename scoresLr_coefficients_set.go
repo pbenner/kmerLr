@@ -21,8 +21,6 @@ package main
 //import   "fmt"
 import   "math"
 
-import . "github.com/pbenner/autodiff"
-
 /* -------------------------------------------------------------------------- */
 
 type ScoresId     =    int
@@ -140,16 +138,16 @@ func (obj *ScoresLrCoefficientsSet) MinCoefficients(b *ScoresLrCoefficientsSet) 
 }
 
 func (obj *ScoresLrCoefficientsSet) AsScoresLr(features ScoresLrFeatures) *ScoresLr {
-  f := FeatureIndices{}
-  v := NullDenseBareRealVector(1)
-  v[0] = ConstReal(obj.Offset)
+  f   := FeatureIndices{}
+  v   := []float64{1.0}
+  v[0] = obj.Offset
   for id, i := range obj.Index {
     f = append(f, [2]int{id, id})
-    v = append(v, ConstReal(obj.Coefficients[i]))
+    v = append(v, obj.Coefficients[i])
   }
   for pair, i := range obj.IndexPairs {
     f = append(f, [2]int{pair[0], pair[1]})
-    v = append(v, ConstReal(obj.Coefficients[i]))
+    v = append(v, obj.Coefficients[i])
   }
   features          = features.Clone()
   features.Features = f

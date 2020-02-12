@@ -19,7 +19,6 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
-import   "log"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -28,27 +27,25 @@ import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 /* -------------------------------------------------------------------------- */
 
 type ScoresLr struct {
-  vectorDistribution.LogisticRegression
   ScoresLrFeatures
-  Transform Transform
+  Theta     []float64
+  Transform   Transform
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewScoresLr(theta Vector, alphabet ScoresLrFeatures) *ScoresLr {
-  if lr, err := vectorDistribution.NewLogisticRegression(theta); err != nil {
-    log.Fatal(err)
-    return nil
-  } else {
-    return &ScoresLr{LogisticRegression: *lr, ScoresLrFeatures: alphabet}
-  }
+func NewScoresLr(theta []float64, features ScoresLrFeatures) *ScoresLr {
+  return &ScoresLr{Theta: theta, ScoresLrFeatures: features}
 }
 
 /* -------------------------------------------------------------------------- */
 
 func (obj *ScoresLr) Clone() *ScoresLr {
   r := ScoresLr{}
-  r.LogisticRegression = *obj.LogisticRegression.Clone()
+  r.Theta = make([]float64, len(obj.Theta))
+  for i := 0; i < len(obj.Theta); i++ {
+    r.Theta[i] = obj.Theta[i]
+  }
   r.ScoresLrFeatures   =  obj.ScoresLrFeatures  .Clone()
   return &r
 }
@@ -56,20 +53,20 @@ func (obj *ScoresLr) Clone() *ScoresLr {
 /* -------------------------------------------------------------------------- */
 
 func (obj *ScoresLr) Predict(config Config, data []ConstVector) []float64 {
+  lr := logisticRegression{}
+  lr.Theta  = obj.Theta
+  lr.Lambda = config.Lambda
+  lr.Pool   = config.Pool
   r := make([]float64, len(data))
-  t := BareReal(0.0)
   for i, _ := range data {
-    if err := obj.LogPdf(&t, data[i]); err != nil {
-      log.Fatal(err)
-    }
-    r[i] = t.GetValue()
+    r[i] = lr.LogPdf(data[i].(SparseConstRealVector))
   }
   return r
 }
 
 func (obj *ScoresLr) Loss(config Config, data []ConstVector, c []bool) float64 {
   lr := logisticRegression{}
-  lr.Theta  = obj.Theta.GetValues()
+  lr.Theta  = obj.Theta
   lr.Lambda = config.Lambda
   if config.Balance {
     lr.ClassWeights = compute_class_weights(c)
@@ -84,12 +81,8 @@ func (obj *ScoresLr) Loss(config Config, data []ConstVector, c []bool) float64 {
 
 func (obj *ScoresLr) Nonzero() int {
   n  := 0
-  it := obj.Theta.ConstIterator()
-  if it.Ok() && it.Index() == 0 {
-    it.Next()
-  }
-  for ; it.Ok(); it.Next() {
-    if it.GetValue() != 0.0 {
+  for i := 1; i < len(obj.Theta); i++ {
+    if obj.Theta[i] != 0.0 {
       n++
     }
   }
@@ -100,14 +93,14 @@ func (obj *ScoresLr) Nonzero() int {
 
 func (obj *ScoresLr) GetCoefficients() *ScoresLrCoefficientsSet {
   r := NewScoresLrCoefficientsSet()
-  r.Offset = obj.Theta.ValueAt(0)
+  r.Offset = obj.Theta[0]
   for i, feature := range obj.Features {
     k1 := feature[0]
     k2 := feature[1]
     if k1 == k2 {
-      r.Set(k1, obj.Theta.ValueAt(i+1))
+      r.Set(k1, obj.Theta[i+1])
     } else {
-      r.SetPair(k1, k2, obj.Theta.ValueAt(i+1))
+      r.SetPair(k1, k2, obj.Theta[i+1])
     }
   }
   return r
@@ -167,8 +160,11 @@ func (obj *ScoresLr) ImportConfig(config ConfigDistribution, t ScalarType) error
   if len(config.Distributions) != 2 {
     return fmt.Errorf("invalid config file")
   }
-  if err := obj.LogisticRegression.ImportConfig(config.Distributions[0], t); err != nil {
+  lr := vectorDistribution.LogisticRegression{}
+  if err := lr.ImportConfig(config.Distributions[0], t); err != nil {
     return err
+  } else {
+    obj.Theta = lr.Theta.GetValues()
   }
   if err := obj.Transform.ImportConfig(config.Distributions[1], t); err != nil {
     return err
@@ -176,7 +172,7 @@ func (obj *ScoresLr) ImportConfig(config ConfigDistribution, t ScalarType) error
   if err := obj.ScoresLrFeatures.ImportConfig(config, t); err != nil {
     return err
   } else {
-    if obj.Theta.Dim() != len(obj.Features)+1 {
+    if len(obj.Theta) != len(obj.Features)+1 {
       return fmt.Errorf("invalid config file")
     }
   }
@@ -184,26 +180,14 @@ func (obj *ScoresLr) ImportConfig(config ConfigDistribution, t ScalarType) error
 }
 
 func (obj *ScoresLr) ExportConfig() ConfigDistribution {
-  config := obj.ScoresLrFeatures.ExportConfig()
-  config.Name          = "scoresLr"
-  config.Distributions = []ConfigDistribution{
-    obj.LogisticRegression.ExportConfig(),
-    obj.Transform         .ExportConfig() }
-
-  return config
-}
-
-/* -------------------------------------------------------------------------- */
-
-func ImportScoresLr(config *Config, filename string) *ScoresLr {
-  classifier := new(ScoresLr)
-  // export model
-  PrintStderr(*config, 1, "Importing distribution from `%s'... ", filename)
-  if err := ImportDistribution(filename, classifier, BareRealType); err != nil {
-    PrintStderr(*config, 1, "failed\n")
-    log.Fatal(err)
+  if lr, err := vectorDistribution.NewLogisticRegression(NewDenseBareRealVector(obj.Theta)); err != nil {
+    panic("internal error")
+  } else {
+    config := obj.ScoresLrFeatures.ExportConfig()
+    config.Name          = "scoresLr"
+    config.Distributions = []ConfigDistribution{
+      lr           .ExportConfig(),
+      obj.Transform.ExportConfig() }
+    return config
   }
-  PrintStderr(*config, 1, "done\n")
-  config.Cooccurrence    = classifier.Cooccurrence || config.Cooccurrence
-  return classifier
 }

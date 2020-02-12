@@ -32,8 +32,7 @@ import . "github.com/pbenner/gonetics"
 
 type ScoresLrEstimator struct {
   vectorEstimator.LogisticRegression
-  Cooccurrence bool
-  Features     FeatureIndices
+  ScoresLrFeatures
   EpsilonLoss  float64
   // reduced data sets
   reduced_data_train []ConstVector
@@ -43,14 +42,13 @@ type ScoresLrEstimator struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewScoresLrEstimator(config Config, trace *Trace, icv int, features FeatureIndices) *ScoresLrEstimator {
+func NewScoresLrEstimator(config Config, classifier *ScoresLr, trace *Trace, icv int) *ScoresLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
     r := ScoresLrEstimator{}
-    r.Cooccurrence       = config.Cooccurrence
-    r.Features           = features
+    r.ScoresLrFeatures   = classifier.ScoresLrFeatures
     r.EpsilonLoss        = config.EpsilonLoss
     r.LogisticRegression = *estimator
     r.LogisticRegression.Balance        = config.Balance
@@ -60,6 +58,9 @@ func NewScoresLrEstimator(config Config, trace *Trace, icv int, features Feature
     r.LogisticRegression.Hook           = NewScoresHook(config, trace, icv, &r)
     if config.MaxIterations != 0 {
       r.LogisticRegression.MaxIterations = config.MaxIterations
+    }
+    if len(classifier.Theta) > 0 {
+      r.SetParameters(NewDenseBareRealVector(classifier.Theta))
     }
     return &r
   }
@@ -103,9 +104,8 @@ func (obj *ScoresLrEstimator) estimate(config Config, data_train []ConstVector, 
     return nil
   } else {
     r := &ScoresLr{}
-    r.LogisticRegression             = *r_.(*vectorDistribution.LogisticRegression)
-    r.ScoresLrFeatures.Cooccurrence    = obj   .Cooccurrence
-    r.ScoresLrFeatures.Features        = obj   .Features
+    r.Theta            = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
+    r.ScoresLrFeatures = obj.ScoresLrFeatures
     return r
   }
 }
@@ -118,7 +118,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test
   // estimate transform on full data set so that all estimated
   // classifiers share the same transform
   if !config.NoNormalization {
-    transform.Fit(config, append(data_train, data_test...), config.Cooccurrence)
+    transform.Fit(config, append(data_train, data_test...), obj.Cooccurrence)
   }
   m, n := obj.n_params(config, data_train, lambda, obj.Cooccurrence)
   // compute class weights

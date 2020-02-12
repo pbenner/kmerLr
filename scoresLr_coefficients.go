@@ -51,18 +51,18 @@ func coefficients_format_scores(features FeatureIndices, coefficients AbsFloatIn
 /* -------------------------------------------------------------------------- */
 
 func coefficients_scores(config Config, filename string, rescale bool) {
-  classifier   := ImportScoresLr(&config, filename)
-  coefficients := NewAbsFloatInt(classifier.Theta.Dim()-1)
+  classifier   := ImportScoresLr(config, filename)
+  coefficients := NewAbsFloatInt(len(classifier.Theta)-1)
   features     := classifier.Features
 
   // insert coefficients into the map
   if rescale && len(classifier.Transform.Sigma) > 0 {
-    for i, v := range classifier.Theta.GetValues()[1:] {
+    for i, v := range classifier.Theta[1:] {
       coefficients.a[i] = v*classifier.Transform.Sigma[i+1]
       coefficients.b[i] = i
     }
   } else {
-    for i, v := range classifier.Theta.GetValues()[1:] {
+    for i, v := range classifier.Theta[1:] {
       coefficients.a[i] = v
       coefficients.b[i] = i
     }

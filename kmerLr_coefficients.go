@@ -104,7 +104,7 @@ func coefficients_format(kmers KmerClassList, features FeatureIndices, coefficie
 /* -------------------------------------------------------------------------- */
 
 func coefficients(config Config, filename, filename_fg, filename_bg string, related, rescale bool) {
-  classifier   := ImportKmerLr(&config, filename)
+  classifier   := ImportKmerLr(config, filename)
   coefficients := NewAbsFloatInt(len(classifier.Theta)-1)
   coeffmap     := make(map[KmerClassId]float64)
   kmers        := classifier.Kmers
@@ -113,10 +113,8 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
 
   data := KmerDataSet{}
   if filename_fg != "" && filename_bg != "" {
-    kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
-      log.Fatal(err)
-    }
-    data = compile_training_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_fg, filename_bg)
+    counter := classifier.GetKmerCounter()
+    data     = compile_training_data(config, counter, classifier.Kmers, classifier.Features, classifier.Binarize, filename_fg, filename_bg)
   }
 
   // insert coefficients into the map

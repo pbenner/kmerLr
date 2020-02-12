@@ -30,7 +30,7 @@ import   "github.com/pborman/getopt"
 func combine_scores(config Config, summary, filename_out string, filename_ins ...string) {
   classifiers := make([]*ScoresLr, len(filename_ins))
   for i, filename_in := range filename_ins {
-    classifiers[i] = ImportScoresLr(&config, filename_in)
+    classifiers[i] = ImportScoresLr(config, filename_in)
     if  classifiers[i].Cooccurrence != classifiers[0].Cooccurrence {
       log.Fatalf("data binarization is not consistent across classifiers")
     }

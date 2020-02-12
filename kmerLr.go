@@ -23,7 +23,6 @@ import   "io"
 import   "log"
 import   "os"
 
-import . "github.com/pbenner/gonetics"
 import   "github.com/pbenner/threadpool"
 
 import   "github.com/pborman/getopt"
@@ -31,10 +30,7 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 type Config struct {
-  KmerEquivalence
   Balance         bool
-  Binarize        bool
-  Cooccurrence    bool
   Copreselection  int
   Lambda          float64
   LambdaAuto    []int
@@ -54,7 +50,6 @@ type Config struct {
   PoolSaga        threadpool.ThreadPool
   Verbose         int
 }
-
 
 /* -------------------------------------------------------------------------- */
 

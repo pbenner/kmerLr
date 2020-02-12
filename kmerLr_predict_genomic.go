@@ -24,9 +24,7 @@ import   "io"
 import   "log"
 import   "math"
 import   "os"
-import   "strings"
 
-import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
 import   "github.com/pbenner/threadpool"
 
@@ -113,41 +111,6 @@ func extractFasta(config Config, filenameFasta string, regions GRanges) []string
 
 /* -------------------------------------------------------------------------- */
 
-type jointKmerLr struct {
-  classifiers   []*KmerLr
-  counters    [][]*KmerCounter
-  configs       []Config
-}
-
-func importJointKmerLr(config Config, filename_json string) jointKmerLr {
-  filenames   := strings.Split(filename_json, ",")
-  configs     := make(  []Config      , len(filenames))
-  counters    := make([][]*KmerCounter, len(filenames))
-  classifiers := make(  []*KmerLr     , len(filenames))
-  for i, filename := range filenames {
-    configs    [i] = config
-    classifiers[i] = ImportKmerLr(&configs[i], filename)
-    counters   [i] = make([]*KmerCounter, config.Pool.NumberOfThreads())
-    for j := 0; j < config.Pool.NumberOfThreads(); j++ {
-      counters[i][j] = classifiers[i].GetKmerCounter()
-    }
-  }
-  return jointKmerLr{classifiers, counters, configs}
-}
-
-func (obj jointKmerLr) Predict(subseq []byte, j int) float64 {
-  r := 0.0
-  for i, _ := range obj.classifiers {
-    counts := scan_sequence(obj.configs[i], obj.counters[i][j], subseq)
-    counts.SetKmers(obj.classifiers[i].Kmers)
-    data   := convert_counts(obj.configs[i], counts, obj.classifiers[i].Features)
-    r      += obj.classifiers[i].Predict(obj.configs[i], []ConstVector{data})[0]
-  }
-  return r
-}
-
-/* -------------------------------------------------------------------------- */
-
 func predict_window_genomic(config Config, filename_json, filename_fa, filename_bed, filename_out, track_name string, window_size, window_step int) {
   classifier  := importJointKmerLr(config, filename_json)
   regions     := importBed3       (config, filename_bed )
@@ -164,7 +127,7 @@ func predict_window_genomic(config Config, filename_json, filename_fa, filename_
       i := i
       j := j
       config.Pool.AddJob(job_group, func(pool threadpool.ThreadPool, erf func() error) error {
-        predictions[i][j/window_step] = classifier.Predict([]byte(sequences[i][j:j+window_size]), pool.GetThreadId())
+        predictions[i][j/window_step] = classifier.Predict(config, []byte(sequences[i][j:j+window_size]), pool.GetThreadId())
         return nil
       })
     }

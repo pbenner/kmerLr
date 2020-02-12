@@ -28,7 +28,7 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 func loss_scores(config Config, filename_json, filename_fg, filename_bg string) {
-  classifier := ImportScoresLr(&config, filename_json)
+  classifier := ImportScoresLr(config, filename_json)
 
   data, c  := compile_training_data_scores(config, classifier.Features, filename_fg, filename_bg)
   classifier.Transform.Apply(config, data)

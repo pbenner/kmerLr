@@ -21,7 +21,6 @@ package main
 //import   "fmt"
 import   "math"
 
-import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
@@ -176,11 +175,11 @@ func (obj *KmerLrCoefficientsSet) AsKmerLr(features KmerLrFeatures) *KmerLr {
   kmers := obj.Kmers.AsList()
   n := kmers.Len()
   f := make(FeatureIndices, n)
-  v := NullDenseBareRealVector(n+1)
-  v[0] = ConstReal(obj.Offset)
+  v := make([]float64, n+1)
+  v[0] = obj.Offset
   for k, kmer := range kmers {
     f[k+0] = [2]int{k, k}
-    v[k+1] = ConstReal(obj.Get(kmer))
+    v[k+1] = obj.Get(kmer)
   }
   if len(obj.IndexPairs) > 0 {
     for k1, kmer1 := range kmers {
@@ -188,7 +187,7 @@ func (obj *KmerLrCoefficientsSet) AsKmerLr(features KmerLrFeatures) *KmerLr {
         kmer2 := kmers[k2]
         if value := obj.GetPair(kmer1, kmer2); value != 0.0 {
           f = append(f, [2]int{k1, k2})
-          v = append(v, ConstReal(value))
+          v = append(v, value)
         }
       }
     }

@@ -27,15 +27,11 @@ import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
-import . "github.com/pbenner/gonetics"
-
 /* -------------------------------------------------------------------------- */
 
 type KmerLrEstimator struct {
   vectorEstimator.LogisticRegression
-  Cooccurrence bool
-  Kmers        KmerClassList
-  Features     FeatureIndices
+  KmerLrFeatures
   EpsilonLoss  float64
   // reduced data sets
   reduced_data_train KmerDataSet
@@ -44,15 +40,15 @@ type KmerLrEstimator struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, trace *Trace, icv int) *KmerLrEstimator {
+func NewKmerLrEstimator(config Config, classifier *KmerLr, trace *Trace, icv int) *KmerLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
     log.Fatal(err)
     return nil
   } else {
     r := KmerLrEstimator{}
-    r.Cooccurrence       = config.Cooccurrence
-    r.EpsilonLoss        = config.EpsilonLoss
-    r.LogisticRegression = *estimator
+    r.KmerLrFeatures                    = classifier.KmerLrFeatures
+    r.EpsilonLoss                       = config.EpsilonLoss
+    r.LogisticRegression                = *estimator
     r.LogisticRegression.Balance        = config.Balance
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.Epsilon        = config.Epsilon
@@ -60,6 +56,9 @@ func NewKmerLrEstimator(config Config, trace *Trace, icv int) *KmerLrEstimator {
     r.LogisticRegression.Hook           = NewHook(config, trace, icv, &r)
     if config.MaxIterations != 0 {
       r.LogisticRegression.MaxIterations = config.MaxIterations
+    }
+    if len(classifier.Theta) != 0 {
+      r.SetParameters(NewDenseBareRealVector(classifier.Theta))
     }
     return &r
   }
@@ -117,16 +116,16 @@ func (obj *KmerLrEstimator) estimate_debug(config Config, data_train KmerDataSet
   } else {
     r := &KmerLr{}
     r.Theta                          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
-    r.KmerLrFeatures.Binarize        = config.Binarize
-    r.KmerLrFeatures.Cooccurrence    = obj   .Cooccurrence
-    r.KmerLrFeatures.Features        = obj   .Features
-    r.KmerLrFeatures.Kmers           = obj   .Kmers
-    r.KmerLrFeatures.KmerEquivalence = config.KmerEquivalence
+    r.KmerLrFeatures.Binarize        = obj.Binarize
+    r.KmerLrFeatures.Cooccurrence    = obj.Cooccurrence
+    r.KmerLrFeatures.Features        = obj.Features
+    r.KmerLrFeatures.Kmers           = obj.Kmers
+    r.KmerLrFeatures.KmerEquivalence = obj.KmerEquivalence
     return r
   }
 }
 
-func (obj *KmerLrEstimator) estimate(config Config, data_train KmerDataSet) *KmerLr {
+func (obj *KmerLrEstimator) estimate(config Config, data_train KmerDataSet, transform Transform) *KmerLr {
   if err := obj.LogisticRegression.SetSparseData(data_train.Data, data_train.Labels, len(data_train.Data)); err != nil {
     log.Fatal(err)
   }
@@ -138,12 +137,9 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train KmerDataSet) *Kme
     return nil
   } else {
     r := &KmerLr{}
-    r.Theta                          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
-    r.KmerLrFeatures.Binarize        = config.Binarize
-    r.KmerLrFeatures.Cooccurrence    = obj   .Cooccurrence
-    r.KmerLrFeatures.Features        = obj   .Features
-    r.KmerLrFeatures.Kmers           = obj   .Kmers
-    r.KmerLrFeatures.KmerEquivalence = config.KmerEquivalence
+    r.Theta          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
+    r.KmerLrFeatures = obj.KmerLrFeatures
+    r.Transform      = transform
     return r
   }
 }
@@ -193,8 +189,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test K
     selection.Data(config, obj.reduced_data_test .Data, data_test .Data)
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
-    r = obj.estimate(config, obj.reduced_data_train)
-    r.Transform = selection.Transform()
+    r = obj.estimate(config, obj.reduced_data_train, selection.Transform())
   }
   return r
 }

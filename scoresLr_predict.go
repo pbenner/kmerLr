@@ -26,7 +26,7 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 func predict_scores(config Config, filename_json, filename_in, filename_out string) {
-  classifier := ImportScoresLr(&config, filename_json)
+  classifier := ImportScoresLr(config, filename_json)
 
   data := compile_test_data_scores(config, classifier.Features, filename_in)
   classifier.Transform.Apply(config, data)

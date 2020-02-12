@@ -32,17 +32,15 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_scores_parameters(config Config, data_train, data_test []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, icv int, basename_out string) ([]*ScoresLr, [][]float64) {
+func learn_scores_parameters(config Config, classifier *ScoresLr, data_train, data_test []ConstVector, labels []bool, icv int, basename_out string) ([]*ScoresLr, [][]float64) {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
     trace = &Trace{}
   }
 
-  estimator := NewScoresLrEstimator(config, trace, icv, features)
-  if classifier != nil {
-    estimator.SetParameters(classifier.GetParameters().CloneVector())
-  }
+  estimator := NewScoresLrEstimator(config, classifier, trace, icv)
+
   classifiers, predictions := estimator.Estimate(config, data_train, data_test, labels)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
@@ -58,10 +56,10 @@ func learn_scores_parameters(config Config, data_train, data_test []ConstVector,
   return classifiers, predictions
 }
 
-func learn_scores_cv(config Config, data []ConstVector, labels []bool, classifier *ScoresLr, features FeatureIndices, basename_out string) {
+func learn_scores_cv(config Config, classifier *ScoresLr, data []ConstVector, labels []bool, features FeatureIndices, basename_out string) {
   learnAndTestClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) [][]float64 {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
-    _, predictions := learn_scores_parameters(config, data_train, data_test, labels, classifier, features, i, basename_out)
+    _, predictions := learn_scores_parameters(config, classifier, data_train, data_test, labels, i, basename_out)
     return predictions
   }
   cvrs := scoresCrossvalidation(config, data, labels, learnAndTestClassifiers)
@@ -71,11 +69,11 @@ func learn_scores_cv(config Config, data []ConstVector, labels []bool, classifie
   }
 }
 
-func learn_scores(config Config, filename_json, filename_fg, filename_bg, basename_out string) {
+func learn_scores(config Config, classifer *ScoresLr, filename_json, filename_fg, filename_bg, basename_out string) {
   var classifier *ScoresLr
   var features    FeatureIndices
   if filename_json != "" {
-    classifier = ImportScoresLr(&config, filename_json)
+    classifier = ImportScoresLr(config, filename_json)
     features   = classifier.Features
   }
   data, labels := compile_training_data_scores(config, FeatureIndices{}, filename_fg, filename_bg)
@@ -88,9 +86,9 @@ func learn_scores(config Config, filename_json, filename_fg, filename_bg, basena
     data[i].(SparseConstRealVector).CreateIndex()
   }
   if config.KFoldCV <= 1 {
-    learn_scores_parameters(config, data, nil, labels, classifier, features, -1, basename_out)
+    learn_scores_parameters(config, classifier, data, nil, labels, -1, basename_out)
   } else {
-    learn_scores_cv(config, data, labels, classifier, features, basename_out)
+    learn_scores_cv(config, classifier, data, labels, features, basename_out)
   }
 }
 
@@ -125,6 +123,7 @@ func main_learn_scores(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
+  classifier   := &ScoresLr{}
   filename_in  := ""
   filename_fg  := ""
   filename_bg  := ""
@@ -139,6 +138,9 @@ func main_learn_scores(config Config, args []string) {
     filename_bg  = options.Args()[2]
     basename_out = options.Args()[3]
   }
+  // parse classifier options
+  //////////////////////////////////////////////////////////////////////////////
+  classifier.Cooccurrence = *optCooccurrence
   // parse options
   //////////////////////////////////////////////////////////////////////////////
   if *optHelp {
@@ -189,7 +191,6 @@ func main_learn_scores(config Config, args []string) {
     config.PoolSaga = threadpool.New(*optThreadsSaga, 100)
   }
   config.Balance         = *optBalance
-  config.Cooccurrence    = *optCooccurrence
   config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss
   config.MaxEpochs       = *optMaxEpochs
@@ -199,5 +200,5 @@ func main_learn_scores(config Config, args []string) {
   if config.EpsilonLoss != 0.0 {
     config.EvalLoss = true
   }
-  learn_scores(config, filename_in, filename_fg, filename_bg, basename_out)
+  learn_scores(config, classifier, filename_in, filename_fg, filename_bg, basename_out)
 }

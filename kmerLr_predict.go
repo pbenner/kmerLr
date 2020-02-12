@@ -21,7 +21,6 @@ package main
 import   "fmt"
 import   "bufio"
 import   "io"
-import   "log"
 import   "os"
 
 import . "github.com/pbenner/autodiff"
@@ -88,7 +87,7 @@ func savePredictions(filename string, predictions []float64) {
 /* -------------------------------------------------------------------------- */
 
 func predict_window(config Config, filename_json, filename_in, filename_out string, window_size, window_step int) {
-  classifier  := ImportKmerLr(&config, filename_json)
+  classifier  := ImportKmerLr(config, filename_json)
   sequences   := import_fasta(config, filename_in)
   predictions := make([][]float64, len(sequences))
   counters    := make([]*KmerCounter, config.Pool.NumberOfThreads())
@@ -107,7 +106,7 @@ func predict_window(config Config, filename_json, filename_in, filename_out stri
     for j := 0; j < len(sequence)-window_size; j += window_step {
       j := j
       config.Pool.AddJob(job_group, func(pool threadpool.ThreadPool, erf func() error) error {
-        counts := scan_sequence(config, counters[pool.GetThreadId()], []byte(sequence[j:j+window_size]))
+        counts := scan_sequence(config, counters[pool.GetThreadId()], classifier.Binarize, []byte(sequence[j:j+window_size]))
         counts.SetKmers(classifier.Kmers)
         data   := convert_counts(config, counts, classifier.Features)
         predictions[i][j] = classifier.Predict(config, []ConstVector{data})[0]
@@ -123,14 +122,10 @@ func predict_window(config Config, filename_json, filename_in, filename_out stri
 /* -------------------------------------------------------------------------- */
 
 func predict(config Config, filename_json, filename_in, filename_out string) {
-  classifier := ImportKmerLr(&config, filename_json)
-
-  kmersCounter, err := NewKmerCounter(config.M, config.N, config.Complement, config.Reverse, config.Revcomp, config.MaxAmbiguous, config.Alphabet, classifier.Kmers...); if err != nil {
-    log.Fatal(err)
-  }
-  data := compile_test_data(config, kmersCounter, classifier.Kmers, classifier.Features, filename_in)
+  classifier  := ImportKmerLr(config, filename_json)
+  counter     := classifier.GetKmerCounter()
+  data        := compile_test_data(config, counter, classifier.Kmers, classifier.Features, classifier.Binarize, filename_in)
   classifier.Transform.Apply(config, data.Data)
-
   predictions := classifier.Predict(config, data.Data)
 
   savePredictions(filename_out, predictions)
