@@ -27,13 +27,17 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func loss_scores(config Config, filename_json, filename_fg, filename_bg string) {
+func loss_scores_(config Config, filename_json, filename_fg, filename_bg string) float64 {
   classifier := ImportScoresLr(config, filename_json)
 
   data, c  := compile_training_data_scores(config, classifier.Features, filename_fg, filename_bg)
   classifier.Transform.Apply(config, data)
 
-  fmt.Println(classifier.Loss(config, data, c))
+  return classifier.Loss(config, data, c)
+}
+
+func loss_scores(config Config, filename_json, filename_fg, filename_bg string) {
+  fmt.Println(loss_scores_(config, filename_json, filename_fg, filename_bg))
 }
 
 /* -------------------------------------------------------------------------- */

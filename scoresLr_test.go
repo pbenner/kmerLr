@@ -24,9 +24,10 @@ import   "testing"
 
 /* -------------------------------------------------------------------------- */
 
-func TestScores(test *testing.T) {
+func TestScores1(test *testing.T) {
   config := Config{}
   config.Verbose = 0
+  config.Lambda  = 4.647556e+00
 
   main_learn_scores(config, []string{"learn", "--lambda-auto=2", "scoresLr_test_fg.table", "scoresLr_test_bg.table", "scoresLr_test"})
 
@@ -51,6 +52,9 @@ func TestScores(test *testing.T) {
     test.Error("test failed")
   }
   if f := classifier.Features[1]; f[0] != 6 || f[1] != 6 {
+    test.Error("test failed")
+  }
+  if v := loss_scores_(config, "scoresLr_test_2.json", "scoresLr_test_fg.table", "scoresLr_test_bg.table"); math.Abs(v - 10.460285) > 1e-4 {
     test.Error("test failed")
   }
 }
