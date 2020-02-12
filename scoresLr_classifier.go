@@ -54,7 +54,7 @@ func (obj *ScoresLr) Clone() *ScoresLr {
 
 func (obj *ScoresLr) Predict(config Config, data []ConstVector) []float64 {
   lr := logisticRegression{}
-  lr.Theta  = obj.Theta
+  lr.Theta  = obj   .Theta
   lr.Lambda = config.Lambda
   lr.Pool   = config.Pool
   r := make([]float64, len(data))
@@ -66,8 +66,9 @@ func (obj *ScoresLr) Predict(config Config, data []ConstVector) []float64 {
 
 func (obj *ScoresLr) Loss(config Config, data []ConstVector, c []bool) float64 {
   lr := logisticRegression{}
-  lr.Theta  = obj.Theta
+  lr.Theta  = obj   .Theta
   lr.Lambda = config.Lambda
+  lr.Pool   = config.Pool
   if config.Balance {
     lr.ClassWeights = compute_class_weights(c)
   } else {
