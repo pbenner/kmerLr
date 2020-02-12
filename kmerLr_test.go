@@ -197,7 +197,7 @@ func TestKmers6(test *testing.T) {
   config := Config{}
   config.Lambda  = 3.564655e+00
   config.Seed    = 1
-  config.Verbose = 2
+  config.Verbose = 0
 
   main_learn(config, []string{"learn", "--lambda-auto=10", "--revcomp", "--co-occurrence", "8", "8", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test_co"})
 
@@ -232,6 +232,48 @@ func TestKmers6(test *testing.T) {
   }
   if v := loss_(config, "kmerLr_test_co_10.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa"); math.Abs(v - 14.806665) > 1e-4 {
     test.Error("test failed")
+  }
+  w := []float64{
+    -4.868434e-01,
+    -3.663288e-01,
+    -5.367957e-01,
+    -4.421747e-01,
+    -5.380858e-01,
+    -5.397592e-01,
+    -5.840667e-01,
+    -5.667866e-01,
+    -6.159757e-01,
+    -5.434835e-01,
+    -5.160126e-01 }
+  if v := predict_(config, "kmerLr_test_co_10.json", "kmerLr_test_fg.fa"); len(v) != len(w) {
+    test.Error("test failed"); return
+  } else {
+    for i := 0; i < len(w); i++ {
+      if math.Abs(v[i] - w[i]) > 1e-4 {
+        test.Error("test failed")
+      }
+    }
+  }
+  w = []float64{
+    -8.689440e-01,
+    -8.689440e-01,
+    -9.494626e-01,
+    -9.494626e-01,
+    -8.689440e-01,
+    -8.689440e-01,
+    -9.494626e-01,
+    -8.689440e-01,
+    -9.494626e-01,
+    -8.689440e-01,
+    -9.494626e-01 }
+  if v := predict_(config, "kmerLr_test_co_10.json", "kmerLr_test_bg.fa"); len(v) != len(w) {
+    test.Error("test failed"); return
+  } else {
+    for i := 0; i < len(w); i++ {
+      if math.Abs(v[i] - w[i]) > 1e-4 {
+        test.Error("test failed")
+      }
+    }
   }
   os.Remove("kmerLr_test_co_10.json")
 }

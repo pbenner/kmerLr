@@ -121,14 +121,18 @@ func predict_window(config Config, filename_json, filename_in, filename_out stri
 
 /* -------------------------------------------------------------------------- */
 
-func predict(config Config, filename_json, filename_in, filename_out string) {
+func predict_(config Config, filename_json, filename_in string) []float64 {
   classifier  := ImportKmerLr(config, filename_json)
   counter     := classifier.GetKmerCounter()
   data        := compile_test_data(config, counter, classifier.Kmers, classifier.Features, classifier.Binarize, filename_in)
   classifier.Transform.Apply(config, data.Data)
   predictions := classifier.Predict(config, data.Data)
 
-  savePredictions(filename_out, predictions)
+  return predictions
+}
+
+func predict(config Config, filename_json, filename_in, filename_out string) {
+  savePredictions(filename_out, predict_(config, filename_json, filename_in))
 }
 
 /* -------------------------------------------------------------------------- */
