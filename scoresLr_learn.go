@@ -56,7 +56,7 @@ func learn_scores_parameters(config Config, classifier *ScoresLr, data_train, da
   return classifiers, predictions
 }
 
-func learn_scores_cv(config Config, classifier *ScoresLr, data []ConstVector, labels []bool, features FeatureIndices, basename_out string) {
+func learn_scores_cv(config Config, classifier *ScoresLr, data []ConstVector, labels []bool, basename_out string) {
   learnAndTestClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) [][]float64 {
     basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
     _, predictions := learn_scores_parameters(config, classifier, data_train, data_test, labels, i, basename_out)
@@ -69,12 +69,9 @@ func learn_scores_cv(config Config, classifier *ScoresLr, data []ConstVector, la
   }
 }
 
-func learn_scores(config Config, classifer *ScoresLr, filename_json, filename_fg, filename_bg, basename_out string) {
-  var classifier *ScoresLr
-  var features    FeatureIndices
+func learn_scores(config Config, classifier *ScoresLr, filename_json, filename_fg, filename_bg, basename_out string) {
   if filename_json != "" {
     classifier = ImportScoresLr(config, filename_json)
-    features   = classifier.Features
   }
   data, labels := compile_training_data_scores(config, FeatureIndices{}, filename_fg, filename_bg)
 
@@ -88,7 +85,7 @@ func learn_scores(config Config, classifer *ScoresLr, filename_json, filename_fg
   if config.KFoldCV <= 1 {
     learn_scores_parameters(config, classifier, data, nil, labels, -1, basename_out)
   } else {
-    learn_scores_cv(config, classifier, data, labels, features, basename_out)
+    learn_scores_cv(config, classifier, data, labels, basename_out)
   }
 }
 
