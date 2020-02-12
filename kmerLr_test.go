@@ -192,3 +192,46 @@ func TestKmers5(test *testing.T) {
   }
   os.Remove("kmerLr_test_2.json")
 }
+
+func TestKmers6(test *testing.T) {
+  config := Config{}
+  config.Lambda  = 3.564655e+00
+  config.Seed    = 1
+  config.Verbose = 2
+
+  main_learn(config, []string{"learn", "--lambda-auto=10", "--revcomp", "--co-occurrence", "8", "8", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test_co"})
+
+  classifier := ImportKmerLr(config, "kmerLr_test_co_10.json")
+
+  theta := []float64{
+    -0.325260697322107, -0.07315707119431,
+     0.057008785681044,  0.05607141818135,
+     0.194369258585388,  0.25858910596093,
+     0.165691971718122,  0.08064793748075,
+     0.000731352134239,  0.05607141818135,
+     0.000731352134239 }
+  features := [][]int{
+    []int{0,0}, []int{1,1}, []int{2,2}, []int{3,3}, []int{6,6},
+    []int{7,7}, []int{8,8}, []int{9,9}, []int{2,5}, []int{4,9} }
+
+  if len(classifier.Theta) != len(theta) {
+    test.Error("test failed"); return
+  }
+  for i := 0; i < len(theta); i++ {
+    if math.Abs(classifier.Theta[i] - theta[i]) > 1e-5 {
+      test.Error("test failed")
+    }
+  }
+  if len(classifier.Features) != len(features) {
+    test.Error("test failed"); return
+  }
+  for i := 0; i < len(features); i++ {
+    if f := classifier.Features[i]; f[0] != features[i][0] || f[1] != features[i][1] {
+      test.Error("test failed")
+    }
+  }
+  if v := loss_(config, "kmerLr_test_co_10.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa"); math.Abs(v - 14.806665) > 1e-4 {
+    test.Error("test failed")
+  }
+  os.Remove("kmerLr_test_co_10.json")
+}
