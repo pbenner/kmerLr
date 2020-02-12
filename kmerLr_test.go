@@ -226,7 +226,7 @@ func TestKmers6(test *testing.T) {
       test.Error("test failed")
     }
   }
-  if v := loss_(config, "kmerLr_test_co_2.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa"); math.Abs(v - 13.862886) > 1e-4 {
+  if v := loss_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa"); math.Abs(v - 13.862886) > 1e-4 {
     test.Error("test failed")
   }
   w := []float64{
