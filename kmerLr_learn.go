@@ -49,9 +49,7 @@ func learn_parameters(config Config, classifier *KmerLr, data_train, data_test K
   }
 
   estimator := NewKmerLrEstimator(config, classifier, trace, icv)
-  if classifier != nil {
-    estimator.SetParameters(NewDenseBareRealVector(classifier.Theta))
-  }
+
   classifiers, predictions := estimator.Estimate(config, data_train, data_test)
 
   filename_trace := fmt.Sprintf("%s.trace", basename_out)

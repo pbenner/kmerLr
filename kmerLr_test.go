@@ -19,13 +19,15 @@ package main
 /* -------------------------------------------------------------------------- */
 
 //import   "fmt"
+import   "math"
+import   "os"
 import   "testing"
 
 import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
-func Test1(test *testing.T) {
+func TestKmers1(test *testing.T) {
   config := Config{}
   config.Verbose  = 0
 
@@ -65,7 +67,7 @@ func Test1(test *testing.T) {
   }
 }
 
-func Test2(test *testing.T) {
+func TestKmers2(test *testing.T) {
   config := Config{}
   config.Verbose  = 0
 
@@ -94,7 +96,7 @@ func Test2(test *testing.T) {
   }
 }
 
-func Test3(test *testing.T) {
+func TestKmers3(test *testing.T) {
   config := Config{}
   config.Verbose        = 0
   config.MaxIterations  = 100
@@ -123,7 +125,7 @@ func Test3(test *testing.T) {
   }
 }
 
-func Test4(test *testing.T) {
+func TestKmers4(test *testing.T) {
   config := Config{}
   config.Verbose        = 0
   config.StepSizeFactor = 1.0
@@ -152,4 +154,41 @@ func Test4(test *testing.T) {
       }
     }
   }
+}
+
+func TestKmers5(test *testing.T) {
+  config := Config{}
+  config.Lambda  = 4.460029e+00
+  config.Seed    = 1
+  config.Verbose = 0
+
+  main_learn(config, []string{"learn", "--lambda-auto=2", "--revcomp", "8", "8", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test"})
+
+  classifier := ImportKmerLr(config, "kmerLr_test_2.json")
+
+  if len(classifier.Theta) != 3 {
+    test.Error("test failed"); return
+  }
+  if math.Abs(classifier.Theta[0] - -0.002399112897182792) > 1e-5 {
+    test.Error("test failed")
+  }
+  if math.Abs(classifier.Theta[1] - -0.03289389340005168) > 1e-5 {
+    test.Error("test failed")
+  }
+  if math.Abs(classifier.Theta[2] - 0.03552066615422328) > 1e-5 {
+    test.Error("test failed")
+  }
+  if len(classifier.Features) != 2 {
+    test.Error("test failed"); return
+  }
+  if f := classifier.Features[0]; f[0] != 0 || f[1] != 0 {
+    test.Error("test failed")
+  }
+  if f := classifier.Features[1]; f[0] != 1 || f[1] != 1 {
+    test.Error("test failed")
+  }
+  if v := loss_(config, "kmerLr_test_2.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa"); math.Abs(v - 15.243974) > 1e-4 {
+    test.Error("test failed")
+  }
+  os.Remove("kmerLr_test_2.json")
 }

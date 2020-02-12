@@ -48,9 +48,9 @@ func NewScoresLrEstimator(config Config, classifier *ScoresLr, trace *Trace, icv
     return nil
   } else {
     r := ScoresLrEstimator{}
-    r.ScoresLrFeatures   = classifier.ScoresLrFeatures
-    r.EpsilonLoss        = config.EpsilonLoss
-    r.LogisticRegression = *estimator
+    r.ScoresLrFeatures                  = classifier.ScoresLrFeatures
+    r.EpsilonLoss                       = config.EpsilonLoss
+    r.LogisticRegression                = *estimator
     r.LogisticRegression.Balance        = config.Balance
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.Epsilon        = config.Epsilon

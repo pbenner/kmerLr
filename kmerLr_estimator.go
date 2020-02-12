@@ -57,7 +57,7 @@ func NewKmerLrEstimator(config Config, classifier *KmerLr, trace *Trace, icv int
     if config.MaxIterations != 0 {
       r.LogisticRegression.MaxIterations = config.MaxIterations
     }
-    if len(classifier.Theta) != 0 {
+    if len(classifier.Theta) > 0 {
       r.SetParameters(NewDenseBareRealVector(classifier.Theta))
     }
     return &r
