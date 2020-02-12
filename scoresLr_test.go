@@ -90,5 +90,33 @@ func TestScores2(test *testing.T) {
   if v := loss_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table"); math.Abs(v - 10.908436) > 1e-4 {
     test.Error("test failed")
   }
+  w := []float64{
+    -5.025654e-01, -6.547077e-01,
+    -5.850161e-01, -5.619555e-01,
+    -6.507984e-01, -3.987767e-01,
+    -6.489538e-01, -6.473589e-01 }
+  if v := predict_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table"); len(v) != len(w) {
+    test.Error("test failed"); return
+  } else {
+    for i := 0; i < len(w); i++ {
+      if math.Abs(v[i] - w[i]) > 1e-4 {
+        test.Error("test failed")
+      }
+    }
+  }
+  w = []float64{
+    -8.531373e-01, -8.220360e-01,
+    -8.446463e-01, -8.324747e-01,
+    -8.784024e-01, -8.430350e-01,
+    -9.011005e-01, -6.618126e-01 }
+  if v := predict_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_bg.table"); len(v) != len(w) {
+    test.Error("test failed"); return
+  } else {
+    for i := 0; i < len(w); i++ {
+      if math.Abs(v[i] - w[i]) > 1e-4 {
+        test.Error("test failed")
+      }
+    }
+  }
   os.Remove("scoresLr_test_co_1.json")
 }

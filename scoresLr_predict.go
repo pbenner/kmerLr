@@ -25,7 +25,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func predict_scores(config Config, filename_json, filename_in, filename_out string) {
+func predict_scores_(config Config, filename_json, filename_in string) []float64 {
   classifier := ImportScoresLr(config, filename_json)
 
   data := compile_test_data_scores(config, classifier.Features, filename_in)
@@ -33,7 +33,11 @@ func predict_scores(config Config, filename_json, filename_in, filename_out stri
 
   predictions := classifier.Predict(config, data)
 
-  savePredictions(filename_out, predictions)
+  return predictions
+}
+
+func predict_scores(config Config, filename_json, filename_in, filename_out string) {
+  savePredictions(filename_out, predict_scores_(config, filename_json, filename_in))
 }
 
 /* -------------------------------------------------------------------------- */
