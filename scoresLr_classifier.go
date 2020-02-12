@@ -46,7 +46,7 @@ func (obj *ScoresLr) Clone() *ScoresLr {
   for i := 0; i < len(obj.Theta); i++ {
     r.Theta[i] = obj.Theta[i]
   }
-  r.ScoresLrFeatures   =  obj.ScoresLrFeatures  .Clone()
+  r.ScoresLrFeatures = obj.ScoresLrFeatures.Clone()
   return &r
 }
 
