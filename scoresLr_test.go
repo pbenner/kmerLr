@@ -20,14 +20,16 @@ package main
 
 //import   "fmt"
 import   "math"
+import   "os"
 import   "testing"
 
 /* -------------------------------------------------------------------------- */
 
 func TestScores1(test *testing.T) {
   config := Config{}
-  config.Verbose = 0
   config.Lambda  = 4.647556e+00
+  config.Seed    = 1
+  config.Verbose = 0
 
   main_learn_scores(config, []string{"learn", "--lambda-auto=2", "scoresLr_test_fg.table", "scoresLr_test_bg.table", "scoresLr_test"})
 
@@ -36,13 +38,13 @@ func TestScores1(test *testing.T) {
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
   }
-  if math.Abs(classifier.Theta[0] - -0.012583476345881155) > 1e-5 {
+  if math.Abs(classifier.Theta[0] - -0.01017467785504194) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[1] - -0.5800261197863501) > 1e-5 {
+  if math.Abs(classifier.Theta[1] - -0.5786522365231856) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[2] - -0.01890505530675889) > 1e-5 {
+  if math.Abs(classifier.Theta[2] - -0.01642987554158162) > 1e-5 {
     test.Error("test failed")
   }
   if len(classifier.Features) != 2 {
@@ -57,4 +59,36 @@ func TestScores1(test *testing.T) {
   if v := loss_scores_(config, "scoresLr_test_2.json", "scoresLr_test_fg.table", "scoresLr_test_bg.table"); math.Abs(v - 10.460285) > 1e-4 {
     test.Error("test failed")
   }
+  os.Remove("scoresLr_test_2.json")
+}
+
+func TestScores2(test *testing.T) {
+  config := Config{}
+  config.Lambda  = 5.385329e+00
+  config.Verbose = 0
+  config.Seed    = 1
+
+  main_learn_scores(config, []string{"learn", "--lambda-auto=1", "--co-occurrence", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table", "scoresLr_test_co"})
+
+  classifier := ImportScoresLr(config, "scoresLr_test_co_1.json")
+
+  if len(classifier.Theta) != 2 {
+    test.Error("test failed"); return
+  }
+  if math.Abs(classifier.Theta[0] - -0.0014497332511020612) > 1e-5 {
+    test.Error("test failed")
+  }
+  if math.Abs(classifier.Theta[1] - 0.3055074741822805) > 1e-5 {
+    test.Error("test failed")
+  }
+  if len(classifier.Features) != 1 {
+    test.Error("test failed"); return
+  }
+  if f := classifier.Features[0]; f[0] != 1 || f[1] != 6 {
+    test.Error("test failed")
+  }
+  if v := loss_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table"); math.Abs(v - 10.908436) > 1e-4 {
+    test.Error("test failed")
+  }
+  os.Remove("scoresLr_test_co_1.json")
 }
