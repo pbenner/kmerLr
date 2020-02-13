@@ -90,26 +90,59 @@ func (obj *KmerLrEstimator) n_params(config Config, data []ConstVector, lambdaAu
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrEstimator) eval_stopping(xs, x1 []float64) (bool, float64) {
+  // evaluate stopping criterion
+  max_x     := 0.0
+  max_delta := 0.0
+  delta     := 0.0
+  for i := 0; i < len(xs); i++ {
+    if math.IsNaN(x1[i]) {
+      return true, math.NaN()
+    }
+    max_x     = math.Max(max_x    , math.Abs(x1[i]))
+    max_delta = math.Max(max_delta, math.Abs(x1[i] - xs[i]))
+  }
+  if max_x != 0.0 {
+    delta = max_delta/max_x
+  } else {
+    delta = max_delta
+  }
+  if max_x != 0.0 && max_delta/max_x <= obj.LogisticRegression.Epsilon ||
+    (max_x == 0.0 && max_delta == 0.0) {
+    return true, delta
+  }
+  return false, delta
+}
+
 func (obj *KmerLrEstimator) estimate_debug(config Config, data_train KmerDataSet) *KmerLr {
-  theta := obj.Theta.GetValues()
-  gamma := 0.0001
-  lr1   := logisticRegression{theta, obj.ClassWeights, 0.0      , false, TransformFull{}, config.Pool}
-  lr2   := logisticRegression{theta, obj.ClassWeights, obj.L1Reg, false, TransformFull{}, config.Pool}
+  theta0 := obj.Theta.GetValues()
+  theta1 := obj.Theta.GetValues()
+  gamma  := 0.0001
+  lr     := logisticRegression{theta1, obj.ClassWeights, 0.0, false, TransformFull{}, config.Pool}
   for i := 0; i < 10000; i++ {
-    g := lr1.Gradient(nil, data_train.Data, data_train.Labels)
-    for k := 0; k < len(theta); k++ {
-      theta[k] = theta[k] - gamma*g[k]
+    g := lr.Gradient(nil, data_train.Data, data_train.Labels)
+    for k := 0; k < len(theta1); k++ {
+      theta0[k] = theta1[k]
+      theta1[k] = theta1[k] - gamma*g[k]
       if k > 0 {
-        if theta[k] >= 0.0 {
-          theta[k] =  math.Max(math.Abs(theta[k]) - gamma*obj.L1Reg, 0.0)
+        if theta1[k] >= 0.0 {
+          theta1[k] =  math.Max(math.Abs(theta1[k]) - gamma*obj.L1Reg, 0.0)
         } else {
-          theta[k] = -math.Max(math.Abs(theta[k]) - gamma*obj.L1Reg, 0.0)
+          theta1[k] = -math.Max(math.Abs(theta1[k]) - gamma*obj.L1Reg, 0.0)
         }
       }
     }
-    PrintStderr(config, 2, "loss: %f\n", lr2.Loss(data_train.Data, data_train.Labels))
+    // check convergence
+    if stop, delta := obj.eval_stopping(theta0, theta1); stop {
+      break
+    } else {
+      // execute hook if available
+      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseConstRealVector(theta1), ConstReal(delta), ConstReal(obj.L1Reg), i) {
+        break
+      }
+    }
   }
-  obj.Theta = NewDenseBareRealVector(theta)
+  obj.Theta = NewDenseBareRealVector(theta1)
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
     log.Fatal(err)
     return nil
