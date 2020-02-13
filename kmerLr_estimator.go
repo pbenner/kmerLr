@@ -119,7 +119,7 @@ func (obj *KmerLrEstimator) estimate_debug(config Config, data_train KmerDataSet
   theta1 := obj.Theta.GetValues()
   gamma  := 0.0001
   lr     := logisticRegression{theta1, obj.ClassWeights, 0.0, false, TransformFull{}, config.Pool}
-  for i := 0; i < 10000; i++ {
+  for i := 0; i < obj.LogisticRegression.MaxIterations; i++ {
     g := lr.Gradient(nil, data_train.Data, data_train.Labels)
     for k := 0; k < len(theta1); k++ {
       theta0[k] = theta1[k]
