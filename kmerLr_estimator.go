@@ -114,7 +114,7 @@ func (obj *KmerLrEstimator) eval_stopping(xs, x1 []float64) (bool, float64) {
   return false, delta
 }
 
-func (obj *KmerLrEstimator) estimate_step_size(x []ConstVector) float64 {
+func (obj *KmerLrEstimator) estimate_step_size(x []ConstVector) {
   max_squared_sum := 0.0
   max_weight      := 1.0
   for _, x := range x {
@@ -135,24 +135,27 @@ func (obj *KmerLrEstimator) estimate_step_size(x []ConstVector) float64 {
   L *= max_weight
   stepSize := 1.0/(2.0*L + math.Min(2.0*obj.L2Reg, L))
   stepSize *= obj.StepSizeFactor
-  return stepSize
+  obj.SetStepSize(stepSize)
 }
 
 func (obj *KmerLrEstimator) estimate_debug(config Config, data_train KmerDataSet, transform Transform) *KmerLr {
+  obj.estimate_step_size(data_train.Data)
   theta0 := obj.Theta.GetValues()
   theta1 := obj.Theta.GetValues()
-  gamma  := obj.estimate_step_size(data_train.Data)
   lr     := logisticRegression{theta1, obj.ClassWeights, 0.0, false, TransformFull{}, config.Pool}
   for i := 0; i < obj.LogisticRegression.MaxIterations; i++ {
-    g := lr.Gradient(nil, data_train.Data, data_train.Labels)
+    // receive step size during each iteration, since the hook
+    // might modify it
+    s := obj.GetStepSize()
+    g := lr .Gradient(nil, data_train.Data, data_train.Labels)
     for k := 0; k < len(theta1); k++ {
       theta0[k] = theta1[k]
-      theta1[k] = theta1[k] - gamma*g[k]
+      theta1[k] = theta1[k] - s*g[k]
       if k > 0 {
         if theta1[k] >= 0.0 {
-          theta1[k] =  math.Max(math.Abs(theta1[k]) - gamma*obj.L1Reg, 0.0)
+          theta1[k] =  math.Max(math.Abs(theta1[k]) - s*obj.L1Reg, 0.0)
         } else {
-          theta1[k] = -math.Max(math.Abs(theta1[k]) - gamma*obj.L1Reg, 0.0)
+          theta1[k] = -math.Max(math.Abs(theta1[k]) - s*obj.L1Reg, 0.0)
         }
       }
     }
