@@ -138,7 +138,7 @@ func (obj *KmerLrEstimator) estimate_step_size(x []ConstVector) float64 {
   return stepSize
 }
 
-func (obj *KmerLrEstimator) estimate_debug(config Config, data_train KmerDataSet) *KmerLr {
+func (obj *KmerLrEstimator) estimate_debug(config Config, data_train KmerDataSet, transform Transform) *KmerLr {
   theta0 := obj.Theta.GetValues()
   theta1 := obj.Theta.GetValues()
   gamma  := obj.estimate_step_size(data_train.Data)
@@ -172,12 +172,9 @@ func (obj *KmerLrEstimator) estimate_debug(config Config, data_train KmerDataSet
     return nil
   } else {
     r := &KmerLr{}
-    r.Theta                          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
-    r.KmerLrFeatures.Binarize        = obj.Binarize
-    r.KmerLrFeatures.Cooccurrence    = obj.Cooccurrence
-    r.KmerLrFeatures.Features        = obj.Features
-    r.KmerLrFeatures.Kmers           = obj.Kmers
-    r.KmerLrFeatures.KmerEquivalence = obj.KmerEquivalence
+    r.Theta          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
+    r.KmerLrFeatures = obj.KmerLrFeatures
+    r.Transform      = transform
     return r
   }
 }
