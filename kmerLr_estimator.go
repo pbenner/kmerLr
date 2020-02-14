@@ -114,10 +114,34 @@ func (obj *KmerLrEstimator) eval_stopping(xs, x1 []float64) (bool, float64) {
   return false, delta
 }
 
+func (obj *KmerLrEstimator) estimate_step_size(x []ConstVector) float64 {
+  max_squared_sum := 0.0
+  max_weight      := 1.0
+  for _, x := range x {
+    r  := 0.0
+    it := x.ConstIterator()
+    // skip first element
+    if it.Ok() {
+      it.Next()
+    }
+    for ; it.Ok(); it.Next() {
+      r += it.GetValue()*it.GetValue()
+    }
+    if r > max_squared_sum {
+      max_squared_sum = r
+    }
+  }
+  L := (0.25*(max_squared_sum + 1.0) + obj.L2Reg/float64(len(x)))
+  L *= max_weight
+  stepSize := 1.0/(2.0*L + math.Min(2.0*obj.L2Reg, L))
+  stepSize *= obj.StepSizeFactor
+  return stepSize
+}
+
 func (obj *KmerLrEstimator) estimate_debug(config Config, data_train KmerDataSet) *KmerLr {
   theta0 := obj.Theta.GetValues()
   theta1 := obj.Theta.GetValues()
-  gamma  := 0.0001
+  gamma  := obj.estimate_step_size(data_train.Data)
   lr     := logisticRegression{theta1, obj.ClassWeights, 0.0, false, TransformFull{}, config.Pool}
   for i := 0; i < obj.LogisticRegression.MaxIterations; i++ {
     g := lr.Gradient(nil, data_train.Data, data_train.Labels)
