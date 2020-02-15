@@ -34,15 +34,17 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
   for j := 0; j < len(theta0)-1; j++ {
     inner_xx[j] = make([]float64, len(theta0)-1)
   }
-  for i_, xi := range data_train.Data {
+  for _, xi := range data_train.Data {
     for it := xi.ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 {
         inner_xy[j-1] += y[j]*it.GetValue()
       }
-    }
-    for j_ := i_; j_ < len(data_train.Data); j_++ {
-      xj := data_train.Data[j_]
-      for it := xi.ConstJointIterator(xj); it.Ok(); it.Next() {
+      for _, xj := range data_train.Data {
+        for is := xj.ConstIterator(); is.Ok(); is.Next() {
+          if j1, j2 := it.Index(), is.Index(); j1 != 0 && j2 != 0 {
+            inner_xx[j1][j2] += it.GetValue()*is.GetValue()
+          }
+        }
       }
     }
   }
