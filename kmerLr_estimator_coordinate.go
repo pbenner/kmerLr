@@ -34,6 +34,7 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
   for j := 0; j < len(theta0)-1; j++ {
     inner_xx[j] = make([]float64, len(theta0)-1)
   }
+  // initialize variables
   for _, xi := range data_train.Data {
     for it := xi.ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 {
@@ -48,14 +49,21 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
       }
     }
   }
-  // initialize variables
   for iter := 0; iter < obj.LogisticRegression.MaxIterations; iter++ {
+    // coordinate descent step
+    for j := 0; j < len(theta0); j++ {
+    }
+    // check convergence
+    if stop, _ := obj.eval_stopping(theta0, theta1); stop {
+      break
+    }
   }
 }
 
 func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDataSet, transform Transform) *KmerLr {
   obj.estimate_step_size(data_train.Data)
   theta0  := obj.Theta.GetValues()
+  theta0_ := obj.Theta.GetValues()
   theta1  := obj.Theta.GetValues()
   lr      := logisticRegression{theta1, obj.ClassWeights, 0.0, false, TransformFull{}, config.Pool}
   w := make([]float64, len(data_train.Data))
@@ -72,7 +80,21 @@ func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDa
         z[i] = r + (0.0 - p)/w[i]
       }
     }
-    obj.estimate_coordinate_loop(config, data_train, z, w, theta0, theta1)
+    // copy theta
+    for j := 0; j < len(theta0); j++ {
+      theta0[j] = theta1[j]
+    }
+    obj.estimate_coordinate_loop(config, data_train, z, w, theta0_, theta1)
+
+    // check convergence
+    if stop, delta := obj.eval_stopping(theta0, theta1); stop {
+      break
+    } else {
+      // execute hook if available
+      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseConstRealVector(theta1), ConstReal(delta), ConstReal(obj.L1Reg), epoch) {
+        break
+      }
+    }
   }
   obj.Theta = NewDenseBareRealVector(theta1)
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
