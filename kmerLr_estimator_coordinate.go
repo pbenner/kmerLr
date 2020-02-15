@@ -43,7 +43,7 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
       for _, xj := range data_train.Data {
         for is := xj.ConstIterator(); is.Ok(); is.Next() {
           if j1, j2 := it.Index(), is.Index(); j1 != 0 && j2 != 0 {
-            inner_xx[j1][j2] += it.GetValue()*is.GetValue()
+            inner_xx[j1-1][j2-1] += it.GetValue()*is.GetValue()
           }
         }
       }
@@ -51,11 +51,11 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
   }
   for iter := 0; iter < obj.LogisticRegression.MaxIterations; iter++ {
     // coordinate descent step
-    for j := 0; j < len(theta0); j++ {
+    for j := 1; j < len(theta0); j++ {
       theta0[j] = theta1[j]
       theta1[j] = inner_xy[j]
-      for k := 0; k < len(theta0); k++ {
-        theta1[j] -= inner_xx[j][k]*theta0[k]
+      for k := 1; k < len(theta0); k++ {
+        theta1[j] -= inner_xx[j-1][k-1]*theta0[k]
       }
     }
     // check convergence
