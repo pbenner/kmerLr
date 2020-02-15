@@ -52,6 +52,11 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
   for iter := 0; iter < obj.LogisticRegression.MaxIterations; iter++ {
     // coordinate descent step
     for j := 0; j < len(theta0); j++ {
+      theta0[j] = theta1[j]
+      theta1[j] = inner_xy[j]
+      for k := 0; k < len(theta0); k++ {
+        theta1[j] -= inner_xx[j][k]*theta0[k]
+      }
     }
     // check convergence
     if stop, _ := obj.eval_stopping(theta0, theta1); stop {
