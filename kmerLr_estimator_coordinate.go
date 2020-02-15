@@ -30,11 +30,19 @@ import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 
 func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train KmerDataSet, y, w, theta0, theta1 []float64) {
   inner_xy := make(  []float64, len(theta0)-1)
-  //inner_xx := make([][]float64, len(theta0)-1)
-  for _, xi := range data_train.Data {
+  inner_xx := make([][]float64, len(theta0)-1)
+  for j := 0; j < len(theta0)-1; j++ {
+    inner_xx[j] = make([]float64, len(theta0)-1)
+  }
+  for i_, xi := range data_train.Data {
     for it := xi.ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 {
         inner_xy[j-1] += y[j]*it.GetValue()
+      }
+    }
+    for j_ := i_; j_ < len(data_train.Data); j_++ {
+      xj := data_train.Data[j_]
+      for it := xi.ConstJointIterator(xj); it.Ok(); it.Next() {
       }
     }
   }
