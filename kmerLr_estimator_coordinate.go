@@ -28,9 +28,24 @@ import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train KmerDataSet, y, w, theta0, theta1 []float64) {
+  inner_xy := make(  []float64, len(theta0)-1)
+  //inner_xx := make([][]float64, len(theta0)-1)
+  for _, xi := range data_train.Data {
+    for it := xi.ConstIterator(); it.Ok(); it.Next() {
+      if j := it.Index(); j != 0 {
+        inner_xy[j-1] += y[j]*it.GetValue()
+      }
+    }
+  }
+  // initialize variables
+  for iter := 0; iter < obj.LogisticRegression.MaxIterations; iter++ {
+  }
+}
+
 func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDataSet, transform Transform) *KmerLr {
   obj.estimate_step_size(data_train.Data)
-  //theta0  := obj.Theta.GetValues()
+  theta0  := obj.Theta.GetValues()
   theta1  := obj.Theta.GetValues()
   lr      := logisticRegression{theta1, obj.ClassWeights, 0.0, false, TransformFull{}, config.Pool}
   w := make([]float64, len(data_train.Data))
@@ -47,6 +62,7 @@ func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDa
         z[i] = r + (0.0 - p)/w[i]
       }
     }
+    obj.estimate_coordinate_loop(config, data_train, z, w, theta0, theta1)
   }
   obj.Theta = NewDenseBareRealVector(theta1)
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
