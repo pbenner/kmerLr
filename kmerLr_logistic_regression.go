@@ -44,7 +44,7 @@ func (obj logisticRegression) Dim() int {
   return len(obj.Theta)-1
 }
 
-func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, y bool) float64 {
+func (obj logisticRegression) LinearPdf(x SparseConstRealVector) float64 {
   i := x.GetSparseIndices()
   v := x.GetSparseValues ()
   n := x.Dim()-1
@@ -105,6 +105,11 @@ func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, y bool) float
       }
     }
   }
+  return r
+}
+
+func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, y bool) float64 {
+  r := obj.LinearPdf(x)
   if y {
     return -LogAdd(0.0, -r)
   } else {
