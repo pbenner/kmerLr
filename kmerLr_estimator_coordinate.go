@@ -66,7 +66,7 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
         }
       }
       // normalize
-      theta1_j /= norm[j]
+      theta1_j /= (norm[j] + obj.L2Reg)
       theta0[j] = theta1[j]
       theta1[j] = theta1_j
     }
