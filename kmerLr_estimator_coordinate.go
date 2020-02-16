@@ -31,15 +31,23 @@ import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train KmerDataSet, y, w, theta0, theta1 []float64) {
   inner_xy := make(  []float64, len(theta0)-1)
   inner_xx := make([][]float64, len(theta0)-1)
+  norm     := make(  []float64, len(theta0))
   for j := 0; j < len(theta0)-1; j++ {
     inner_xx[j] = make([]float64, len(theta0)-1)
   }
   // initialize variables
-  for _, xi := range data_train.Data {
+  for i_, xi := range data_train.Data {
     for it := xi.ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 {
+        // compute inner product between response y and feature vectors <y, x_j>
         inner_xy[j-1] += y[j]*it.GetValue()
+        // compute normalization constant
+        norm[j] += w[i_]*it.GetValue()*it.GetValue()
+      } else {
+        // compute normalization constant for offset parameter theta_0
+        norm[j] += w[i_]
       }
+      // compute inner product between feature vectors <x_j, x_k>
       for _, xj := range data_train.Data {
         for is := xj.ConstIterator(); is.Ok(); is.Next() {
           if j1, j2 := it.Index(), is.Index(); j1 != 0 && j2 != 0 {
@@ -57,6 +65,14 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
       for k := 1; k < len(theta0); k++ {
         theta1[j] -= inner_xx[j-1][k-1]*theta0[k]
       }
+      // apply proximal operator
+      if theta1[j] >= 0.0 {
+        theta1[j] =  math.Max(math.Abs(theta1[j]) - obj.L1Reg, 0.0)
+      } else {
+        theta1[j] = -math.Max(math.Abs(theta1[j]) - obj.L1Reg, 0.0)
+      }
+      // normalize
+      theta1[j] /= norm[j]
     }
     // check convergence
     if stop, _ := obj.eval_stopping(theta0, theta1); stop {
