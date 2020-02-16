@@ -61,7 +61,7 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
     // coordinate descent step
     for j := 1; j < len(theta0); j++ {
       theta0[j] = theta1[j]
-      theta1[j] = inner_xy[j]
+      theta1[j] = inner_xy[j-1]
       for k := 1; k < len(theta0); k++ {
         theta1[j] -= inner_xx[j-1][k-1]*theta0[k]
       }
