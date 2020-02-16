@@ -92,7 +92,7 @@ func (obj *ScoresLrEstimator) n_params(config Config, data []ConstVector, lambda
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *ScoresLrEstimator) estimate(config Config, data_train []ConstVector, labels []bool) *ScoresLr {
+func (obj *ScoresLrEstimator) estimate(config Config, data_train []ConstVector, labels []bool, transform Transform) *ScoresLr {
   if err := obj.LogisticRegression.SetSparseData(data_train, labels, len(data_train)); err != nil {
     log.Fatal(err)
   }
@@ -106,6 +106,7 @@ func (obj *ScoresLrEstimator) estimate(config Config, data_train []ConstVector, 
     r := &ScoresLr{}
     r.Theta            = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
     r.ScoresLrFeatures = obj.ScoresLrFeatures
+    r.Transform        = transform
     return r
   }
 }
@@ -150,8 +151,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test
     selection.Data(config, obj.reduced_data_test , data_test)
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
-    r = obj.estimate(config, obj.reduced_data_train, labels)
-    r.Transform = selection.Transform()
+    r = obj.estimate(config, obj.reduced_data_train, labels, selection.Transform())
   }
   return r
 }
