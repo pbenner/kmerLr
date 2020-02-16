@@ -48,11 +48,9 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
         norm[j] += w[i_]
       }
       // compute inner product between feature vectors <x_j, x_k>
-      for _, xj := range data_train.Data {
-        for is := xj.ConstIterator(); is.Ok(); is.Next() {
-          if j1, j2 := it.Index(), is.Index(); j1 != 0 && j2 != 0 {
-            inner_xx[j1-1][j2-1] += w[i_]*it.GetValue()*is.GetValue()
-          }
+      for is := xi.ConstIterator(); is.Ok(); is.Next() {
+        if j1, j2 := it.Index(), is.Index(); j1 != 0 && j2 != 0 {
+          inner_xx[j1-1][j2-1] += w[i_]*it.GetValue()*is.GetValue()
         }
       }
     }
