@@ -40,7 +40,7 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
     for it := xi.ConstIterator(); it.Ok(); it.Next() {
       if j := it.Index(); j != 0 {
         // compute inner product between response y and feature vectors <y, x_j>
-        inner_xy[j-1] += w[i_]*y[j]*it.GetValue()
+        inner_xy[j-1] += w[i_]*y[i_]*it.GetValue()
         // compute normalization constant
         norm[j] += w[i_]*it.GetValue()*it.GetValue()
       } else {
@@ -60,7 +60,7 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
   for iter := 0; iter < obj.LogisticRegression.MaxIterations; iter++ {
     // coordinate descent step
     for j := 1; j < len(theta0); j++ {
-      theta1_j := inner_xy[j-1]
+      theta1_j := norm[j]*theta1[j] + inner_xy[j-1]
       for k := 1; k < len(theta0); k++ {
         theta1_j -= inner_xx[j-1][k-1]*theta1[k]
       }
