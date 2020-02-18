@@ -93,14 +93,14 @@ func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDa
       p   := math.Exp(-LogAdd(0.0, -r))
       w[i] = p*(1.0 - p)
       if data_train.Labels[i] {
-        w[i] *= class_weights[1]
-      } else {
-        w[i] *= class_weights[0]
-      }
-      if data_train.Labels[i] {
         z[i] = r + (1.0 - p)/w[i]
       } else {
         z[i] = r + (0.0 - p)/w[i]
+      }
+      if data_train.Labels[i] {
+        w[i] *= class_weights[1]
+      } else {
+        w[i] *= class_weights[0]
       }
     }
     // copy theta
