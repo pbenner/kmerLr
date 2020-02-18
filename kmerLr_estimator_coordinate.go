@@ -28,7 +28,7 @@ import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train KmerDataSet, y, w, theta0, theta1 []float64) {
+func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train KmerDataSet, y, w, theta0, theta1 []float64, iter int) int {
   inner_xy := make(  []float64, len(theta0))
   inner_xx := make([][]float64, len(theta0))
   norm     := make(  []float64, len(theta0))
@@ -50,7 +50,7 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
       }
     }
   }
-  for iter := 0; iter < obj.LogisticRegression.MaxIterations; iter++ {
+  for ; iter < obj.LogisticRegression.MaxIterations; iter++ {
     // coordinate descent step
     for j := 0; j < len(theta0); j++ {
       theta1_j := inner_xy[j] + norm[j]*theta1[j]
@@ -71,10 +71,16 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
       theta1[j] = theta1_j
     }
     // check convergence
-    if stop, _ := obj.eval_stopping(theta0, theta1); stop {
+    if stop, delta := obj.eval_stopping(theta0, theta1); stop {
       break
+    } else {
+      // execute hook if available
+      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseConstRealVector(theta1), ConstReal(delta), ConstReal(obj.L1Reg), iter) {
+        break
+      }
     }
   }
+  return iter
 }
 
 func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDataSet, transform Transform) *KmerLr {
@@ -86,7 +92,7 @@ func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDa
   lr      := logisticRegression{theta1, obj.ClassWeights, 0.0, false, TransformFull{}, config.Pool}
   w := make([]float64, len(data_train.Data))
   z := make([]float64, len(data_train.Data))
-  for epoch := 0; epoch < obj.LogisticRegression.MaxIterations; epoch++ {
+  for iter := 0; iter < obj.LogisticRegression.MaxIterations; iter++ {
     // compute linear approximation
     for i := 0; i < len(data_train.Data); i++ {
       r   := lr.LinearPdf(data_train.Data[i].(SparseConstRealVector))
@@ -107,14 +113,14 @@ func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDa
     for j := 0; j < len(theta0); j++ {
       theta0[j] = theta1[j]
     }
-    obj.estimate_coordinate_loop(config, data_train, z, w, theta0_, theta1)
+    iter = obj.estimate_coordinate_loop(config, data_train, z, w, theta0_, theta1, iter)
 
     // check convergence
     if stop, delta := obj.eval_stopping(theta0, theta1); stop {
       break
     } else {
       // execute hook if available
-      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseConstRealVector(theta1), ConstReal(delta), ConstReal(obj.L1Reg), epoch) {
+      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseConstRealVector(theta1), ConstReal(delta), ConstReal(obj.L1Reg), iter) {
         break
       }
     }
