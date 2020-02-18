@@ -79,6 +79,7 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
 
 func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDataSet, transform Transform) *KmerLr {
   obj.estimate_step_size(data_train.Data)
+  class_weights := compute_class_weights(data_train.Labels)
   theta0  := obj.Theta.GetValues()
   theta0_ := obj.Theta.GetValues()
   theta1  := obj.Theta.GetValues()
@@ -90,7 +91,12 @@ func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDa
     for i := 0; i < len(data_train.Data); i++ {
       r   := lr.LinearPdf(data_train.Data[i].(SparseConstRealVector))
       p   := math.Exp(-LogAdd(0.0, -r))
-      w[i] = p*(1-p)
+      w[i] = p*(1.0 - p)
+      if data_train.Labels[i] {
+        w[i] *= class_weights[1]
+      } else {
+        w[i] *= class_weights[0]
+      }
       if data_train.Labels[i] {
         z[i] = r + (1.0 - p)/w[i]
       } else {
