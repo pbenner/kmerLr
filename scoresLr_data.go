@@ -119,7 +119,7 @@ func convert_scores(config Config, scores []float64, features FeatureIndices) Co
 
 /* -------------------------------------------------------------------------- */
 
-func import_scores(config Config, filename string, features FeatureIndices) []ConstVector {
+func import_scores(config Config, filename string, features FeatureIndices, dim int) ([]ConstVector, int) {
   f, err := os.Open(filename)
   if err != nil {
     log.Fatal(err)
@@ -133,11 +133,14 @@ func import_scores(config Config, filename string, features FeatureIndices) []Co
     // scores are in GRanges format
     PrintStderr(config, 1, "done\n")
     if granges.Length() == 0 {
-      return scores
+      return scores, dim
     }
     data := granges.GetMeta("counts").([][]float64)
     for _, c := range data {
-      if len(c) != len(data[0]) {
+      if dim == -1 {
+        dim = len(c)
+      }
+      if len(c) != dim {
         log.Fatal("Error: data has variable number of features")
       }
       scores = append(scores, convert_scores(config, c, features))
@@ -153,21 +156,24 @@ func import_scores(config Config, filename string, features FeatureIndices) []Co
     } else {
       PrintStderr(config, 1, "done\n")
       for _, c := range data {
-        if len(c) != len(data[0]) {
+        if dim == -1 {
+          dim = len(c)
+        }
+        if len(c) != dim {
           log.Fatal("Error: data has variable number of features")
         }
         scores = append(scores, convert_scores(config, c, features))
       }
     }
   }
-  return scores
+  return scores, dim
 }
 
 /* -------------------------------------------------------------------------- */
 
 func compile_training_data_scores(config Config, features FeatureIndices, filename_fg, filename_bg string) ([]ConstVector, []bool) {
-  scores_fg := import_scores(config, filename_fg, features)
-  scores_bg := import_scores(config, filename_bg, features)
+  scores_fg, dim := import_scores(config, filename_fg, features, -1)
+  scores_bg, _   := import_scores(config, filename_bg, features, dim)
   // define labels (assign foreground regions a label of 1)
   labels := make([]bool, len(scores_fg)+len(scores_bg))
   for i := 0; i < len(scores_fg); i++ {
@@ -177,5 +183,6 @@ func compile_training_data_scores(config Config, features FeatureIndices, filena
 }
 
 func compile_test_data_scores(config Config, features FeatureIndices, filename string) []ConstVector {
-  return import_scores(config, filename, features)
+  scores, _ := import_scores(config, filename, features, -1)
+  return scores
 }
