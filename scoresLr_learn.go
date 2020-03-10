@@ -43,13 +43,18 @@ func learn_scores_parameters(config Config, classifier *ScoresLr, data_train, da
 
   classifiers, predictions := estimator.Estimate(config, data_train, data_test, labels)
 
+  filename_json  := ""
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   // export trace
   if config.SaveTrace {
     SaveTrace(config, filename_trace, trace)
   }
   for i, classifier := range classifiers {
-    filename_json := fmt.Sprintf("%s_%d.json" , basename_out, config.LambdaAuto[i])
+    if icv == -1 {
+      filename_json = fmt.Sprintf("%s_%d.json" , basename_out, config.LambdaAuto[i])
+    } else {
+      filename_json = fmt.Sprintf("%s_%d_%d.json" , basename_out, config.LambdaAuto[i], icv)
+    }
     // export models
     SaveModel(config, filename_json, classifier)
   }
@@ -58,7 +63,6 @@ func learn_scores_parameters(config Config, classifier *ScoresLr, data_train, da
 
 func learn_scores_cv(config Config, classifier *ScoresLr, data []ConstVector, labels []bool, basename_out string) {
   learnAndTestClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) [][]float64 {
-    basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
     _, predictions := learn_scores_parameters(config, classifier, data_train, data_test, labels, i, basename_out)
     return predictions
   }

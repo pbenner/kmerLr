@@ -52,13 +52,18 @@ func learn_parameters(config Config, classifier *KmerLr, data_train, data_test K
 
   classifiers, predictions := estimator.Estimate(config, data_train, data_test)
 
+  filename_json  := ""
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   // export trace
   if config.SaveTrace {
     SaveTrace(config, filename_trace, trace)
   }
   for i, classifier := range classifiers {
-    filename_json := fmt.Sprintf("%s_%d.json" , basename_out, config.LambdaAuto[i])
+    if icv == -1 {
+      filename_json = fmt.Sprintf("%s_%d.json" , basename_out, config.LambdaAuto[i])
+    } else {
+      filename_json = fmt.Sprintf("%s_%d_%d.json" , basename_out, config.LambdaAuto[i], icv)
+    }
     // export models
     SaveModel(config, filename_json, classifier)
   }
@@ -67,7 +72,6 @@ func learn_parameters(config Config, classifier *KmerLr, data_train, data_test K
 
 func learn_cv(config Config, classifier *KmerLr, data KmerDataSet, basename_out string) {
   learnAndTestClassifiers := func(i int, data_train, data_test KmerDataSet) [][]float64 {
-    basename_out := fmt.Sprintf("%s_%d", basename_out, i+1)
     _, predictions := learn_parameters(config, classifier, data_train, data_test, i, basename_out)
     return predictions
   }
