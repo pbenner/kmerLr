@@ -20,7 +20,6 @@ package main
 
 import   "fmt"
 import   "log"
-import   "strings"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -214,8 +213,7 @@ type jointKmerLr struct {
   counters    [][]*KmerCounter
 }
 
-func importJointKmerLr(config Config, filename_json string) jointKmerLr {
-  filenames   := strings.Split(filename_json, ",")
+func importJointKmerLr(config Config, filenames []string) jointKmerLr {
   counters    := make([][]*KmerCounter, len(filenames))
   classifiers := make(  []*KmerLr     , len(filenames))
   for i, filename := range filenames {
