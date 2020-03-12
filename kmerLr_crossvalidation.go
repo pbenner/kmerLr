@@ -72,7 +72,7 @@ func filterCvGroup(data KmerDataSet, groups []int, i int) (KmerDataSet, KmerData
       r_train_labels = append(r_train_labels, data.Labels[j])
     }
   }
-  data_train := KmerDataSet{r_test, r_test_labels, data.Kmers}
+  data_train := KmerDataSet{r_test , r_test_labels , data.Kmers}
   data_test  := KmerDataSet{r_train, r_train_labels, data.Kmers}
   return data_train, data_test
 }
