@@ -24,6 +24,7 @@ import   "io"
 import   "log"
 import   "math"
 import   "os"
+import   "strings"
 
 import . "github.com/pbenner/gonetics"
 import   "github.com/pbenner/threadpool"
@@ -111,7 +112,7 @@ func extractFasta(config Config, filenameFasta string, regions GRanges) []string
 
 /* -------------------------------------------------------------------------- */
 
-func predict_window_genomic(config Config, filename_json, filename_fa, filename_bed, filename_out, track_name string, window_size, window_step int) {
+func predict_window_genomic(config Config, filename_json []string, filename_fa, filename_bed, filename_out, track_name string, window_size, window_step int) {
   classifier  := importJointKmerLr(config, filename_json)
   regions     := importBed3       (config, filename_bed )
   sequences   := extractFasta     (config, filename_fa, regions)
@@ -143,6 +144,7 @@ func main_predict_genomic(config Config, args []string) {
   options := getopt.New()
 
   optTrackName         := options.StringLong("track-name",           0 , "kmerLr", "name of output track")
+  optDelimiter         := options.StringLong("delimiter",            0 ,      ",", "use STR instead of COMMA for model field delimiter")
   optSlidingWindowSize := options.   IntLong("sliding-window-size",  0 ,      100, "size of the sliding window [default: 100]")
   optSlidingWindowStep := options.   IntLong("sliding-window-step",  0 ,        1, "step size for sliding window [default: 1]")
   optHelp              := options.  BoolLong("help",                'h',           "print help")
@@ -162,7 +164,7 @@ func main_predict_genomic(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  filename_json := options.Args()[0]
+  filename_json := strings.Split(options.Args()[0], *optDelimiter)
   filename_fa   := options.Args()[1]
   filename_bed  := options.Args()[2]
   filename_out  := ""
