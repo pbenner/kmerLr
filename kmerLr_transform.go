@@ -188,6 +188,15 @@ func NewTransform(n int) Transform {
   return t
 }
 
+func (obj Transform) Clone() Transform {
+  t := Transform{}
+  t.Mu    = make([]float64, len(obj.Mu))
+  t.Sigma = make([]float64, len(obj.Sigma))
+  copy(t.Mu   , obj.Mu)
+  copy(t.Sigma, obj.Sigma)
+  return t
+}
+
 func (obj Transform) Nil() bool {
   return len(obj.Mu) == 0
 }

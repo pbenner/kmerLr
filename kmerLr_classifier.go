@@ -49,6 +49,7 @@ func (obj *KmerLr) Clone() *KmerLr {
     r.Theta[i] = obj.Theta[i]
   }
   r.KmerLrFeatures = obj.KmerLrFeatures.Clone()
+  r.Transform      = obj.Transform     .Clone()
   return &r
 }
 
