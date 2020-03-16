@@ -87,7 +87,7 @@ func savePredictions(filename string, predictions []float64) {
 /* -------------------------------------------------------------------------- */
 
 func predict_window(config Config, filename_json, filename_in, filename_out string, window_size, window_step int) {
-  classifier  := ImportKmerLr(config, filename_json)
+  classifier  := ImportKmerLrEnsemble(config, filename_json)
   sequences   := import_fasta(config, filename_in)
   predictions := make([][]float64, len(sequences))
   counters    := make([]*KmerCounter, config.Pool.NumberOfThreads())
@@ -122,7 +122,7 @@ func predict_window(config Config, filename_json, filename_in, filename_out stri
 /* -------------------------------------------------------------------------- */
 
 func predict_(config Config, filename_json, filename_in string) []float64 {
-  classifier  := ImportKmerLr(config, filename_json)
+  classifier  := ImportKmerLrEnsemble(config, filename_json)
   counter     := classifier.GetKmerCounter()
   data        := compile_test_data(config, counter, classifier.Kmers, classifier.Features, classifier.Binarize, filename_in)
   classifier.Transform.Apply(config, data.Data)

@@ -30,7 +30,7 @@ import   "github.com/pborman/getopt"
 func combine(config Config, summary, filename_out string, filename_ins ...string) {
   classifiers := make([]*KmerLr, len(filename_ins))
   for i, filename_in := range filename_ins {
-    classifiers[i] = ImportKmerLr(config, filename_in)
+    classifiers[i] = ImportKmerLrEnsemble(config, filename_in).GetComponent(0)
     if !classifiers[i].KmerLrFeatures.KmerEquivalence.Equals(classifiers[0].KmerLrFeatures.KmerEquivalence) {
       log.Fatalf("alphabet not consistent across classifiers")
     }

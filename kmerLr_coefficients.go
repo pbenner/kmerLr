@@ -103,8 +103,7 @@ func coefficients_format(kmers KmerClassList, features FeatureIndices, coefficie
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients(config Config, filename, filename_fg, filename_bg string, related, rescale bool) {
-  classifier   := ImportKmerLr(config, filename)
+func coefficients_(config Config, classifier *KmerLr, i_ int, filename_fg, filename_bg string, related, rescale bool) {
   coefficients := NewAbsFloatInt(len(classifier.Theta)-1)
   coeffmap     := make(map[KmerClassId]float64)
   kmers        := classifier.Kmers
@@ -148,6 +147,7 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
   }
   format := coefficients_format(kmers, features, coefficients)
 
+  fmt.Printf("Classifier %d:\n", i_)
   for i := 0; i < coefficients.Len(); i++ {
     v := coefficients.a[i]
     k := coefficients.b[i]
@@ -169,6 +169,14 @@ func coefficients(config Config, filename, filename_fg, filename_bg string, rela
       coefficients_print_related(kmers[k], graph, coeffmap)
     }
     fmt.Println()
+  }
+}
+
+func coefficients(config Config, filename, filename_fg, filename_bg string, related, rescale bool) {
+  classifier := ImportKmerLrEnsemble(config, filename)
+
+  for i := 0; i < classifier.EnsembleSize(); i++ {
+    coefficients_(config, classifier.GetComponent(i), i, filename_fg, filename_bg, related, rescale)
   }
 }
 

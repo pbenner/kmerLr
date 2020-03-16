@@ -27,8 +27,8 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func loss_(config Config, filename_json, filename_fg, filename_bg string) float64 {
-  classifier := ImportKmerLr(config, filename_json)
+func loss_(config Config, filename_json, filename_fg, filename_bg string) []float64 {
+  classifier := ImportKmerLrEnsemble(config, filename_json)
   counter    := classifier.GetKmerCounter()
   data       := compile_training_data(config, counter, classifier.Kmers, classifier.Features, classifier.Binarize, filename_fg, filename_bg)
   classifier.Transform.Apply(config, data.Data)

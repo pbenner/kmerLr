@@ -79,7 +79,7 @@ func compute_similarity(config Config, theta []float64, x1, x2 ConstVector) floa
 /* -------------------------------------------------------------------------- */
 
 func similarity(config Config, filenameModel, filenameFasta, filenameOut string, negate bool) {
-  classifier := ImportKmerLr(config, filenameModel)
+  classifier := ImportKmerLrEnsemble(config, filenameModel).GetComponent(0)
   counter    := classifier.GetKmerCounter()
 
   // remove negative entries

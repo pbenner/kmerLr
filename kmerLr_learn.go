@@ -33,7 +33,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_parameters(config Config, classifier *KmerLr, data_train, data_test KmerDataSet, icv int, basename_out string) ([]*KmerLrEnsemble, [][]float64) {
+func learn_parameters(config Config, classifier *KmerLrEnsemble, data_train, data_test KmerDataSet, icv int, basename_out string) ([]*KmerLrEnsemble, [][]float64) {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
@@ -61,7 +61,7 @@ func learn_parameters(config Config, classifier *KmerLr, data_train, data_test K
   return classifiers, predictions
 }
 
-func learn_cv(config Config, classifier *KmerLr, data KmerDataSet, basename_out string) {
+func learn_cv(config Config, classifier *KmerLrEnsemble, data KmerDataSet, basename_out string) {
   learnAndTestClassifiers := func(i int, data_train, data_test KmerDataSet) [][]float64 {
     _, predictions := learn_parameters(config, classifier, data_train, data_test, i, basename_out)
     return predictions
@@ -73,9 +73,9 @@ func learn_cv(config Config, classifier *KmerLr, data KmerDataSet, basename_out 
   }
 }
 
-func learn(config Config, classifier *KmerLr, filename_json, filename_fg, filename_bg, basename_out string) {
+func learn(config Config, classifier *KmerLrEnsemble, filename_json, filename_fg, filename_bg, basename_out string) {
   if filename_json != "" {
-    classifier = ImportKmerLr(config, filename_json)
+    classifier = ImportKmerLrEnsemble(config, filename_json)
   }
   // do not use classifier.GetKmerCounter() since we do not want to fix the set of kmers!
   kmersCounter, err := NewKmerCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
@@ -110,7 +110,8 @@ func main_learn(config Config, args []string) {
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model k-mer co-occurrences")
   optCopreselection  := options.    IntLong("co-preselection",  0 ,            0, "pre-select a subset of k-mers for co-occurrence modeling")
   optComplement      := options.   BoolLong("complement",       0 ,               "consider complement sequences")
-  optEnsemble        := options.    IntLong("ensemble",         0 ,            1, "estimate ensemble classifier")
+  optEnsembleSize    := options.    IntLong("ensemble-size",    0 ,            1, "estimate ensemble classifier")
+  optEnsembleSummary := options. StringLong("ensemble-summary", 0 ,       "mean", "summary for classifier predictions [mean (default), product]")
   optReverse         := options.   BoolLong("reverse",          0 ,               "consider reverse sequences")
   optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
   optMaxAmbiguous    := options. StringLong("max-ambiguous",    0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
@@ -137,7 +138,7 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  classifier   := &KmerLr{}
+  classifier   := &KmerLrEnsemble{}
   filename_in  := ""
   filename_fg  := ""
   filename_bg  := ""
@@ -173,6 +174,7 @@ func main_learn(config Config, args []string) {
   classifier.Binarize     = *optBinarize
   classifier.Cooccurrence = *optCooccurrence
   classifier.Complement   = *optComplement
+  classifier.Summary      = *optEnsembleSummary
   classifier.Reverse      = *optReverse
   classifier.Revcomp      = *optRevcomp
   if alphabet, err := alphabet_from_string(*optAlphabet); err != nil {
@@ -193,6 +195,14 @@ func main_learn(config Config, args []string) {
     }
   } else {
     options.PrintUsage(os.Stderr)
+    os.Exit(1)
+  }
+  switch *optEnsembleSummary {
+  case "mean":
+  case "product":
+  case "":
+  default:
+    options.PrintUsage(os.Stdout)
     os.Exit(1)
   }
   // parse options
@@ -238,7 +248,7 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
   }
-  if *optEnsemble < 1 {
+  if *optEnsembleSize < 1 {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
   }
@@ -250,7 +260,7 @@ func main_learn(config Config, args []string) {
   }
   config.Balance         = *optBalance
   config.Copreselection  = *optCopreselection
-  config.Ensemble        = *optEnsemble
+  config.EnsembleSize    = *optEnsembleSize
   config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss
   config.MaxEpochs       = *optMaxEpochs

@@ -35,8 +35,8 @@ func PrintStderr(config Config, level int, format string, args ...interface{}) {
 
 /* -------------------------------------------------------------------------- */
 
-func ImportKmerLr(config Config, filename string) *KmerLr {
-  classifier := new(KmerLr)
+func ImportKmerLrEnsemble(config Config, filename string) *KmerLrEnsemble {
+  classifier := new(KmerLrEnsemble)
   // export model
   PrintStderr(config, 1, "Importing distribution from `%s'... ", filename)
   if err := ImportDistribution(filename, classifier, BareRealType); err != nil {

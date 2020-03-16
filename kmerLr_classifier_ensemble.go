@@ -38,8 +38,8 @@ type KmerLrEnsemble struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEnsemble(theta [][]float64, alphabet KmerLrFeatures) *KmerLrEnsemble {
-  return &KmerLrEnsemble{Theta: theta, KmerLrFeatures: alphabet, Summary: "mean"}
+func NewKmerLrEnsemble(features KmerLrFeatures, summary string) *KmerLrEnsemble {
+  return &KmerLrEnsemble{Theta: nil, KmerLrFeatures: features, Summary: summary}
 }
 
 /* -------------------------------------------------------------------------- */
@@ -74,8 +74,33 @@ func (obj *KmerLrEnsemble) Summarize(config Config, x []float64) float64 {
     for j := 0; j < len(x); j++ {
       r *= x[j]
     }
+  case "":
+    switch len(x) {
+    case 1: r = x[0]
+    case 0: r = 0.0
+    default:
+      log.Fatal("no summary given for ensemble classifier")
+    }
   default:
     panic("internal error")
+  }
+  return r
+}
+
+func (obj *KmerLrEnsemble) Loss(config Config, data []ConstVector, c []bool) []float64 {
+  lr := logisticRegression{}
+  lr.Lambda = config.Lambda
+  lr.Pool   = config.Pool
+  if config.Balance {
+    lr.ClassWeights = compute_class_weights(c)
+  } else {
+    lr.ClassWeights[0] = 1.0
+    lr.ClassWeights[1] = 1.0
+  }
+  r := make([]float64, len(obj.Theta))
+  for i, _ := range obj.Theta {
+    lr.Theta = obj.Theta[i]
+    r[i] = lr.Loss(data, c)
   }
   return r
 }
@@ -109,9 +134,17 @@ func (obj *KmerLrEnsemble) GetKmerCounter() *KmerCounter {
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrEnsemble) EnsembleSize() int {
+  return len(obj.Theta)
+}
+
 func (obj *KmerLrEnsemble) GetComponent(i int) *KmerLr {
   r := KmerLr{}
-  r.Theta          = obj.Theta[i]
+  if i >= len(obj.Theta) {
+    r.Theta        = nil
+  } else {
+    r.Theta        = obj.Theta[i]
+  }
   r.KmerLrFeatures = obj.KmerLrFeatures
   r.Transform      = obj.Transform
   return &r
@@ -246,11 +279,11 @@ func (obj *KmerLrEnsemble) SelectData(config Config, data_ KmerDataSet) []ConstV
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrEnsemble) ImportConfig(config ConfigDistribution, t ScalarType) error {
-  re := regexp.MustCompile(`kmerLrEnsemble \[([a-zA-Z]+)\]`)
-  if !re.MatchString(config.Name) {
+  re := regexp.MustCompile(`kmerLr \[([a-zA-Z]+)\]`)
+  if config.Name != "kmerLr" && !re.MatchString(config.Name) {
     return fmt.Errorf("wrong classifier type")
   }
-  if len(config.Distributions) >= 2 {
+  if len(config.Distributions) < 2 {
     return fmt.Errorf("invalid config file")
   }
   lr := vectorDistribution.LogisticRegression{}
@@ -273,14 +306,15 @@ func (obj *KmerLrEnsemble) ImportConfig(config ConfigDistribution, t ScalarType)
       return fmt.Errorf("invalid config file")
     }
   }
-  obj.Summary = re.FindStringSubmatch(config.Name)[1]
+  if config.Name == "kmerLr" {
+    obj.Summary = ""
+  } else {
+    obj.Summary = re.FindStringSubmatch(config.Name)[1]
+  }
   return nil
 }
 
 func (obj *KmerLrEnsemble) ExportConfig() ConfigDistribution {
-  if len(obj.Theta) == 1 {
-    return obj.GetComponent(0).ExportConfig()
-  }
   distributions := []ConfigDistribution{}
   for j := 0; j < len(obj.Theta); j++ {    
     if lr, err := vectorDistribution.NewLogisticRegression(NewDenseBareRealVector(obj.Theta[j])); err != nil {
@@ -291,7 +325,11 @@ func (obj *KmerLrEnsemble) ExportConfig() ConfigDistribution {
   }
   distributions = append(distributions, obj.Transform.ExportConfig())
   config := obj.KmerLrFeatures.ExportConfig()
-  config.Name          = fmt.Sprintf("kmerLrEnsemble [%s]", obj.Summary)
+  if obj.Summary == "" {
+    config.Name = fmt.Sprintf("kmerLr")
+  } else {
+    config.Name = fmt.Sprintf("kmerLr [%s]", obj.Summary)
+  }
   config.Distributions = distributions
   return config
 }

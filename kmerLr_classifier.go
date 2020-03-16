@@ -18,12 +18,10 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-import   "fmt"
+//import   "fmt"
 import   "log"
 
 import . "github.com/pbenner/autodiff"
-import . "github.com/pbenner/autodiff/statistics"
-import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
@@ -168,57 +166,16 @@ func (obj *KmerLr) Min(classifiers []*KmerLr) error {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLr) ImportConfig(config ConfigDistribution, t ScalarType) error {
-  if config.Name != "kmerLr" {
-    return fmt.Errorf("wrong classifier type")
-  }
-  if len(config.Distributions) != 2 {
-    return fmt.Errorf("invalid config file")
-  }
-  lr := vectorDistribution.LogisticRegression{}
-  if err := lr.ImportConfig(config.Distributions[0], t); err != nil {
-    return err
-  } else {
-    obj.Theta = lr.Theta.GetValues()
-  }
-  if err := obj.Transform.ImportConfig(config.Distributions[1], t); err != nil {
-    return err
-  }
-  if err := obj.KmerLrFeatures.ImportConfig(config, t); err != nil {
-    return err
-  } else {
-    if len(obj.Theta) != len(obj.Features)+1 {
-      return fmt.Errorf("invalid config file")
-    }
-  }
-  return nil
-}
-
-func (obj *KmerLr) ExportConfig() ConfigDistribution {
-  if lr, err := vectorDistribution.NewLogisticRegression(NewDenseBareRealVector(obj.Theta)); err != nil {
-    panic("internal error")
-  } else {
-    config := obj.KmerLrFeatures.ExportConfig()
-    config.Name          = "kmerLr"
-    config.Distributions = []ConfigDistribution{
-      lr           .ExportConfig(),
-      obj.Transform.ExportConfig() }
-    return config
-  }
-}
-
-/* -------------------------------------------------------------------------- */
-
 type jointKmerLr struct {
-  classifiers   []*KmerLr
+  classifiers   []*KmerLrEnsemble
   counters    [][]*KmerCounter
 }
 
 func importJointKmerLr(config Config, filenames []string) jointKmerLr {
-  counters    := make([][]*KmerCounter, len(filenames))
-  classifiers := make(  []*KmerLr     , len(filenames))
+  counters    := make([][]*KmerCounter   , len(filenames))
+  classifiers := make(  []*KmerLrEnsemble, len(filenames))
   for i, filename := range filenames {
-    classifiers[i] = ImportKmerLr(config, filename)
+    classifiers[i] = ImportKmerLrEnsemble(config, filename)
     counters   [i] = make([]*KmerCounter, config.Pool.NumberOfThreads())
     for j := 0; j < config.Pool.NumberOfThreads(); j++ {
       counters[i][j] = classifiers[i].GetKmerCounter()

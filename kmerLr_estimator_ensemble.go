@@ -26,13 +26,13 @@ import . "github.com/pbenner/autodiff/statistics"
 
 type KmerLrEstimatorEnsemble struct {
   *KmerLrEstimator
-  Size int
+  Summary string
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEnsembleEstimator(config Config, classifier *KmerLr, trace *Trace, icv int) KmerLrEstimatorEnsemble {
-  return KmerLrEstimatorEnsemble{NewKmerLrEstimator(config, classifier, trace, icv), config.Ensemble}
+func NewKmerLrEnsembleEstimator(config Config, classifier *KmerLrEnsemble, trace *Trace, icv int) KmerLrEstimatorEnsemble {
+  return KmerLrEstimatorEnsemble{NewKmerLrEstimator(config, classifier.GetComponent(0), trace, icv), classifier.Summary}
 }
 
 /* -------------------------------------------------------------------------- */
@@ -48,12 +48,12 @@ func (obj KmerLrEstimatorEnsemble) CloneVectorEstimator() VectorEstimator {
 /* -------------------------------------------------------------------------- */
 
 func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train KmerDataSet) []*KmerLrEnsemble {
-  groups := getCvGroups(len(data_train.Data), obj.Size, config.Seed)
+  groups := getCvGroups(len(data_train.Data), config.EnsembleSize, config.Seed)
   result := make([]*KmerLrEnsemble, len(config.LambdaAuto))
   for i := 0; i < len(result); i++ {
-    result[i] = NewKmerLrEnsemble(nil, obj.KmerLrEstimator.KmerLrFeatures)
+    result[i] = NewKmerLrEnsemble(obj.KmerLrEstimator.KmerLrFeatures, obj.Summary)
   }
-  for k := 0; k < obj.Size; k++ {
+  for k := 0; k < config.EnsembleSize; k++ {
     _, data_train_k := filterCvGroup(data_train, groups, k)
     classifiers, _  := obj.KmerLrEstimator.Estimate(config, data_train_k, KmerDataSet{})
     for i, classifier := range classifiers {
