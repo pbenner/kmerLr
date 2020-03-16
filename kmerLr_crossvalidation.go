@@ -49,12 +49,18 @@ func shuffleInts(vals []int, seed int64) {
 
 func getCvGroups(n, fold int, seed int64) []int {
   groups := make([]int, n)
-  for i := 0; i < n; i += fold {
-    for j := 0; j < fold && i+j < n; j++ {
-      groups[i+j] = j
+  if fold <= 1 {
+    for i := 0; i < n; i++ {
+      groups[i] = -1
     }
+  } else {
+    for i := 0; i < n; i += fold {
+      for j := 0; j < fold && i+j < n; j++ {
+        groups[i+j] = j
+      }
+    }
+    shuffleInts(groups, seed)
   }
-  shuffleInts(groups, seed)
   return groups
 }
 

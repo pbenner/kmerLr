@@ -232,6 +232,14 @@ func (t1 Transform) Insert(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
           fmt.Errorf("joining transforms failed: transforms are incompatible")
         }
       }
+      if t1.Sigma[i+1] == 0.0 {
+        t1.Sigma[i+1] = t2.Sigma[j+1]
+      } else
+      if t2.Sigma[j+1] != 0.0 {
+        if math.Abs(t1.Sigma[i+1] - t2.Sigma[j+1]) > 1e-12 {
+          fmt.Errorf("joining transforms failed: transforms are incompatible")
+        }
+      }
     }
   }
   return nil
@@ -257,6 +265,14 @@ func (t1 Transform) InsertScores(t2 Transform, f1, f2 FeatureIndices) error {
       } else
       if t2.Mu[j+1] != 0.0 {
         if math.Abs(t1.Mu[i+1] - t2.Mu[j+1]) > 1e-12 {
+          fmt.Errorf("joining transforms failed: transforms are incompatible")
+        }
+      }
+      if t1.Sigma[i+1] == 0.0 {
+        t1.Sigma[i+1] = t2.Sigma[j+1]
+      } else
+      if t2.Sigma[j+1] != 0.0 {
+        if math.Abs(t1.Sigma[i+1] - t2.Sigma[j+1]) > 1e-12 {
           fmt.Errorf("joining transforms failed: transforms are incompatible")
         }
       }

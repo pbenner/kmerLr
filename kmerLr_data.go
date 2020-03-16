@@ -28,6 +28,14 @@ import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
 
+type KmerDataSet struct {
+  Data   []ConstVector
+  Labels []bool
+  Kmers    KmerClassList
+}
+
+/* -------------------------------------------------------------------------- */
+
 func import_fasta(config Config, filename string) []string {
   s := OrderedStringSet{}
   if filename == "" {

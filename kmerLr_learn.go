@@ -33,22 +33,13 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-type KmerDataSet struct {
-  Data   []ConstVector
-  Labels []bool
-  Kmers    KmerClassList
-}
-
-/* -------------------------------------------------------------------------- */
-
-func learn_parameters(config Config, classifier *KmerLr, data_train, data_test KmerDataSet, icv int, basename_out string) ([]*KmerLr, [][]float64) {
+func learn_parameters(config Config, classifier *KmerLr, data_train, data_test KmerDataSet, icv int, basename_out string) ([]*KmerLrEnsemble, [][]float64) {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
     trace = &Trace{}
   }
-
-  estimator := NewKmerLrEstimator(config, classifier, trace, icv)
+  estimator := NewKmerLrEnsembleEstimator(config, classifier, trace, icv)
 
   classifiers, predictions := estimator.Estimate(config, data_train, data_test)
 
@@ -119,6 +110,7 @@ func main_learn(config Config, args []string) {
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model k-mer co-occurrences")
   optCopreselection  := options.    IntLong("co-preselection",  0 ,            0, "pre-select a subset of k-mers for co-occurrence modeling")
   optComplement      := options.   BoolLong("complement",       0 ,               "consider complement sequences")
+  optEnsemble        := options.    IntLong("ensemble",         0 ,            1, "estimate ensemble classifier")
   optReverse         := options.   BoolLong("reverse",          0 ,               "consider reverse sequences")
   optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
   optMaxAmbiguous    := options. StringLong("max-ambiguous",    0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
@@ -246,6 +238,10 @@ func main_learn(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
   }
+  if *optEnsemble < 1 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(1)
+  }
   if *optThreadsCV > 1 {
     config.PoolCV = threadpool.New(*optThreadsCV, 100)
   }
@@ -254,6 +250,7 @@ func main_learn(config Config, args []string) {
   }
   config.Balance         = *optBalance
   config.Copreselection  = *optCopreselection
+  config.Ensemble        = *optEnsemble
   config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss
   config.MaxEpochs       = *optMaxEpochs

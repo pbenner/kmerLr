@@ -34,6 +34,7 @@ type Config struct {
   Copreselection  int
   Lambda          float64
   LambdaAuto    []int
+  Ensemble        int
   Epsilon         float64
   EpsilonLambda   float64
   EpsilonLoss     float64

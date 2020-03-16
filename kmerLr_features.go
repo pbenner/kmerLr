@@ -21,6 +21,7 @@ package main
 import   "fmt"
 import   "bufio"
 import   "bytes"
+import   "sort"
 import   "strings"
 
 import . "github.com/pbenner/autodiff"
@@ -49,6 +50,38 @@ func newFeatureIndices(n int, cooccurrence bool) FeatureIndices {
     }
     return features
   }
+}
+
+func (obj FeatureIndices) Less(i, j int) bool {
+  if obj[i][0] == obj[i][1] {
+    if obj[j][0] == obj[j][1] {
+      return obj[i][0] < obj[j][0]
+    } else {
+      return true
+    }
+  } else {
+    if obj[j][0] == obj[j][1] {
+      return false
+    } else {
+      if obj[i][0] < obj[j][0] {
+        return true
+      } else {
+        return obj[i][1] < obj[j][1]
+      }
+    }
+  }
+}
+
+func (obj FeatureIndices) Swap(i, j int) {
+  obj[i], obj[j] = obj[j], obj[i]
+}
+
+func (obj FeatureIndices) Len() int {
+  return len(obj)
+}
+
+func (obj FeatureIndices) Sort() {
+  sort.Sort(obj)
 }
 
 func (obj FeatureIndices) Equals(b FeatureIndices) bool {

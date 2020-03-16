@@ -44,7 +44,7 @@ func NewKmerLrEstimator(config Config, classifier *KmerLr, trace *Trace, icv int
     log.Fatal(err)
     return nil
   } else {
-    r := KmerLrEstimator{}
+    r := &KmerLrEstimator{}
     r.KmerLrFeatures                    = classifier.KmerLrFeatures
     r.EpsilonLoss                       = config.EpsilonLoss
     r.LogisticRegression                = *estimator
@@ -52,14 +52,14 @@ func NewKmerLrEstimator(config Config, classifier *KmerLr, trace *Trace, icv int
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
-    r.LogisticRegression.Hook           = NewHook(config, trace, icv, &r)
+    r.LogisticRegression.Hook           = NewHook(config, trace, icv, r)
     if config.MaxIterations != 0 {
       r.LogisticRegression.MaxIterations = config.MaxIterations
     }
     if len(classifier.Theta) > 0 {
       r.SetParameters(NewDenseBareRealVector(classifier.Theta))
     }
-    return &r
+    return r
   }
 }
 
@@ -174,5 +174,7 @@ func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test KmerDa
     classifiers[i] = obj.estimate_loop(config, data_train, data_test, lambda, obj.Cooccurrence)
     predictions[i] = classifiers[i].Predict(config, obj.reduced_data_test.Data)
   }
+  obj.reduced_data_train = KmerDataSet{}
+  obj.reduced_data_test  = KmerDataSet{}
   return classifiers, predictions
 }
