@@ -164,7 +164,7 @@ func TestKmers5(test *testing.T) {
 
   main_learn(config, []string{"learn", "--lambda-auto=2", "--revcomp", "8", "8", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test"})
 
-  classifier := ImportKmerLr(config, "kmerLr_test_2.json")
+  classifier := ImportKmerLrEnsemble(config, "kmerLr_test_2.json").GetComponent(0)
 
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
@@ -187,7 +187,7 @@ func TestKmers5(test *testing.T) {
   if f := classifier.Features[1]; f[0] != 1 || f[1] != 1 {
     test.Error("test failed")
   }
-  if v := loss_(config, "kmerLr_test_2.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa"); math.Abs(v - 15.243974) > 1e-4 {
+  if v := loss_(config, "kmerLr_test_2.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")[0]; math.Abs(v - 15.243974) > 1e-4 {
     test.Error("test failed")
   }
   os.Remove("kmerLr_test_2.json")
@@ -201,7 +201,7 @@ func TestKmers6(test *testing.T) {
 
   main_learn(config, []string{"learn", "--lambda-auto=2", "--binarize", "--revcomp", "--co-occurrence", "8", "8", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa", "kmerLr_test_co"})
 
-  classifier := ImportKmerLr(config, "kmerLr_test_co_2.json")
+  classifier := ImportKmerLrEnsemble(config, "kmerLr_test_co_2.json").GetComponent(0)
 
   theta := []float64{
     -0.0067583002814767340,
@@ -226,7 +226,7 @@ func TestKmers6(test *testing.T) {
       test.Error("test failed")
     }
   }
-  if v := loss_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa"); math.Abs(v - 13.862886) > 1e-4 {
+  if v := loss_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa")[0]; math.Abs(v - 13.862886) > 1e-4 {
     test.Error("test failed")
   }
   w := []float64{
