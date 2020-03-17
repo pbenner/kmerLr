@@ -231,7 +231,7 @@ func (obj *KmerLrEnsemble) AddKmerLr(classifier *KmerLr) error {
   if  obj.Cooccurrence != classifier.Cooccurrence {
     return fmt.Errorf("data binarization is not consistent across classifiers")
   }
-  if !obj.Transform.Equals(classifier.Transform, obj.Features, classifier.Features, obj.Kmers, classifier.Kmers) {
+  if !obj.Transform.Nil() && !obj.Transform.Equals(classifier.Transform, obj.Features, classifier.Features, obj.Kmers, classifier.Kmers) {
     return fmt.Errorf("data transform is not consistent across classifiers")
   }
   n  := len(obj.Theta)
