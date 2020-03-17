@@ -51,7 +51,7 @@ func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train K
   groups := getCvGroups(len(data_train.Data), config.EnsembleSize, config.Seed)
   result := make([]*KmerLrEnsemble, len(config.LambdaAuto))
   for i := 0; i < len(result); i++ {
-    result[i] = NewKmerLrEnsemble(obj.KmerLrEstimator.KmerLrFeatures, obj.Summary)
+    result[i] = NewKmerLrEnsemble(obj.Summary)
   }
   for k := 0; k < config.EnsembleSize; k++ {
     _, data_train_k := filterCvGroup(data_train, groups, k)

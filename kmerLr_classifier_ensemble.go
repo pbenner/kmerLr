@@ -39,8 +39,8 @@ type KmerLrEnsemble struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEnsemble(features KmerLrFeatures, summary string) *KmerLrEnsemble {
-  return &KmerLrEnsemble{Theta: nil, KmerLrFeatures: features, Summary: summary}
+func NewKmerLrEnsemble(summary string) *KmerLrEnsemble {
+  return &KmerLrEnsemble{Summary: summary}
 }
 
 /* -------------------------------------------------------------------------- */
