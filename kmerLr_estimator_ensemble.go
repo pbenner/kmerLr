@@ -47,7 +47,7 @@ func (obj KmerLrEstimatorEnsemble) CloneVectorEstimator() VectorEstimator {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train KmerDataSet) []*KmerLrEnsemble {
+func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train KmerDataSet, transform TransformFull) []*KmerLrEnsemble {
   groups := getCvGroups(len(data_train.Data), config.EnsembleSize, config.Seed)
   result := make([]*KmerLrEnsemble, len(config.LambdaAuto))
   for i := 0; i < len(result); i++ {
@@ -55,7 +55,7 @@ func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train K
   }
   for k := 0; k < config.EnsembleSize; k++ {
     _, data_train_k := filterCvGroup(data_train, groups, k)
-    classifiers, _  := obj.KmerLrEstimator.Estimate(config, data_train_k, KmerDataSet{})
+    classifiers     := obj.KmerLrEstimator.Estimate(config, data_train_k, transform)
     for i, classifier := range classifiers {
       if err := result[i].AddKmerLr(classifier); err != nil {
         panic("internal error")
@@ -67,14 +67,22 @@ func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train K
 
 func (obj KmerLrEstimatorEnsemble) Estimate(config Config, data_train, data_test KmerDataSet) ([]*KmerLrEnsemble, [][]float64) {
   if obj.Cooccurrence && config.Copreselection != 0 {
+    transform := TransformFull{}
+    // estimate transform on full data set so that all estimated
+    // classifiers share the same transform
+    if !config.NoNormalization {
+      transform.Fit(config, append(data_train.Data, data_test.Data...), false)
+    }
     // reduce data_train and data_test to pre-selected features
-    obj.estimate_loop(config, data_train, data_test, config.Copreselection, false)
-    data_train.Data  = obj.reduced_data_train.Data
-    data_test .Data  = obj.reduced_data_test .Data
+    obj.estimate_loop(config, data_train, transform, config.Copreselection, false)
+    data_train.Data  = obj.reduced_data.Data
     data_train.Kmers = obj.Kmers
-    data_test .Kmers = obj.Kmers
   }
-  classifiers := obj.estimate_ensemble(config, data_train)
+  transform := TransformFull{}
+  if !config.NoNormalization {
+    transform.Fit(config, append(data_train.Data, data_test.Data...), obj.Cooccurrence)
+  }
+  classifiers := obj.estimate_ensemble(config, data_train, transform)
   predictions := make([][]float64, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
     PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambda)

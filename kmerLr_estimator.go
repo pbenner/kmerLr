@@ -32,9 +32,7 @@ type KmerLrEstimator struct {
   vectorEstimator.LogisticRegression
   KmerLrFeatures
   EpsilonLoss  float64
-  // reduced data sets
-  reduced_data_train KmerDataSet
-  reduced_data_test  KmerDataSet
+  reduced_data KmerDataSet
 }
 
 /* -------------------------------------------------------------------------- */
@@ -89,8 +87,8 @@ func (obj *KmerLrEstimator) n_params(config Config, data []ConstVector, lambdaAu
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) estimate(config Config, data_train KmerDataSet, transform Transform) *KmerLr {
-  if err := obj.LogisticRegression.SetSparseData(data_train.Data, data_train.Labels, len(data_train.Data)); err != nil {
+func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform Transform) *KmerLr {
+  if err := obj.LogisticRegression.SetSparseData(data.Data, data.Labels, len(data.Data)); err != nil {
     log.Fatal(err)
   }
   if err := obj.LogisticRegression.Estimate(nil, config.PoolSaga); err != nil {
@@ -108,28 +106,20 @@ func (obj *KmerLrEstimator) estimate(config Config, data_train KmerDataSet, tran
   }
 }
 
-func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test KmerDataSet, lambdaAuto int, cooccurrence bool) *KmerLr {
-  if len(data_train.Data) == 0 {
+func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, transform TransformFull, lambdaAuto int, cooccurrence bool) *KmerLr {
+  if len(data.Data) == 0 {
     return nil
   }
-  if len(data_train.Kmers) != data_train.Data[0].Dim()-1 {
+  if len(data.Kmers) != data.Data[0].Dim()-1 {
     panic("internal error")
   }
-  transform := TransformFull{}
-  // estimate transform on full data set so that all estimated
-  // classifiers share the same transform
-  if !config.NoNormalization {
-    transform.Fit(config, append(data_train.Data, data_test.Data...), cooccurrence)
-  }
-  m, n := obj.n_params(config, data_train.Data, lambdaAuto, cooccurrence)
+  m, n := obj.n_params(config, data.Data, lambdaAuto, cooccurrence)
   // compute class weights
-  obj.LogisticRegression.SetLabels(data_train.Labels)
+  obj.LogisticRegression.SetLabels(data.Labels)
   // create a copy of data arrays, from which to select subsets
-  obj.reduced_data_train.Data   = make([]ConstVector, len(data_train.Data))
-  obj.reduced_data_test .Data   = make([]ConstVector, len(data_test .Data))
-  obj.reduced_data_train.Labels = data_train.Labels
-  obj.reduced_data_test .Labels = data_test .Labels
-  s := newFeatureSelector(config, data_train.Kmers, cooccurrence, data_train.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
+  obj.reduced_data.Data   = make([]ConstVector, len(data.Data))
+  obj.reduced_data.Labels = data.Labels
+  s := newFeatureSelector(config, data.Kmers, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
     // select features on the initial data set
@@ -139,7 +129,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test K
       d := r.Nonzero()
       PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features... ", d, n-d)
     }
-    selection, lambda, ok := s.Select(data_train.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, obj.L1Reg)
+    selection, lambda, ok := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, obj.L1Reg)
     PrintStderr(config, 1, "done\n")
     if !ok && r != nil {
       break
@@ -148,33 +138,21 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data_train, data_test K
     obj.Features = selection.Features()
     obj.Kmers    = selection.Kmers()
     obj.Theta    = selection.Theta()
-    // create actual training and validation data sets
-    selection.Data(config, obj.reduced_data_train.Data, data_train.Data)
-    selection.Data(config, obj.reduced_data_test .Data, data_test .Data)
+    // create actual training data set
+    selection.Data(config, obj.reduced_data.Data, data.Data)
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
-    r = obj.estimate(config, obj.reduced_data_train, selection.Transform())
+    r = obj.estimate(config, obj.reduced_data, selection.Transform())
   }
   return r
 }
 
-func (obj *KmerLrEstimator) Estimate(config Config, data_train, data_test KmerDataSet) ([]*KmerLr, [][]float64) {
-  if obj.Cooccurrence && config.Copreselection != 0 {
-    // reduce data_train and data_test to pre-selected features
-    obj.estimate_loop(config, data_train, data_test, config.Copreselection, false)
-    data_train.Data  = obj.reduced_data_train.Data
-    data_test .Data  = obj.reduced_data_test .Data
-    data_train.Kmers = obj.Kmers
-    data_test .Kmers = obj.Kmers
-  }
-  classifiers := make(  []*KmerLr, len(config.LambdaAuto))
-  predictions := make([][]float64, len(config.LambdaAuto))
+func (obj *KmerLrEstimator) Estimate(config Config, data KmerDataSet, transform TransformFull) []*KmerLr {
+  classifiers := make([]*KmerLr, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
     PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambda)
-    classifiers[i] = obj.estimate_loop(config, data_train, data_test, lambda, obj.Cooccurrence)
-    predictions[i] = classifiers[i].Predict(config, obj.reduced_data_test.Data)
+    classifiers[i] = obj.estimate_loop(config, data, transform, lambda, obj.Cooccurrence)
   }
-  obj.reduced_data_train = KmerDataSet{}
-  obj.reduced_data_test  = KmerDataSet{}
-  return classifiers, predictions
+  obj.reduced_data = KmerDataSet{}
+  return classifiers
 }

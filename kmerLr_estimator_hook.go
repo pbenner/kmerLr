@@ -38,7 +38,7 @@ func NewHook(config Config, trace *Trace, icv int, estimator *KmerLrEstimator) H
     lr.Theta        = x.GetValues()
     lr.Lambda       = lambda.GetValue()
     lr.ClassWeights = estimator.ClassWeights
-    return lr.Loss(estimator.reduced_data_train.Data, estimator.reduced_data_train.Labels)
+    return lr.Loss(estimator.reduced_data.Data, estimator.reduced_data.Labels)
   }
   t := time.Now()
   s := time.Now()
