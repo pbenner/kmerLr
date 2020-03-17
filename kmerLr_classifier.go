@@ -93,23 +93,6 @@ func (obj *KmerLr) Nonzero() int {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLr) GetCoefficients() *KmerLrCoefficientsSet {
-  r := NewKmerLrCoefficientsSet()
-  r.Offset = obj.Theta[0]
-  for i, feature := range obj.Features {
-    k1 := feature[0]
-    k2 := feature[1]
-    if k1 == k2 {
-      r.Set(obj.Kmers[k1], obj.Theta[i+1])
-    } else {
-      r.SetPair(obj.Kmers[k1], obj.Kmers[k2], obj.Theta[i+1])
-    }
-  }
-  return r
-}
-
-/* -------------------------------------------------------------------------- */
-
 func (obj *KmerLr) GetKmerCounter() *KmerCounter {
   if counter, err := NewKmerCounter(obj.M, obj.N, obj.Complement, obj.Reverse, obj.Revcomp, obj.MaxAmbiguous, obj.Alphabet, obj.Kmers...); err != nil {
     log.Fatal(err)
@@ -117,51 +100,6 @@ func (obj *KmerLr) GetKmerCounter() *KmerCounter {
   } else {
     return counter
   }
-}
-
-/* -------------------------------------------------------------------------- */
-
-func (obj *KmerLr) JoinTransforms(classifiers []*KmerLr) error {
-  if len(classifiers) == 0 || classifiers[0].Transform.Nil() {
-    return nil
-  }
-  obj.Transform = NewTransform(len(obj.Features)+1)
-  for _, classifier := range classifiers {
-    if err := obj.Transform.Insert(classifier.Transform, obj.Features, classifier.Features, obj.Kmers, classifier.Kmers); err != nil {
-      return err
-    }
-  }
-  return nil
-}
-
-/* -------------------------------------------------------------------------- */
-
-func (obj *KmerLr) Mean(classifiers []*KmerLr) error {
-  c := classifiers[0].GetCoefficients()
-  for i := 1; i < len(classifiers); i++ {
-    c.AddCoefficients(classifiers[i].GetCoefficients())
-  }
-  c.DivAll(float64(len(classifiers)))
-  *obj = *c.AsKmerLr(obj.KmerLrFeatures)
-  return obj.JoinTransforms(classifiers)
-}
-
-func (obj *KmerLr) Max(classifiers []*KmerLr) error {
-  c := classifiers[0].GetCoefficients()
-  for i := 1; i < len(classifiers); i++ {
-    c.MaxCoefficients(classifiers[i].GetCoefficients())
-  }
-  *obj = *c.AsKmerLr(obj.KmerLrFeatures)
-  return obj.JoinTransforms(classifiers)
-}
-
-func (obj *KmerLr) Min(classifiers []*KmerLr) error {
-  c := classifiers[0].GetCoefficients()
-  for i := 1; i < len(classifiers); i++ {
-    c.MinCoefficients(classifiers[i].GetCoefficients())
-  }
-  *obj = *c.AsKmerLr(obj.KmerLrFeatures)
-  return obj.JoinTransforms(classifiers)
 }
 
 /* -------------------------------------------------------------------------- */
