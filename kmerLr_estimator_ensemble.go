@@ -57,7 +57,9 @@ func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train K
     _, data_train_k := filterCvGroup(data_train, groups, k)
     classifiers, _  := obj.KmerLrEstimator.Estimate(config, data_train_k, KmerDataSet{})
     for i, classifier := range classifiers {
-      result[i].AddKmerLr(classifier)
+      if err := result[i].AddKmerLr(classifier); err != nil {
+        panic("internal error")
+      }
     }
   }
   return result
