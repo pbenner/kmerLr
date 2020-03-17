@@ -75,7 +75,7 @@ func main_loss(config Config, args []string) {
   optLambda  := options.StringLong("lambda",  0 , "0.0", "regularization strength (L1)")
   optHelp    := options.  BoolLong("help",   'h',        "print help")
 
-  options.SetParameters("<MODEL.json> <FOREGROUND.fa> <BACKGROUND.fa>  [RESULT.table]")
+  options.SetParameters("<MODEL.json> <FOREGROUND.fa> <BACKGROUND.fa> [RESULT.table]")
   options.Parse(args)
 
   // parse options
