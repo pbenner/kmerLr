@@ -20,6 +20,7 @@ package main
 
 import   "fmt"
 import   "log"
+import   "math"
 import   "regexp"
 
 import . "github.com/pbenner/autodiff"
@@ -152,25 +153,118 @@ func (obj *KmerLrEnsemble) GetComponent(i int) *KmerLr {
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrEnsemble) Mean() *KmerLrEnsemble {
+  if len(obj.Theta) <= 1 {
+    return obj
+  }
+  t := &KmerLr{}
+  t.KmerLrFeatures = obj.KmerLrFeatures
+  t.Transform      = obj.Transform
+  t.Theta = make([]float64, len(obj.Theta[0]))
+  for j := 0; j < len(obj.Theta[0]); j++ {
+    for i := 0; i < len(obj.Theta); i++ {
+      t.Theta[j] += obj.Theta[i][j]
+    }
+    t.Theta[j] /= float64(len(obj.Theta))
+  }
+  r := &KmerLrEnsemble{}
+  r.AddKmerLr(t)
+  return r
+}
+
+func (obj *KmerLrEnsemble) Min() *KmerLrEnsemble {
+  if len(obj.Theta) <= 1 {
+    return obj
+  }
+  t := &KmerLr{}
+  t.KmerLrFeatures = obj.KmerLrFeatures
+  t.Transform      = obj.Transform
+  t.Theta = make([]float64, len(obj.Theta[0]))
+  for j := 0; j < len(obj.Theta[0]); j++ {
+    t.Theta[j] += obj.Theta[0][j]
+    for i := 1; i < len(obj.Theta); i++ {
+      if math.Abs(t.Theta[j]) > math.Abs(obj.Theta[i][j]) {
+        t.Theta[j] = obj.Theta[i][j]
+      }
+    }
+  }
+  r := &KmerLrEnsemble{}
+  r.AddKmerLr(t)
+  return r
+}
+
+func (obj *KmerLrEnsemble) Max() *KmerLrEnsemble {
+  if len(obj.Theta) <= 1 {
+    return obj
+  }
+  t := &KmerLr{}
+  t.KmerLrFeatures = obj.KmerLrFeatures
+  t.Transform      = obj.Transform
+  t.Theta = make([]float64, len(obj.Theta[0]))
+  for j := 0; j < len(obj.Theta[0]); j++ {
+    t.Theta[j] += obj.Theta[0][j]
+    for i := 1; i < len(obj.Theta); i++ {
+      if math.Abs(t.Theta[j]) < math.Abs(obj.Theta[i][j]) {
+        t.Theta[j] = obj.Theta[i][j]
+      }
+    }
+  }
+  r := &KmerLrEnsemble{}
+  r.AddKmerLr(t)
+  return r
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *KmerLrEnsemble) AddKmerLr(classifier *KmerLr) error {
+  if len(obj.Theta) == 0 {
+    obj.KmerLrFeatures.KmerEquivalence = classifier.KmerLrFeatures.KmerEquivalence
+    obj.Binarize                       = classifier.Binarize
+    obj.Cooccurrence                   = classifier.Cooccurrence
+  }
+  if !obj.KmerLrFeatures.KmerEquivalence.Equals(classifier.KmerLrFeatures.KmerEquivalence) {
+    return fmt.Errorf("alphabet not consistent across classifiers")
+  }
+  if  obj.Binarize != classifier.Binarize {
+    return fmt.Errorf("data binarization is not consistent across classifiers")
+  }
+  if  obj.Cooccurrence != classifier.Cooccurrence {
+    return fmt.Errorf("data binarization is not consistent across classifiers")
+  }
+  if !obj.Transform.Equals(classifier.Transform, obj.Features, classifier.Features, obj.Kmers, classifier.Kmers) {
+    return fmt.Errorf("data transform is not consistent across classifiers")
+  }
   n  := len(obj.Theta)
   m1 := make(map[[2]KmerClassId]int)
   m2 := make(map[[2]KmerClassId]int)
   ki := make(map[   KmerClassId]int)
+  z  := make(map[   KmerClassId][]string)
   // map kmer pairs to feature indices (ensemble classifier)
   for i, feature := range obj.KmerLrFeatures.Features {
-    kmer1 := obj.KmerLrFeatures.Kmers[feature[0]].KmerClassId
-    kmer2 := obj.KmerLrFeatures.Kmers[feature[1]].KmerClassId
-    m1[[2]KmerClassId{kmer1, kmer2}] = i
+    kmer1 := obj.KmerLrFeatures.Kmers[feature[0]]
+    kmer2 := obj.KmerLrFeatures.Kmers[feature[1]]
+    m1[[2]KmerClassId{kmer1.KmerClassId, kmer2.KmerClassId}] = i
+    z[kmer1.KmerClassId] = kmer1.Elements
+    z[kmer2.KmerClassId] = kmer2.Elements
   }
   // map kmer pairs to feature indices (new KmerLr classifier)
   for i, feature := range classifier.KmerLrFeatures.Features {
-    kmer1 := classifier.KmerLrFeatures.Kmers[feature[0]].KmerClassId
-    kmer2 := classifier.KmerLrFeatures.Kmers[feature[1]].KmerClassId
-    m2[[2]KmerClassId{kmer1, kmer2}] = i
+    // filter out zero coefficients
+    if classifier.Theta[i+1] != 0.0 {
+      kmer1 := classifier.KmerLrFeatures.Kmers[feature[0]]
+      kmer2 := classifier.KmerLrFeatures.Kmers[feature[1]]
+      m2[[2]KmerClassId{kmer1.KmerClassId, kmer2.KmerClassId}] = i
+      z[kmer1.KmerClassId] = kmer1.Elements
+      z[kmer2.KmerClassId] = kmer2.Elements
+    }
   }
   // create union of kmers
-  kmers := obj.KmerLrFeatures.Kmers.Union(classifier.KmerLrFeatures.Kmers)
+  kmers := KmerClassList{}
+  for id, elem := range z {
+    kmers = append(kmers, KmerClass{id, elem})
+  }
+  kmers.Sort()
+  // creat index
   for i, kmer := range kmers {
     ki[kmer.KmerClassId] = i
   }
@@ -229,6 +323,21 @@ func (obj *KmerLrEnsemble) AddKmerLr(classifier *KmerLr) error {
   obj.KmerLrFeatures.Kmers    = kmers
   obj.Theta                   = coefficients
   obj.Transform               = transform
+  return nil
+}
+
+func (obj *KmerLrEnsemble) AddKmerLrEnsemble(classifier *KmerLrEnsemble) error {
+  if obj.Summary != "" && obj.Summary != classifier.Summary {
+    return fmt.Errorf("ensemble summary is not consistent across classifiers")
+  }
+  if obj.Summary == "" {
+    obj.Summary = classifier.Summary
+  }
+  for i := 0; i < classifier.EnsembleSize(); i++ {
+    if err := obj.AddKmerLr(classifier.GetComponent(i)); err != nil {
+      return err
+    }
+  }
   return nil
 }
 

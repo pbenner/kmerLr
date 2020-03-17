@@ -28,30 +28,23 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 func combine(config Config, summary, filename_out string, filename_ins ...string) {
-  classifiers := make([]*KmerLr, len(filename_ins))
+  classifiers := make([]*KmerLrEnsemble, len(filename_ins))
   for i, filename_in := range filename_ins {
-    classifiers[i] = ImportKmerLrEnsemble(config, filename_in).GetComponent(0)
-    if !classifiers[i].KmerLrFeatures.KmerEquivalence.Equals(classifiers[0].KmerLrFeatures.KmerEquivalence) {
-      log.Fatalf("alphabet not consistent across classifiers")
-    }
-    if  classifiers[i].Binarize != classifiers[0].Binarize {
-      log.Fatalf("data binarization is not consistent across classifiers")
-    }
-    if  classifiers[i].Cooccurrence != classifiers[0].Cooccurrence {
-      log.Fatalf("data binarization is not consistent across classifiers")
-    }
-    if !classifiers[0].Transform.Equals(classifiers[i].Transform, classifiers[0].Features, classifiers[i].Features, classifiers[0].Kmers, classifiers[i].Kmers) {
-      log.Fatalf("data transform is not consistent across classifiers")
+    classifiers[i] = ImportKmerLrEnsemble(config, filename_in)
+  }
+  r := &KmerLrEnsemble{}
+  for _, classifier := range classifiers {
+    if err := r.AddKmerLrEnsemble(classifier); err != nil {
+      log.Fatal(err)
     }
   }
-  r := classifiers[0].Clone()
   switch strings.ToLower(summary) {
   case "mean":
-    r.Mean(classifiers)
+    r = r.Mean()
   case "max":
-    r.Max(classifiers)
+    r = r.Max()
   case "min":
-    r.Min(classifiers)
+    r = r.Min()
   default:
     log.Fatalf("invalid summary statistic: %s", summary)
   }
