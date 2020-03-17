@@ -19,11 +19,37 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
+import   "bufio"
+import   "io"
 import   "log"
 import   "os"
 import   "strconv"
 
 import   "github.com/pborman/getopt"
+
+/* -------------------------------------------------------------------------- */
+
+func saveLoss(filename string, loss []float64) {
+  var writer io.Writer
+  if filename == "" {
+    writer = os.Stdout
+  } else {
+    f, err := os.Create(filename)
+    if err != nil {
+      panic(err)
+    }
+    defer f.Close()
+
+    w := bufio.NewWriter(f)
+    defer w.Flush()
+
+    writer = w
+  }
+  fmt.Fprintf(writer, "%15s\n", "loss")
+  for i := 0; i < len(loss); i++ {
+    fmt.Fprintf(writer, "%15e\n", loss[i])
+  }
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -36,8 +62,8 @@ func loss_(config Config, filename_json, filename_fg, filename_bg string) []floa
   return classifier.Loss(config, data.Data, data.Labels)
 }
 
-func loss(config Config, filename_json, filename_fg, filename_bg string) {
-  fmt.Println(loss_(config, filename_json, filename_fg, filename_bg))
+func loss(config Config, filename_json, filename_fg, filename_bg, filename_out string) {
+  saveLoss(filename_out, loss_(config, filename_json, filename_fg, filename_bg))
 }
 
 /* -------------------------------------------------------------------------- */
@@ -49,7 +75,7 @@ func main_loss(config Config, args []string) {
   optLambda  := options.StringLong("lambda",  0 , "0.0", "regularization strength (L1)")
   optHelp    := options.  BoolLong("help",   'h',        "print help")
 
-  options.SetParameters("<MODEL.json> <FOREGROUND.fa> <BACKGROUND.fa>")
+  options.SetParameters("<MODEL.json> <FOREGROUND.fa> <BACKGROUND.fa>  [RESULT.table]")
   options.Parse(args)
 
   // parse options
@@ -60,7 +86,7 @@ func main_loss(config Config, args []string) {
   }
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
-  if len(options.Args()) != 3 {
+  if len(options.Args()) != 3 && len(options.Args()) != 4 {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
@@ -74,6 +100,10 @@ func main_loss(config Config, args []string) {
   filename_json := options.Args()[0]
   filename_fg   := options.Args()[1]
   filename_bg   := options.Args()[2]
+  filename_out  := ""
+  if len(options.Args()) == 4 {
+    filename_out = options.Args()[3]
+  }
 
-  loss(config, filename_json, filename_fg, filename_bg)
+  loss(config, filename_json, filename_fg, filename_bg, filename_out)
 }
