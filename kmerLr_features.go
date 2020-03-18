@@ -52,6 +52,14 @@ func newFeatureIndices(n int, cooccurrence bool) FeatureIndices {
   }
 }
 
+func (obj FeatureIndices) Clone() FeatureIndices {
+  r := make(FeatureIndices, len(obj))
+  for i, feature := range obj {
+    r[i] = [2]int{feature[0], feature[1]}
+  }
+  return r
+}
+
 func (obj FeatureIndices) Less(i, j int) bool {
   if obj[i][0] == obj[i][1] {
     if obj[j][0] == obj[j][1] {
@@ -114,26 +122,40 @@ func (obj FeatureIndices) String(kmers KmerClassList) string {
 
 /* -------------------------------------------------------------------------- */
 
-type KmerLrFeatures struct {
+type KmerLrEquivalence struct {
   KmerEquivalence
-  Kmers        KmerClassList
   Cooccurrence bool
   Binarize     bool
-  Features     FeatureIndices
+}
+
+func (obj *KmerLrEquivalence) Equals(a KmerLrEquivalence) error {
+  if !obj.KmerEquivalence.Equals(a.KmerEquivalence) {
+    return fmt.Errorf("alphabet not consistent across classifiers")
+  }
+  if  obj.Binarize != a.Binarize {
+    return fmt.Errorf("data binarization is not consistent across classifiers")
+  }
+  if  obj.Cooccurrence != a.Cooccurrence {
+    return fmt.Errorf("data binarization is not consistent across classifiers")
+  }
+  return nil
+}
+
+/* -------------------------------------------------------------------------- */
+
+type KmerLrFeatures struct {
+  KmerLrEquivalence
+  Kmers    KmerClassList
+  Features FeatureIndices
 }
 
 /* -------------------------------------------------------------------------- */
 
 func (obj KmerLrFeatures) Clone() KmerLrFeatures {
   r := KmerLrFeatures{}
-  r.Binarize        = obj.Binarize
-  r.Cooccurrence    = obj.Cooccurrence
-  r.KmerEquivalence = obj.KmerEquivalence
-  r.Kmers           = obj.Kmers.Clone()
-  r.Features        = make(FeatureIndices, len(obj.Features))
-  for i, feature := range obj.Features {
-    r.Features[i] = [2]int{feature[0], feature[1]}
-  }
+  r.KmerLrEquivalence = obj.KmerLrEquivalence
+  r.Kmers             = obj.Kmers   .Clone()
+  r.Features          = obj.Features.Clone()
   return r
 }
 

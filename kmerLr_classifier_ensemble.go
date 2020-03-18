@@ -218,18 +218,10 @@ func (obj *KmerLrEnsemble) Max() *KmerLrEnsemble {
 
 func (obj *KmerLrEnsemble) AddKmerLr(classifier *KmerLr) error {
   if len(obj.Theta) == 0 {
-    obj.KmerLrFeatures.KmerEquivalence = classifier.KmerLrFeatures.KmerEquivalence
-    obj.Binarize                       = classifier.Binarize
-    obj.Cooccurrence                   = classifier.Cooccurrence
+    obj.KmerLrEquivalence = classifier.KmerLrEquivalence
   }
-  if !obj.KmerLrFeatures.KmerEquivalence.Equals(classifier.KmerLrFeatures.KmerEquivalence) {
+  if err := obj.KmerLrEquivalence.Equals(classifier.KmerLrEquivalence); err != nil {
     return fmt.Errorf("alphabet not consistent across classifiers")
-  }
-  if  obj.Binarize != classifier.Binarize {
-    return fmt.Errorf("data binarization is not consistent across classifiers")
-  }
-  if  obj.Cooccurrence != classifier.Cooccurrence {
-    return fmt.Errorf("data binarization is not consistent across classifiers")
   }
   if !obj.Transform.Nil() && !obj.Transform.Equals(classifier.Transform, obj.Features, classifier.Features, obj.Kmers, classifier.Kmers) {
     return fmt.Errorf("data transform is not consistent across classifiers")
