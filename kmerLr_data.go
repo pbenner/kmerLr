@@ -158,6 +158,8 @@ func scan_sequences(config Config, kmersCounter *KmerCounter, binarize bool, seq
   }
   PrintStderr(config, 1, "Counting kmers... ")
   if err := config.Pool.RangeJob(0, len(sequences), func(i int, pool threadpool.ThreadPool, erf func() error) error {
+    config := config; config.Pool = pool
+
     r[i] = scan_sequence(config, counters[pool.GetThreadId()], binarize, []byte(sequences[i]))
     return nil
   }); err != nil {

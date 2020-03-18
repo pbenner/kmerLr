@@ -50,6 +50,8 @@ func scoresCrossvalidation(config Config, data []ConstVector, labels []bool,
   r_labels      := make(  [][]bool,    config.KFoldCV)
 
   config.PoolCV.RangeJob(0, config.KFoldCV, func(i int, pool threadpool.ThreadPool, erf func() error) error {
+    config := config; config.PoolCV = pool
+
     data_test, labels_test, data_train, labels_train := scoresFilterCvGroup(data, labels, groups, i)
 
     r_predictions[i] = learnAndTestClassifiers(i, data_train, data_test, labels_train)

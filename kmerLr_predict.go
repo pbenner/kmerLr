@@ -106,6 +106,7 @@ func predict_window(config Config, filename_json, filename_in, filename_out stri
     for j := 0; j < len(sequence)-window_size; j += window_step {
       j := j
       config.Pool.AddJob(job_group, func(pool threadpool.ThreadPool, erf func() error) error {
+        config := config; config.Pool = pool
         counts := scan_sequence(config, counters[pool.GetThreadId()], classifier.Binarize, []byte(sequence[j:j+window_size]))
         counts.SetKmers(classifier.Kmers)
         data   := convert_counts(config, counts, classifier.Features)
