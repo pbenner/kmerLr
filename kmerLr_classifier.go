@@ -101,34 +101,3 @@ func (obj *KmerLr) GetKmerCounter() *KmerCounter {
     return counter
   }
 }
-
-/* -------------------------------------------------------------------------- */
-
-type jointKmerLr struct {
-  classifiers   []*KmerLrEnsemble
-  counters    [][]*KmerCounter
-}
-
-func importJointKmerLr(config Config, filenames []string) jointKmerLr {
-  counters    := make([][]*KmerCounter   , len(filenames))
-  classifiers := make(  []*KmerLrEnsemble, len(filenames))
-  for i, filename := range filenames {
-    classifiers[i] = ImportKmerLrEnsemble(config, filename)
-    counters   [i] = make([]*KmerCounter, config.Pool.NumberOfThreads())
-    for j := 0; j < config.Pool.NumberOfThreads(); j++ {
-      counters[i][j] = classifiers[i].GetKmerCounter()
-    }
-  }
-  return jointKmerLr{classifiers, counters}
-}
-
-func (obj jointKmerLr) Predict(config Config, subseq []byte, j int) float64 {
-  r := 0.0
-  for i, _ := range obj.classifiers {
-    counts := scan_sequence(config, obj.counters[i][j], obj.classifiers[i].Binarize, subseq)
-    counts.SetKmers(obj.classifiers[i].Kmers)
-    data   := convert_counts(config, counts, obj.classifiers[i].Features)
-    r      += obj.classifiers[i].Predict(config, []ConstVector{data})[0]
-  }
-  return r
-}
