@@ -87,7 +87,7 @@ func (obj *KmerLrEstimator) n_params(config Config, data []ConstVector, lambdaAu
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform Transform) *KmerLr {
+func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform Transform, cooccurrence bool) *KmerLr {
   if err := obj.LogisticRegression.SetSparseData(data.Data, data.Labels, len(data.Data)); err != nil {
     log.Fatal(err)
   }
@@ -101,14 +101,15 @@ func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform 
     r := &KmerLr{}
     r.Theta          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
     r.KmerLrFeatures = obj.KmerLrFeatures
+    r.Cooccurrence   = cooccurrence
     r.Transform      = transform
     return r
   }
 }
 
-func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, transform TransformFull, lambdaAuto int, cooccurrence bool) *KmerLr {
+func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, transform TransformFull, lambdaAuto int, cooccurrence bool) (*KmerLr, []ConstVector) {
   if len(data.Data) == 0 {
-    return nil
+    return nil, nil
   }
   if len(data.Kmers) != data.Data[0].Dim()-1 {
     panic("internal error")
@@ -142,17 +143,18 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
     selection.Data(config, obj.reduced_data.Data, data.Data)
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
-    r = obj.estimate(config, obj.reduced_data, selection.Transform())
+    r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
   }
-  return r
+  r_data := obj.reduced_data.Data
+  obj.reduced_data = KmerDataSet{}
+  return r, r_data
 }
 
 func (obj *KmerLrEstimator) Estimate(config Config, data KmerDataSet, transform TransformFull) []*KmerLr {
   classifiers := make([]*KmerLr, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
     PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambda)
-    classifiers[i] = obj.estimate_loop(config, data, transform, lambda, obj.Cooccurrence)
+    classifiers[i], _ = obj.estimate_loop(config, data, transform, lambda, obj.Cooccurrence)
   }
-  obj.reduced_data = KmerDataSet{}
   return classifiers
 }

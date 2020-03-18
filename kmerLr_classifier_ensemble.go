@@ -91,7 +91,7 @@ func (obj *KmerLrEnsemble) Summarize(config Config, x []float64) float64 {
 func (obj *KmerLrEnsemble) Loss(config Config, data []ConstVector, c []bool) []float64 {
   lr := logisticRegression{}
   lr.Lambda = config.Lambda
-  lr.Pool   = config.Pool
+  //lr.Pool   = config.Pool
   if config.Balance {
     lr.ClassWeights = compute_class_weights(c)
   } else {
@@ -109,7 +109,7 @@ func (obj *KmerLrEnsemble) Loss(config Config, data []ConstVector, c []bool) []f
 func (obj *KmerLrEnsemble) Predict(config Config, data []ConstVector) []float64 {
   lr := logisticRegression{}
   lr.Lambda = config.Lambda
-  lr.Pool   = config.Pool
+  //lr.Pool   = config.Pool
   r := make([]float64, len(data))
   t := make([]float64, len(obj.Theta))
   for i, _ := range data {
@@ -221,7 +221,7 @@ func (obj *KmerLrEnsemble) AddKmerLr(classifier *KmerLr) error {
     obj.KmerLrEquivalence = classifier.KmerLrEquivalence
   }
   if err := obj.KmerLrEquivalence.Equals(classifier.KmerLrEquivalence); err != nil {
-    return fmt.Errorf("alphabet not consistent across classifiers")
+    return err
   }
   if !obj.Transform.Nil() && !obj.Transform.Equals(classifier.Transform, obj.Features, classifier.Features, obj.Kmers, classifier.Kmers) {
     return fmt.Errorf("data transform is not consistent across classifiers")

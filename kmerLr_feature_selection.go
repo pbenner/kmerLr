@@ -163,7 +163,7 @@ func (obj featureSelector) gradient(data []ConstVector, theta []float64) []float
   lr.Theta        = theta
   lr.ClassWeights = obj.ClassWeights
   lr.Cooccurrence = obj.Cooccurrence
-  lr.Pool         = obj.Pool
+  //lr.Pool         = obj.Pool
   lr.Transform    = obj.Transform
   return lr.Gradient(nil, data, obj.Labels)
 }

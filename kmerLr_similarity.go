@@ -109,6 +109,8 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
     data.Data[i].ValueAt(1)
   }
   config.Pool.RangeJob(0, len(data.Data), func(i int, pool threadpool.ThreadPool, erf func() error) error {
+    config := config; config.Pool = pool
+
     for j := i; j < len(data.Data); j++ {
       result[i][j] = compute_similarity(config, classifier.Theta, data.Data[i], data.Data[j])
       result[j][i] = result[i][j]

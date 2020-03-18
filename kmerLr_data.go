@@ -125,6 +125,8 @@ func convert_counts_list(config Config, countsList *KmerCountsList, features Fea
   r := make([]ConstVector, countsList.Len())
   PrintStderr(config, 1, "Converting kmer counts... ")
   if err := config.Pool.RangeJob(0, countsList.Len(), func(i int, pool threadpool.ThreadPool, erf func() error) error {
+    config := config; config.Pool = pool
+
     r[i] = convert_counts(config, countsList.At(i), features)
     // free memory
     countsList.Counts[i] = nil

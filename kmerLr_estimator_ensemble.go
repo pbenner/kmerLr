@@ -21,18 +21,23 @@ package main
 //import   "fmt"
 
 import . "github.com/pbenner/autodiff/statistics"
+import   "github.com/pbenner/threadpool"
 
 /* -------------------------------------------------------------------------- */
 
 type KmerLrEstimatorEnsemble struct {
-  *KmerLrEstimator
-  Summary string
+  Estimators []*KmerLrEstimator
+  Summary       string
 }
 
 /* -------------------------------------------------------------------------- */
 
 func NewKmerLrEnsembleEstimator(config Config, classifier *KmerLrEnsemble, trace *Trace, icv int) KmerLrEstimatorEnsemble {
-  return KmerLrEstimatorEnsemble{NewKmerLrEstimator(config, classifier.GetComponent(0), trace, icv), classifier.Summary}
+  estimators := make([]*KmerLrEstimator, config.Pool.NumberOfThreads())
+  for i, _ := range estimators {
+    estimators[i] = NewKmerLrEstimator(config, classifier.GetComponent(0).Clone(), trace, icv)
+  }
+  return KmerLrEstimatorEnsemble{estimators, classifier.Summary}
 }
 
 /* -------------------------------------------------------------------------- */
@@ -53,10 +58,16 @@ func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train K
   for i := 0; i < len(result); i++ {
     result[i] = NewKmerLrEnsemble(obj.Summary)
   }
-  for k := 0; k < config.EnsembleSize; k++ {
+  classifiers := make([][]*KmerLr, config.EnsembleSize)
+  config.Pool.RangeJob(0, config.EnsembleSize, func(k int, pool threadpool.ThreadPool, erf func() error) error {
+    config := config; config.Pool = pool
+
     _, data_train_k := filterCvGroup(data_train, groups, k)
-    classifiers     := obj.KmerLrEstimator.Estimate(config, data_train_k, transform)
-    for i, classifier := range classifiers {
+    classifiers[k] = obj.Estimators[pool.GetThreadId()].Estimate(config, data_train_k, transform)
+    return nil
+  })
+  for k := 0; k < len(classifiers); k++ {
+    for i, classifier := range classifiers[k] {
       if err := result[i].AddKmerLr(classifier); err != nil {
         panic("internal error")
       }
@@ -66,7 +77,7 @@ func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train K
 }
 
 func (obj KmerLrEstimatorEnsemble) Estimate(config Config, data_train, data_test KmerDataSet) ([]*KmerLrEnsemble, [][]float64) {
-  if obj.Cooccurrence && config.Copreselection != 0 {
+  if obj.Estimators[0].Cooccurrence && config.Copreselection != 0 {
     transform := TransformFull{}
     // estimate transform on full data set so that all estimated
     // classifiers share the same transform
@@ -74,13 +85,13 @@ func (obj KmerLrEstimatorEnsemble) Estimate(config Config, data_train, data_test
       transform.Fit(config, append(data_train.Data, data_test.Data...), false)
     }
     // reduce data_train and data_test to pre-selected features
-    obj.estimate_loop(config, data_train, transform, config.Copreselection, false)
-    data_train.Data  = obj.reduced_data.Data
-    data_train.Kmers = obj.Kmers
+    r, r_data := obj.Estimators[0].estimate_loop(config, data_train, transform, config.Copreselection, false)
+    data_train.Data  = r_data
+    data_train.Kmers = r.Kmers
   }
   transform := TransformFull{}
   if !config.NoNormalization {
-    transform.Fit(config, append(data_train.Data, data_test.Data...), obj.Cooccurrence)
+    transform.Fit(config, append(data_train.Data, data_test.Data...), obj.Estimators[0].Cooccurrence)
   }
   classifiers := obj.estimate_ensemble(config, data_train, transform)
   predictions := make([][]float64, len(config.LambdaAuto))
