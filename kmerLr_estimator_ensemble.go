@@ -33,7 +33,7 @@ type KmerLrEstimatorEnsemble struct {
 /* -------------------------------------------------------------------------- */
 
 func NewKmerLrEnsembleEstimator(config Config, classifier *KmerLrEnsemble, trace *Trace, icv int) KmerLrEstimatorEnsemble {
-  estimators := make([]*KmerLrEstimator, config.Pool.NumberOfThreads())
+  estimators := make([]*KmerLrEstimator, config.EnsembleSize)
   for i, _ := range estimators {
     estimators[i] = NewKmerLrEstimator(config, classifier.GetComponent(0).Clone(), trace, icv)
   }
@@ -63,7 +63,7 @@ func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train K
     config := config; config.Pool = pool
 
     _, data_train_k := filterCvGroup(data_train, groups, k)
-    classifiers[k] = obj.Estimators[pool.GetThreadId()].Estimate(config, data_train_k, transform)
+    classifiers[k] = obj.Estimators[k].Estimate(config, data_train_k, transform)
     return nil
   })
   for k := 0; k < len(classifiers); k++ {
