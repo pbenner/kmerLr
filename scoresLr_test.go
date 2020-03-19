@@ -33,7 +33,7 @@ func TestScores1(test *testing.T) {
 
   main_learn_scores(config, []string{"learn", "--lambda-auto=2", "scoresLr_test_fg.table", "scoresLr_test_bg.table", "scoresLr_test"})
 
-  classifier := ImportScoresLr(config, "scoresLr_test_2.json")
+  classifier := ImportScoresLrEnsemble(config, "scoresLr_test_2.json").GetComponent(0)
 
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
@@ -56,7 +56,7 @@ func TestScores1(test *testing.T) {
   if f := classifier.Features[1]; f[0] != 6 || f[1] != 6 {
     test.Error("test failed")
   }
-  if v := loss_scores_(config, "scoresLr_test_2.json", "scoresLr_test_fg.table", "scoresLr_test_bg.table"); math.Abs(v - 10.460285) > 1e-4 {
+  if v := loss_scores_(config, "scoresLr_test_2.json", "scoresLr_test_fg.table", "scoresLr_test_bg.table")[0]; math.Abs(v - 10.460285) > 1e-4 {
     test.Error("test failed")
   }
   os.Remove("scoresLr_test_2.json")
@@ -70,7 +70,7 @@ func TestScores2(test *testing.T) {
 
   main_learn_scores(config, []string{"learn", "--lambda-auto=1", "--co-occurrence", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table", "scoresLr_test_co"})
 
-  classifier := ImportScoresLr(config, "scoresLr_test_co_1.json")
+  classifier := ImportScoresLrEnsemble(config, "scoresLr_test_co_1.json").GetComponent(0)
 
   if len(classifier.Theta) != 2 {
     test.Error("test failed"); return
@@ -87,7 +87,7 @@ func TestScores2(test *testing.T) {
   if f := classifier.Features[0]; f[0] != 1 || f[1] != 6 {
     test.Error("test failed")
   }
-  if v := loss_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table"); math.Abs(v - 10.908436) > 1e-4 {
+  if v := loss_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table")[0]; math.Abs(v - 10.908436) > 1e-4 {
     test.Error("test failed")
   }
   w := []float64{
