@@ -28,24 +28,23 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 func combine_scores(config Config, summary, filename_out string, filename_ins ...string) {
-  classifiers := make([]*ScoresLr, len(filename_ins))
+  classifiers := make([]*ScoresLrEnsemble, len(filename_ins))
   for i, filename_in := range filename_ins {
-    classifiers[i] = ImportScoresLr(config, filename_in)
-    if  classifiers[i].Cooccurrence != classifiers[0].Cooccurrence {
-      log.Fatalf("data binarization is not consistent across classifiers")
-    }
-    if !classifiers[0].Transform.EqualsScores(classifiers[i].Transform, classifiers[0].Features, classifiers[i].Features) {
-      log.Fatalf("data transform is not consistent across classifiers")
+    classifiers[i] = ImportScoresLrEnsemble(config, filename_in)
+  }
+  r := &ScoresLrEnsemble{}
+  for _, classifier := range classifiers {
+    if err := r.AddScoresLrEnsemble(classifier); err != nil {
+      log.Fatal(err)
     }
   }
-  r := classifiers[0].Clone()
   switch strings.ToLower(summary) {
   case "mean":
-    r.Mean(classifiers)
+    r = r.Mean()
   case "max":
-    r.Max(classifiers)
+    r = r.Max()
   case "min":
-    r.Min(classifiers)
+    r = r.Min()
   default:
     log.Fatalf("invalid summary statistic: %s", summary)
   }

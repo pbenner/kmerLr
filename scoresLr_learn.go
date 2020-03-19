@@ -32,16 +32,16 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_scores_parameters(config Config, classifier *ScoresLr, data_train, data_test []ConstVector, labels []bool, icv int, basename_out string) ([]*ScoresLr, [][]float64) {
+func learn_scores_parameters(config Config, classifier *ScoresLrEnsemble, data_train, data_test ScoresDataSet, icv int, basename_out string) ([]*ScoresLrEnsemble, [][]float64) {
   // hook and trace
   var trace *Trace
   if config.SaveTrace {
     trace = &Trace{}
   }
 
-  estimator := NewScoresLrEstimator(config, classifier, trace, icv)
+  estimator := NewScoresLrEnsembleEstimator(config, classifier, trace, icv)
 
-  classifiers, predictions := estimator.Estimate(config, data_train, data_test, labels)
+  classifiers, predictions := estimator.Estimate(config, data_train, data_test)
 
   filename_json  := ""
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
@@ -61,35 +61,35 @@ func learn_scores_parameters(config Config, classifier *ScoresLr, data_train, da
   return classifiers, predictions
 }
 
-func learn_scores_cv(config Config, classifier *ScoresLr, data []ConstVector, labels []bool, basename_out string) {
-  learnAndTestClassifiers := func(i int, data_train, data_test []ConstVector, labels []bool) [][]float64 {
-    _, predictions := learn_scores_parameters(config, classifier, data_train, data_test, labels, i, basename_out)
+func learn_scores_cv(config Config, classifier *ScoresLrEnsemble, data ScoresDataSet, basename_out string) {
+  learnAndTestClassifiers := func(i int, data_train, data_test ScoresDataSet) [][]float64 {
+    _, predictions := learn_scores_parameters(config, classifier, data_train, data_test, i, basename_out)
     return predictions
   }
-  cvrs := scoresCrossvalidation(config, data, labels, learnAndTestClassifiers)
+  cvrs := scoresCrossvalidation(config, data, learnAndTestClassifiers)
 
   for i, cvr := range cvrs {
     SaveCrossvalidation(config, fmt.Sprintf("%s_%d.table", basename_out, config.LambdaAuto[i]), cvr)
   }
 }
 
-func learn_scores(config Config, classifier *ScoresLr, filename_json, filename_fg, filename_bg, basename_out string) {
+func learn_scores(config Config, classifier *ScoresLrEnsemble, filename_json, filename_fg, filename_bg, basename_out string) {
   if filename_json != "" {
-    classifier = ImportScoresLr(config, filename_json)
+    classifier = ImportScoresLrEnsemble(config, filename_json)
   }
-  data, labels := compile_training_data_scores(config, FeatureIndices{}, filename_fg, filename_bg)
+  data := compile_training_data_scores(config, FeatureIndices{}, filename_fg, filename_bg)
 
-  if len(data) == 0 {
+  if len(data.Data) == 0 {
     log.Fatal("Error: no training data given")
   }
   // create index for sparse data
-  for i, _ := range data {
-    data[i].(SparseConstRealVector).CreateIndex()
+  for i, _ := range data.Data {
+    data.Data[i].(SparseConstRealVector).CreateIndex()
   }
   if config.KFoldCV <= 1 {
-    learn_scores_parameters(config, classifier, data, nil, labels, -1, basename_out)
+    learn_scores_parameters(config, classifier, data, ScoresDataSet{}, -1, basename_out)
   } else {
-    learn_scores_cv(config, classifier, data, labels, basename_out)
+    learn_scores_cv(config, classifier, data, basename_out)
   }
 }
 
@@ -101,6 +101,8 @@ func main_learn_scores(config Config, args []string) {
   optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "comma separated list of integers specifying the number of features to select; for each value a separate classifier is estimated")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model co-occurrences")
+  optEnsembleSize    := options.    IntLong("ensemble-size",    0 ,            1, "estimate ensemble classifier")
+  optEnsembleSummary := options. StringLong("ensemble-summary", 0 ,       "mean", "summary for classifier predictions [mean (default), product]")
   optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
   optMaxIterations   := options.    IntLong("max-iterations",   0 ,            0, "maximum number of iterations")
   optEpsilon         := options. StringLong("epsilon",          0 ,       "0e-0", "optimization tolerance level for parameters")
@@ -124,7 +126,7 @@ func main_learn_scores(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  classifier   := &ScoresLr{}
+  classifier   := &ScoresLrEnsemble{}
   filename_in  := ""
   filename_fg  := ""
   filename_bg  := ""
@@ -142,6 +144,17 @@ func main_learn_scores(config Config, args []string) {
   // parse classifier options
   //////////////////////////////////////////////////////////////////////////////
   classifier.Cooccurrence = *optCooccurrence
+  classifier.Summary      = *optEnsembleSummary
+  switch *optEnsembleSummary {
+  case "mean":
+  case "max":
+  case "min":
+  case "product":
+  case "":
+  default:
+    options.PrintUsage(os.Stdout)
+    os.Exit(1)
+  }
   // parse options
   //////////////////////////////////////////////////////////////////////////////
   if *optHelp {
@@ -185,6 +198,10 @@ func main_learn_scores(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
   }
+  if *optEnsembleSize < 1 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(1)
+  }
   if *optThreadsCV > 1 {
     config.PoolCV = threadpool.New(*optThreadsCV, 100)
   }
@@ -192,6 +209,7 @@ func main_learn_scores(config Config, args []string) {
     config.PoolSaga = threadpool.New(*optThreadsSaga, 100)
   }
   config.Balance         = *optBalance
+  config.EnsembleSize    = *optEnsembleSize
   config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss
   config.MaxEpochs       = *optMaxEpochs

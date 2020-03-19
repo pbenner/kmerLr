@@ -34,10 +34,7 @@ type ScoresLrEstimator struct {
   vectorEstimator.LogisticRegression
   ScoresLrFeatures
   EpsilonLoss  float64
-  // reduced data sets
-  reduced_data_train []ConstVector
-  reduced_data_test  []ConstVector
-  labels             []bool
+  reduced_data ScoresDataSet
 }
 
 /* -------------------------------------------------------------------------- */
@@ -92,8 +89,8 @@ func (obj *ScoresLrEstimator) n_params(config Config, data []ConstVector, lambda
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *ScoresLrEstimator) estimate(config Config, data_train []ConstVector, labels []bool, transform Transform) *ScoresLr {
-  if err := obj.LogisticRegression.SetSparseData(data_train, labels, len(data_train)); err != nil {
+func (obj *ScoresLrEstimator) estimate(config Config, data ScoresDataSet, transform Transform, cooccurrence bool) *ScoresLr {
+  if err := obj.LogisticRegression.SetSparseData(data.Data, data.Labels, len(data.Data)); err != nil {
     log.Fatal(err)
   }
   if err := obj.LogisticRegression.Estimate(nil, config.PoolSaga); err != nil {
@@ -106,29 +103,23 @@ func (obj *ScoresLrEstimator) estimate(config Config, data_train []ConstVector, 
     r := &ScoresLr{}
     r.Theta            = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
     r.ScoresLrFeatures = obj.ScoresLrFeatures
+    r.Cooccurrence     = cooccurrence
     r.Transform        = transform
     return r
   }
 }
 
-func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test []ConstVector, labels []bool, lambda int) *ScoresLr {
-  if len(data_train) == 0 {
-    return nil
+func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, transform TransformFull, lambda int, cooccurrence bool) (*ScoresLr, []ConstVector) {
+  if len(data.Data) == 0 {
+    return nil, nil
   }
-  transform := TransformFull{}
-  // estimate transform on full data set so that all estimated
-  // classifiers share the same transform
-  if !config.NoNormalization {
-    transform.Fit(config, append(data_train, data_test...), obj.Cooccurrence)
-  }
-  m, n := obj.n_params(config, data_train, lambda, obj.Cooccurrence)
+  m, n := obj.n_params(config, data.Data, lambda, obj.Cooccurrence)
   // compute class weights
-  obj.LogisticRegression.SetLabels(labels)
+  obj.LogisticRegression.SetLabels(data.Labels)
   // create a copy of data arrays, from which to select subsets
-  obj.reduced_data_train = make([]ConstVector, len(data_train))
-  obj.reduced_data_test  = make([]ConstVector, len(data_test ))
-  obj.labels             = labels
-  s := newFeatureSelector(config, KmerClassList{}, obj.Cooccurrence, labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
+  obj.reduced_data.Data   = make([]ConstVector, len(data.Data))
+  obj.reduced_data.Labels = data.Labels
+  s := newFeatureSelector(config, KmerClassList{}, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*ScoresLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
     // select features on the initial data set
@@ -138,7 +129,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test
       d := r.Nonzero()
       PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features... ", d, n-d)
     }
-    selection, lambda, ok := s.Select(data_train, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.L1Reg)
+    selection, lambda, ok := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.L1Reg)
     PrintStderr(config, 1, "done\n")
     if !ok && r != nil {
       break
@@ -146,23 +137,22 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data_train, data_test
     obj.L1Reg    = lambda
     obj.Features = selection.Features()
     obj.Theta    = selection.Theta()
-    // create actual training and validation data sets
-    selection.Data(config, obj.reduced_data_train, data_train)
-    selection.Data(config, obj.reduced_data_test , data_test)
+    // create actual training data sets
+    selection.Data(config, obj.reduced_data.Data, data.Data)
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
-    r = obj.estimate(config, obj.reduced_data_train, labels, selection.Transform())
+    r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
   }
-  return r
+  r_data := obj.reduced_data.Data
+  obj.reduced_data = ScoresDataSet{}
+  return r, r_data
 }
 
-func (obj *ScoresLrEstimator) Estimate(config Config, data_train, data_test []ConstVector, labels []bool) ([]*ScoresLr, [][]float64) {
+func (obj *ScoresLrEstimator) Estimate(config Config, data ScoresDataSet, transform TransformFull) []*ScoresLr {
   classifiers := make([]*ScoresLr, len(config.LambdaAuto))
-  predictions := make([][]float64, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
     PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambda)
-    classifiers[i] = obj.estimate_loop(config, data_train, data_test, labels, lambda)
-    predictions[i] = classifiers[i].Predict(config, obj.reduced_data_test)
+    classifiers[i], _ = obj.estimate_loop(config, data, transform, lambda, obj.Cooccurrence)
   }
-  return classifiers, predictions
+  return classifiers
 }

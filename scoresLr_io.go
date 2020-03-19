@@ -26,8 +26,8 @@ import . "github.com/pbenner/autodiff/statistics"
 
 /* -------------------------------------------------------------------------- */
 
-func ImportScoresLr(config Config, filename string) *ScoresLr {
-  classifier := new(ScoresLr)
+func ImportScoresLrEnsemble(config Config, filename string) *ScoresLrEnsemble {
+  classifier := new(ScoresLrEnsemble)
   // export model
   PrintStderr(config, 1, "Importing distribution from `%s'... ", filename)
   if err := ImportDistribution(filename, classifier, BareRealType); err != nil {

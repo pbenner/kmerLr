@@ -31,6 +31,13 @@ import . "github.com/pbenner/gonetics"
 
 /* -------------------------------------------------------------------------- */
 
+type ScoresDataSet struct {
+  Data   []ConstVector
+  Labels []bool
+}
+
+/* -------------------------------------------------------------------------- */
+
 func bufioReadLine(reader *bufio.Reader) (string, error) {
   l, err := reader.ReadString('\n')
   if err != nil {
@@ -171,7 +178,7 @@ func import_scores(config Config, filename string, features FeatureIndices, dim 
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data_scores(config Config, features FeatureIndices, filename_fg, filename_bg string) ([]ConstVector, []bool) {
+func compile_training_data_scores(config Config, features FeatureIndices, filename_fg, filename_bg string) ScoresDataSet {
   scores_fg, dim := import_scores(config, filename_fg, features, -1)
   scores_bg, _   := import_scores(config, filename_bg, features, dim)
   // define labels (assign foreground regions a label of 1)
@@ -179,10 +186,10 @@ func compile_training_data_scores(config Config, features FeatureIndices, filena
   for i := 0; i < len(scores_fg); i++ {
     labels[i] = true
   }
-  return append(scores_fg, scores_bg...), labels
+  return ScoresDataSet{append(scores_fg, scores_bg...), labels}
 }
 
-func compile_test_data_scores(config Config, features FeatureIndices, filename string) []ConstVector {
+func compile_test_data_scores(config Config, features FeatureIndices, filename string) ScoresDataSet {
   scores, _ := import_scores(config, filename, features, -1)
-  return scores
+  return ScoresDataSet{scores, nil}
 }

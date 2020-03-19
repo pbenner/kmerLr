@@ -136,7 +136,7 @@ func (obj *KmerLrEquivalence) Equals(a KmerLrEquivalence) error {
     return fmt.Errorf("data binarization is not consistent across classifiers")
   }
   if  obj.Cooccurrence != a.Cooccurrence {
-    return fmt.Errorf("data binarization is not consistent across classifiers")
+    return fmt.Errorf("co-occurrence is not consistent across classifiers")
   }
   return nil
 }

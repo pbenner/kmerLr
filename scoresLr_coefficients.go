@@ -50,8 +50,7 @@ func coefficients_format_scores(features FeatureIndices, coefficients AbsFloatIn
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients_scores(config Config, filename string, rescale bool) {
-  classifier   := ImportScoresLr(config, filename)
+func coefficients_scores_(config Config, classifier *ScoresLr, i_ int, rescale bool) {
   coefficients := NewAbsFloatInt(len(classifier.Theta)-1)
   features     := classifier.Features
 
@@ -71,6 +70,7 @@ func coefficients_scores(config Config, filename string, rescale bool) {
 
   format := coefficients_format_scores(features, coefficients)
 
+  fmt.Printf("Classifier %d:\n", i_)
   for i := 0; i < coefficients.Len(); i++ {
     v := coefficients.a[i]
     k := coefficients.b[i]
@@ -85,6 +85,14 @@ func coefficients_scores(config Config, filename string, rescale bool) {
       fmt.Printf(format, i+1, v, fmt.Sprintf("%d & %d", k1+1, k2+1))
     }
     fmt.Println()
+  }
+}
+
+func coefficients_scores(config Config, filename string, rescale bool) {
+  classifier := ImportScoresLrEnsemble(config, filename)
+
+  for i := 0; i < classifier.EnsembleSize(); i++ {
+    coefficients_scores_(config, classifier.GetComponent(i), i, rescale)
   }
 }
 

@@ -34,7 +34,7 @@ func NewScoresHook(config Config, trace *Trace, icv int, estimator *ScoresLrEsti
     lr.Theta        = x.GetValues()
     lr.Lambda       = lambda.GetValue()
     lr.ClassWeights = estimator.ClassWeights
-    return lr.Loss(estimator.reduced_data_train, estimator.labels)
+    return lr.Loss(estimator.reduced_data.Data, estimator.reduced_data.Labels)
   }
   t := time.Now()
   s := time.Now()
