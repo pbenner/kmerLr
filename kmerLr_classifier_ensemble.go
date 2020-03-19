@@ -62,6 +62,9 @@ func (obj *KmerLrEnsemble) Clone() *KmerLrEnsemble {
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrEnsemble) Summarize(config Config, x []float64) float64 {
+  if len(x) == 0 {
+    return math.NaN()
+  }
   var r float64
   switch obj.Summary {
   case "mean":
@@ -75,11 +78,24 @@ func (obj *KmerLrEnsemble) Summarize(config Config, x []float64) float64 {
     for j := 0; j < len(x); j++ {
       r *= x[j]
     }
+  case "min":
+    r = x[0]
+    for j := 1; j < len(x); j++ {
+      if r > x[j] {
+        r = x[j]
+      }
+    }
+  case "max":
+    r = x[0]
+    for j := 1; j < len(x); j++ {
+      if r < x[j] {
+        r = x[j]
+      }
+    }
   case "":
-    switch len(x) {
-    case 1: r = x[0]
-    case 0: r = 0.0
-    default:
+    if len(x) == 1 {
+      r = x[0]
+    } else {
       log.Fatal("no summary given for ensemble classifier")
     }
   default:

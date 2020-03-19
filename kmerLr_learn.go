@@ -199,6 +199,8 @@ func main_learn(config Config, args []string) {
   }
   switch *optEnsembleSummary {
   case "mean":
+  case "max":
+  case "min":
   case "product":
   case "":
   default:
