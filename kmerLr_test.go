@@ -102,8 +102,6 @@ func TestKmers3(test *testing.T) {
   config.MaxIterations  = 100
   config.StepSizeFactor = 1.0
 
-  trace := &Trace{}
-
   classifier := &KmerLr{}
   classifier.M        = 8
   classifier.N        = 8
@@ -113,7 +111,7 @@ func TestKmers3(test *testing.T) {
   counter := classifier.GetKmerCounter()
   data    := compile_training_data(config, counter, nil, nil, false, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
 
-  estimator := NewKmerLrEstimator(config, classifier, trace, 0)
+  estimator := NewKmerLrEstimator(config, classifier, 0)
   estimator.Estimate(config, data, TransformFull{})
 
   for _, x := range data.Data {
@@ -133,8 +131,6 @@ func TestKmers4(test *testing.T) {
   config.EvalLoss       = true
   config.EpsilonLoss    = 1e-6
 
-  trace := &Trace{}
-
   classifier := &KmerLr{}
   classifier.M        = 8
   classifier.N        = 8
@@ -144,7 +140,7 @@ func TestKmers4(test *testing.T) {
   counter := classifier.GetKmerCounter()
   data    := compile_training_data(config, counter, nil, nil, false, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
 
-  estimator := NewKmerLrEstimator(config, classifier, trace, 0)
+  estimator := NewKmerLrEstimator(config, classifier, 0)
   estimator.Estimate(config, data, TransformFull{})
 
   for _, x := range data.Data {
