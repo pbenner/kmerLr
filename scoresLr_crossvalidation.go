@@ -39,8 +39,8 @@ func scoresFilterCvGroup(data ScoresDataSet, groups []int, i int) (ScoresDataSet
       r_train_labels = append(r_train_labels, data.Labels[j])
     }
   }
-  data_train := ScoresDataSet{r_test , r_test_labels }
-  data_test  := ScoresDataSet{r_train, r_train_labels}
+  data_train := ScoresDataSet{r_test , r_test_labels , data.Index}
+  data_test  := ScoresDataSet{r_train, r_train_labels, data.Index}
   return data_train, data_test
 }
 

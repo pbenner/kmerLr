@@ -26,8 +26,9 @@ import . "github.com/pbenner/autodiff/statistics"
 /* -------------------------------------------------------------------------- */
 
 type ScoresLrFeatures struct {
-  Cooccurrence bool
-  Features     FeatureIndices
+  Cooccurrence   bool
+  Features       FeatureIndices
+  Index        []int
 }
 
 /* -------------------------------------------------------------------------- */
@@ -36,9 +37,11 @@ func (obj ScoresLrFeatures) Clone() ScoresLrFeatures {
   r := ScoresLrFeatures{}
   r.Cooccurrence    = obj.Cooccurrence
   r.Features        = make(FeatureIndices, len(obj.Features))
+  r.Index           = make([]int, len(obj.Index))
   for i, feature := range obj.Features {
     r.Features[i] = [2]int{feature[0], feature[1]}
   }
+  copy(r.Index, obj.Index)
   return r
 }
 
@@ -52,17 +55,23 @@ func (obj *ScoresLrFeatures) ImportConfig(config ConfigDistribution, t ScalarTyp
   features, ok := config.GetNamedParametersAsIntPairs("Features"); if !ok {
     return fmt.Errorf("invalid config file")
   }
+  index, ok := config.GetNamedParametersAsInts("Index"); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
   obj.Cooccurrence = cooccurrence
   obj.Features     = features
+  obj.Index        = index
   return nil
 }
 
 func (obj *ScoresLrFeatures) ExportConfig() ConfigDistribution {
   config := struct{
-    Cooccurrence bool
-    Features     FeatureIndices
+    Cooccurrence   bool
+    Features       FeatureIndices
+    Index        []int
   }{}
   config.Cooccurrence = obj.Cooccurrence
   config.Features     = obj.Features
+  config.Index        = obj.Index
   return NewConfigDistribution("features-scores", config)
 }

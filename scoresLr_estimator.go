@@ -119,7 +119,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
   // create a copy of data arrays, from which to select subsets
   obj.reduced_data.Data   = make([]ConstVector, len(data.Data))
   obj.reduced_data.Labels = data.Labels
-  s := newFeatureSelector(config, KmerClassList{}, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
+  s := newFeatureSelector(config, KmerClassList{}, data.Index, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*ScoresLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
     // select features on the initial data set
@@ -129,13 +129,14 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
       d := r.Nonzero()
       PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features... ", d, n-d)
     }
-    selection, lambda, ok := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.L1Reg)
+    selection, lambda, ok := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.Index, obj.L1Reg)
     PrintStderr(config, 1, "done\n")
     if !ok && r != nil {
       break
     }
     obj.L1Reg    = lambda
     obj.Features = selection.Features()
+    obj.Index    = selection.Index()
     obj.Theta    = selection.Theta()
     // create actual training data sets
     selection.Data(config, obj.reduced_data.Data, data.Data)

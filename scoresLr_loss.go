@@ -29,7 +29,7 @@ import   "github.com/pborman/getopt"
 
 func loss_scores_(config Config, filename_json, filename_fg, filename_bg string) []float64 {
   classifier := ImportScoresLrEnsemble(config, filename_json)
-  data       := compile_training_data_scores(config, classifier.Features, filename_fg, filename_bg)
+  data       := compile_training_data_scores(config, classifier.Index, classifier.Features, filename_fg, filename_bg)
   classifier.Transform.Apply(config, data.Data)
 
   return classifier.Loss(config, data.Data, data.Labels)

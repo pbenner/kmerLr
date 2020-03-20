@@ -77,7 +77,7 @@ func learn_scores(config Config, classifier *ScoresLrEnsemble, filename_json, fi
   if filename_json != "" {
     classifier = ImportScoresLrEnsemble(config, filename_json)
   }
-  data := compile_training_data_scores(config, FeatureIndices{}, filename_fg, filename_bg)
+  data := compile_training_data_scores(config, classifier.Index, classifier.Features, filename_fg, filename_bg)
 
   if len(data.Data) == 0 {
     log.Fatal("Error: no training data given")
@@ -101,6 +101,7 @@ func main_learn_scores(config Config, args []string) {
   optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "comma separated list of integers specifying the number of features to select; for each value a separate classifier is estimated")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model co-occurrences")
+  optCopreselection  := options.    IntLong("co-preselection",  0 ,            0, "pre-select a subset of k-mers for co-occurrence modeling")
   optEnsembleSize    := options.    IntLong("ensemble-size",    0 ,            1, "estimate ensemble classifier")
   optEnsembleSummary := options. StringLong("ensemble-summary", 0 ,       "mean", "summary for classifier predictions [mean (default), product]")
   optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
@@ -209,6 +210,7 @@ func main_learn_scores(config Config, args []string) {
     config.PoolSaga = threadpool.New(*optThreadsSaga, 100)
   }
   config.Balance         = *optBalance
+  config.Copreselection  = *optCopreselection
   config.EnsembleSize    = *optEnsembleSize
   config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss

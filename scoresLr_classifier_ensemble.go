@@ -22,6 +22,7 @@ import   "fmt"
 import   "log"
 import   "math"
 import   "regexp"
+import   "sort"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -233,25 +234,49 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
   n  := len(obj.Theta)
   m1 := make(map[[2]int]int)
   m2 := make(map[[2]int]int)
+  ki := make(map[int]int)
+  z  := make(map[int]struct{})
   // map kmer pairs to feature indices (ensemble classifier)
   for i, feature := range obj.ScoresLrFeatures.Features {
-    m1[feature] = i
+    i1 := obj.ScoresLrFeatures.Index[feature[0]]
+    i2 := obj.ScoresLrFeatures.Index[feature[1]]
+    m1[[2]int{i1,i2}] = i
+    z [i1] = struct{}{}
+    z [i2] = struct{}{}
   }
   // map kmer pairs to feature indices (new ScoresLr classifier)
   for i, feature := range classifier.ScoresLrFeatures.Features {
     // filter out zero coefficients
     if classifier.Theta[i+1] != 0.0 {
-      m2[feature] = i
+      i1 := classifier.ScoresLrFeatures.Index[feature[0]]
+      i2 := classifier.ScoresLrFeatures.Index[feature[1]]
+      m2[[2]int{i1,i2}] = i
+      z [i1] = struct{}{}
+      z [i2] = struct{}{}
     }
+  }
+  // create index union
+  index := []int{}
+  for i, _ := range z {
+    index = append(index, i)
+  }
+  sort.Ints(index)
+  // create map
+  for i, j := range index {
+    ki[j] = i
   }
   // construct new feature set
   features := FeatureIndices{}
-  for feature, _ := range m1 {
-    features = append(features, feature)
+  for idx, _ := range m1 {
+    i1 := ki[idx[0]]
+    i2 := ki[idx[1]]
+    features = append(features, [2]int{i1,i2})
   }
-  for feature, _ := range m2 {
-    if _, ok := m1[feature]; !ok {
-      features = append(features, feature)
+  for idx, _ := range m2 {
+    if _, ok := m1[idx]; !ok {
+      i1 := ki[idx[0]]
+      i2 := ki[idx[1]]
+      features = append(features, [2]int{i1,i2})
     }
   }
   features.Sort()
@@ -261,7 +286,9 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
     coefficients[i]    = make([]float64, len(features)+1)
     coefficients[i][0] = obj.Theta[i][0]
     for j, feature := range features {
-      if k, ok := m1[feature]; ok {
+      i1 := index[feature[0]]
+      i2 := index[feature[1]]
+      if k, ok := m1[[2]int{i1,i2}]; ok {
         coefficients[i][j+1] = obj.Theta[i][k+1]
       }
     }
@@ -270,7 +297,9 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
   coefficients[n]    = make([]float64, len(features)+1)
   coefficients[n][0] = classifier.Theta[0]
   for j, feature := range features {
-    if k, ok := m2[feature]; ok {
+    i1 := index[feature[0]]
+    i2 := index[feature[1]]
+    if k, ok := m2[[2]int{i1,i2}]; ok {
       coefficients[n][j+1] = classifier.Theta[k+1]
     }
   }
@@ -288,6 +317,7 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
     }
   }
   obj.ScoresLrFeatures.Features = features
+  obj.ScoresLrFeatures.Index    = index
   obj.Theta                     = coefficients
   obj.Transform                 = transform
   return nil
@@ -313,19 +343,30 @@ func (obj *ScoresLrEnsemble) AddScoresLrEnsemble(classifier *ScoresLrEnsemble) e
 func (obj *ScoresLrEnsemble) SelectData(config Config, data_ ScoresDataSet) []ConstVector {
   data     := data_.Data
   data_dst := make([]ConstVector, len(data))
+  index    := data_.Index
+  imap     := make(map[int]int)
+  for i, j := range index {
+    imap[j] = i
+  }
   for i_ := 0; i_ < len(data); i_++ {
     i := []int    {                 0 }
     v := []float64{data[i_].ValueAt(0)}
     for j, feature := range obj.Features {
       if feature[0] == feature[1] {
-        i1 := feature[0]
+        i1, ok := imap[feature[0]]; if !ok {
+          panic("internal error")
+        }
         if value := data[i_].ValueAt(i1+1); value != 0.0 {
           i = append(i, j+1)
           v = append(v, value)
         }
       } else {
-        i1 := feature[0]
-        i2 := feature[1]
+        i1, ok := imap[feature[0]]; if !ok {
+          panic("internal error")
+        }
+        i2, ok := imap[feature[1]]; if !ok {
+          panic("internal error")
+        }
         if value := data[i_].ValueAt(i1+1)*data[i_].ValueAt(i2+1); value != 0.0 {
           i = append(i, j+1)
           v = append(v, value)

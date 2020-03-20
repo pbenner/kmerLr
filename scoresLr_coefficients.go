@@ -25,9 +25,9 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients_print_scores(features FeatureIndices, k int) string {
-  k1 := features[k][0]
-  k2 := features[k][1]
+func coefficients_print_scores(index []int, features FeatureIndices, k int) string {
+  k1 := index[features[k][0]]
+  k2 := index[features[k][1]]
   if k1 == k2 {
     return fmt.Sprintf("%d", k1+1)
   } else {
@@ -35,13 +35,13 @@ func coefficients_print_scores(features FeatureIndices, k int) string {
   }
 }
 
-func coefficients_format_scores(features FeatureIndices, coefficients AbsFloatInt) string {
+func coefficients_format_scores(index []int, features FeatureIndices, coefficients AbsFloatInt) string {
   m := 0
   for k := 0; k < coefficients.Len(); k++ {
     if coefficients.a[k] == 0.0 {
       break
     }
-    if r := len(coefficients_print_scores(features, coefficients.b[k])); r > m {
+    if r := len(coefficients_print_scores(index, features, coefficients.b[k])); r > m {
       m = r
     }
   }
@@ -53,6 +53,7 @@ func coefficients_format_scores(features FeatureIndices, coefficients AbsFloatIn
 func coefficients_scores_(config Config, classifier *ScoresLr, i_ int, rescale bool) {
   coefficients := NewAbsFloatInt(len(classifier.Theta)-1)
   features     := classifier.Features
+  index        := classifier.Index
 
   // insert coefficients into the map
   if rescale && len(classifier.Transform.Sigma) > 0 {
@@ -68,7 +69,7 @@ func coefficients_scores_(config Config, classifier *ScoresLr, i_ int, rescale b
   }
   coefficients.SortReverse()
 
-  format := coefficients_format_scores(features, coefficients)
+  format := coefficients_format_scores(index, features, coefficients)
 
   fmt.Printf("Classifier %d:\n", i_)
   for i := 0; i < coefficients.Len(); i++ {
@@ -77,8 +78,8 @@ func coefficients_scores_(config Config, classifier *ScoresLr, i_ int, rescale b
     if v == 0.0 {
       break
     }
-    k1 := features[k][0]
-    k2 := features[k][1]
+    k1 := index[features[k][0]]
+    k2 := index[features[k][1]]
     if k1 == k2 {
       fmt.Printf(format, i+1, v, k1+1)
     } else {

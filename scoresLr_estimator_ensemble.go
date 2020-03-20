@@ -77,6 +77,18 @@ func (obj ScoresLrEstimatorEnsemble) estimate_ensemble(config Config, data_train
 }
 
 func (obj ScoresLrEstimatorEnsemble) Estimate(config Config, data_train, data_test ScoresDataSet) ([]*ScoresLrEnsemble, [][]float64) {
+  if obj.Estimators[0].Cooccurrence && config.Copreselection != 0 {
+    transform := TransformFull{}
+    // estimate transform on full data set so that all estimated
+    // classifiers share the same transform
+    if !config.NoNormalization {
+      transform.Fit(config, append(data_train.Data, data_test.Data...), false)
+    }
+    // reduce data_train and data_test to pre-selected features
+    r, r_data := obj.Estimators[0].estimate_loop(config, data_train, transform, config.Copreselection, false)
+    data_train.Data  = r_data
+    data_train.Index = r.Index
+  }
   transform := TransformFull{}
   if !config.NoNormalization {
     transform.Fit(config, append(data_train.Data, data_test.Data...), obj.Estimators[0].Cooccurrence)

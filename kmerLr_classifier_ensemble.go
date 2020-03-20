@@ -272,7 +272,7 @@ func (obj *KmerLrEnsemble) AddKmerLr(classifier *KmerLr) error {
     kmers = append(kmers, KmerClass{id, elem})
   }
   kmers.Sort()
-  // creat index
+  // create map
   for i, kmer := range kmers {
     ki[kmer.KmerClassId] = i
   }

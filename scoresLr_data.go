@@ -34,6 +34,7 @@ import . "github.com/pbenner/gonetics"
 type ScoresDataSet struct {
   Data   []ConstVector
   Labels []bool
+  Index  []int
 }
 
 /* -------------------------------------------------------------------------- */
@@ -81,7 +82,7 @@ func read_scores_table(r io.Reader) ([][]float64, error) {
 
 /* -------------------------------------------------------------------------- */
 
-func convert_scores(config Config, scores []float64, features FeatureIndices) ConstVector {
+func convert_scores(config Config, scores []float64, index []int, features FeatureIndices) ConstVector {
   n := 0
   i := []int    {}
   v := []float64{}
@@ -103,14 +104,14 @@ func convert_scores(config Config, scores []float64, features FeatureIndices) Co
       i1 := feature[0]
       i2 := feature[1]
       if i1 == i2 {
-        c := scores[i1]
+        c := scores[index[i1]]
         if c != 0.0 {
           i = append(i, j+1)
           v = append(v, float64(c))
         }
       } else {
-        c1 := scores[i1]
-        c2 := scores[i2]
+        c1 := scores[index[i1]]
+        c2 := scores[index[i2]]
         if c1 != 0.0 && c2 != 0.0 {
           i = append(i, j+1)
           v = append(v, float64(c1*c2))
@@ -126,7 +127,7 @@ func convert_scores(config Config, scores []float64, features FeatureIndices) Co
 
 /* -------------------------------------------------------------------------- */
 
-func import_scores(config Config, filename string, features FeatureIndices, dim int) ([]ConstVector, int) {
+func import_scores(config Config, filename string, index []int, features FeatureIndices, dim int) ([]ConstVector, []int, int) {
   f, err := os.Open(filename)
   if err != nil {
     log.Fatal(err)
@@ -140,7 +141,7 @@ func import_scores(config Config, filename string, features FeatureIndices, dim 
     // scores are in GRanges format
     PrintStderr(config, 1, "done\n")
     if granges.Length() == 0 {
-      return scores, dim
+      return scores, index, dim
     }
     data := granges.GetMeta("counts").([][]float64)
     for _, c := range data {
@@ -150,7 +151,13 @@ func import_scores(config Config, filename string, features FeatureIndices, dim 
       if len(c) != dim {
         log.Fatal("Error: data has variable number of features")
       }
-      scores = append(scores, convert_scores(config, c, features))
+      if len(index) == 0 {
+        index = make([]int, dim)
+        for i := 0; i < dim; i++ {
+          index[i] = i
+        }
+      }
+      scores = append(scores, convert_scores(config, c, index, features))
     }
   } else {
     if _, err := f.Seek(0, io.SeekStart); err != nil {
@@ -169,27 +176,33 @@ func import_scores(config Config, filename string, features FeatureIndices, dim 
         if len(c) != dim {
           log.Fatal("Error: data has variable number of features")
         }
-        scores = append(scores, convert_scores(config, c, features))
+      if len(index) == 0 {
+        index = make([]int, dim)
+        for i := 0; i < dim; i++ {
+          index[i] = i
+        }
+      }
+        scores = append(scores, convert_scores(config, c, index, features))
       }
     }
   }
-  return scores, dim
+  return scores, index, dim
 }
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data_scores(config Config, features FeatureIndices, filename_fg, filename_bg string) ScoresDataSet {
-  scores_fg, dim := import_scores(config, filename_fg, features, -1)
-  scores_bg, _   := import_scores(config, filename_bg, features, dim)
+func compile_training_data_scores(config Config, index []int, features FeatureIndices, filename_fg, filename_bg string) ScoresDataSet {
+  scores_fg, index, dim := import_scores(config, filename_fg, index, features, -1)
+  scores_bg,     _,   _ := import_scores(config, filename_bg, index, features, dim)
   // define labels (assign foreground regions a label of 1)
   labels := make([]bool, len(scores_fg)+len(scores_bg))
   for i := 0; i < len(scores_fg); i++ {
     labels[i] = true
   }
-  return ScoresDataSet{append(scores_fg, scores_bg...), labels}
+  return ScoresDataSet{append(scores_fg, scores_bg...), labels, index}
 }
 
-func compile_test_data_scores(config Config, features FeatureIndices, filename string) ScoresDataSet {
-  scores, _ := import_scores(config, filename, features, -1)
-  return ScoresDataSet{scores, nil}
+func compile_test_data_scores(config Config, index []int, features FeatureIndices, filename string) ScoresDataSet {
+  scores, index, _ := import_scores(config, filename, index, features, -1)
+  return ScoresDataSet{scores, nil, index}
 }
