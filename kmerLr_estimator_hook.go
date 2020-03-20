@@ -30,7 +30,7 @@ type HookType func(x ConstVector, change, lambda ConstScalar, epoch int) bool
 
 /* -------------------------------------------------------------------------- */
 
-func NewHook(config Config, trace *Trace, icv int, estimator *KmerLrEstimator) HookType {
+func NewHook(config Config, icv int, estimator *KmerLrEstimator) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
   loss := func(x ConstVector, lambda ConstScalar) float64 {
@@ -58,11 +58,11 @@ func NewHook(config Config, trace *Trace, icv int, estimator *KmerLrEstimator) H
         n += 1
       }
     }
-    if trace != nil {
-      trace.Append(iteration, n, change.GetValue(), lambda.GetValue(), loss_new, time.Since(s))
+    if config.SaveTrace {
+      estimator.trace.Append(iteration, n, change.GetValue(), lambda.GetValue(), loss_new, time.Since(s))
     }
     if config.Verbose > 1 {
-      if trace != nil {
+      if config.SaveTrace {
         if icv != -1 {
           fmt.Printf("cv run    : %d\n", icv+1)
         }
@@ -70,7 +70,7 @@ func NewHook(config Config, trace *Trace, icv int, estimator *KmerLrEstimator) H
         fmt.Printf("change    : %v\n", change)
         fmt.Printf("lambda    : %v\n", lambda)
         fmt.Printf("#coef     : %d\n", n-1)
-        fmt.Printf("var(#coef): %f\n", trace.CompVar(10))
+        fmt.Printf("var(#coef): %f\n", estimator.trace.CompVar(10))
         if config.EvalLoss {
           fmt.Printf("loss      : %f\n", loss_new)
         }

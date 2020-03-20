@@ -32,10 +32,10 @@ type ScoresLrEstimatorEnsemble struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewScoresLrEnsembleEstimator(config Config, classifier *ScoresLrEnsemble, trace *Trace, icv int) ScoresLrEstimatorEnsemble {
+func NewScoresLrEnsembleEstimator(config Config, classifier *ScoresLrEnsemble, icv int) ScoresLrEstimatorEnsemble {
   estimators := make([]*ScoresLrEstimator, config.EnsembleSize)
   for i, _ := range estimators {
-    estimators[i] = NewScoresLrEstimator(config, classifier.GetComponent(0).Clone(), trace, icv)
+    estimators[i] = NewScoresLrEstimator(config, classifier.GetComponent(0).Clone(), icv)
   }
   return ScoresLrEstimatorEnsemble{estimators, classifier.Summary}
 }
@@ -48,6 +48,16 @@ func (obj ScoresLrEstimatorEnsemble) Clone() *ScoresLrEstimatorEnsemble {
 
 func (obj ScoresLrEstimatorEnsemble) CloneVectorEstimator() VectorEstimator {
   panic("internal error")
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj ScoresLrEstimatorEnsemble) GetTrace() Trace {
+  trace := Trace{}
+  for _, estimator := range obj.Estimators {
+    trace.AppendTrace(estimator.trace)
+  }
+  return trace
 }
 
 /* -------------------------------------------------------------------------- */

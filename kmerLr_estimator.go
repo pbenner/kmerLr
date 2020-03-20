@@ -33,11 +33,12 @@ type KmerLrEstimator struct {
   KmerLrFeatures
   EpsilonLoss  float64
   reduced_data KmerDataSet
+  trace        Trace
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEstimator(config Config, classifier *KmerLr, trace *Trace, icv int) *KmerLrEstimator {
+func NewKmerLrEstimator(config Config, classifier *KmerLr, icv int) *KmerLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
     log.Fatal(err)
     return nil
@@ -50,7 +51,7 @@ func NewKmerLrEstimator(config Config, classifier *KmerLr, trace *Trace, icv int
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
-    r.LogisticRegression.Hook           = NewHook(config, trace, icv, r)
+    r.LogisticRegression.Hook           = NewHook(config, icv, r)
     if config.MaxIterations != 0 {
       r.LogisticRegression.MaxIterations = config.MaxIterations
     }

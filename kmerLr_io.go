@@ -60,7 +60,7 @@ func SaveCrossvalidation(config Config, filename string, cvr CVResult) {
 
 /* -------------------------------------------------------------------------- */
 
-func SaveTrace(config Config, filename string, trace *Trace) {
+func SaveTrace(config Config, filename string, trace Trace) {
   PrintStderr(config, 1, "Exporting trace to `%s'... ", filename)
   if err := trace.Export(filename); err != nil {
     PrintStderr(config, 1, "failed\n")

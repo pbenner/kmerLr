@@ -97,6 +97,20 @@ func (obj *Trace) Append(iteration, nonzero int, change, lambda, loss float64, d
   obj.Duration    = append(obj.Duration, duration)
 }
 
+func (obj *Trace) AppendTrace(trace Trace) {
+  for i := 0; i < trace.Length(); i++ {
+    lambda := math.NaN()
+    loss   := math.NaN()
+    if len(trace.Lambda) > 0 {
+      lambda = trace.Lambda[i]
+    }
+    if len(trace.Loss) > 0 {
+      loss = trace.Loss[i]
+    }
+    obj.Append(trace.Iteration[i], trace.Nonzero[i], trace.Change[i], lambda, loss, trace.Duration[i])
+  }
+}
+
 func (obj Trace) CompVar(n int) float64 {
   if len(obj.Nonzero) < n {
     return math.NaN()

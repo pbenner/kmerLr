@@ -32,10 +32,10 @@ type KmerLrEstimatorEnsemble struct {
 
 /* -------------------------------------------------------------------------- */
 
-func NewKmerLrEnsembleEstimator(config Config, classifier *KmerLrEnsemble, trace *Trace, icv int) KmerLrEstimatorEnsemble {
+func NewKmerLrEnsembleEstimator(config Config, classifier *KmerLrEnsemble, icv int) KmerLrEstimatorEnsemble {
   estimators := make([]*KmerLrEstimator, config.EnsembleSize)
   for i, _ := range estimators {
-    estimators[i] = NewKmerLrEstimator(config, classifier.GetComponent(0).Clone(), trace, icv)
+    estimators[i] = NewKmerLrEstimator(config, classifier.GetComponent(0).Clone(), icv)
   }
   return KmerLrEstimatorEnsemble{estimators, classifier.Summary}
 }
@@ -48,6 +48,16 @@ func (obj KmerLrEstimatorEnsemble) Clone() *KmerLrEstimatorEnsemble {
 
 func (obj KmerLrEstimatorEnsemble) CloneVectorEstimator() VectorEstimator {
   panic("internal error")
+}
+
+/* -------------------------------------------------------------------------- */
+
+func (obj KmerLrEstimatorEnsemble) GetTrace() Trace {
+  trace := Trace{}
+  for _, estimator := range obj.Estimators {
+    trace.AppendTrace(estimator.trace)
+  }
+  return trace
 }
 
 /* -------------------------------------------------------------------------- */

@@ -35,11 +35,12 @@ type ScoresLrEstimator struct {
   ScoresLrFeatures
   EpsilonLoss  float64
   reduced_data ScoresDataSet
+  trace        Trace
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewScoresLrEstimator(config Config, classifier *ScoresLr, trace *Trace, icv int) *ScoresLrEstimator {
+func NewScoresLrEstimator(config Config, classifier *ScoresLr, icv int) *ScoresLrEstimator {
   if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
     log.Fatal(err)
     return nil
@@ -52,7 +53,7 @@ func NewScoresLrEstimator(config Config, classifier *ScoresLr, trace *Trace, icv
     r.LogisticRegression.Seed           = config.Seed
     r.LogisticRegression.Epsilon        = config.Epsilon
     r.LogisticRegression.StepSizeFactor = config.StepSizeFactor
-    r.LogisticRegression.Hook           = NewScoresHook(config, trace, icv, &r)
+    r.LogisticRegression.Hook           = NewScoresHook(config, icv, &r)
     if config.MaxIterations != 0 {
       r.LogisticRegression.MaxIterations = config.MaxIterations
     }

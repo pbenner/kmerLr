@@ -33,13 +33,7 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 func learn_scores_parameters(config Config, classifier *ScoresLrEnsemble, data_train, data_test ScoresDataSet, icv int, basename_out string) ([]*ScoresLrEnsemble, [][]float64) {
-  // hook and trace
-  var trace *Trace
-  if config.SaveTrace {
-    trace = &Trace{}
-  }
-
-  estimator := NewScoresLrEnsembleEstimator(config, classifier, trace, icv)
+  estimator := NewScoresLrEnsembleEstimator(config, classifier, icv)
 
   classifiers, predictions := estimator.Estimate(config, data_train, data_test)
 
@@ -47,7 +41,7 @@ func learn_scores_parameters(config Config, classifier *ScoresLrEnsemble, data_t
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   // export trace
   if config.SaveTrace {
-    SaveTrace(config, filename_trace, trace)
+    SaveTrace(config, filename_trace, estimator.GetTrace())
   }
   for i, classifier := range classifiers {
     if icv == -1 {

@@ -34,12 +34,7 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 func learn_parameters(config Config, classifier *KmerLrEnsemble, data_train, data_test KmerDataSet, icv int, basename_out string) ([]*KmerLrEnsemble, [][]float64) {
-  // hook and trace
-  var trace *Trace
-  if config.SaveTrace {
-    trace = &Trace{}
-  }
-  estimator := NewKmerLrEnsembleEstimator(config, classifier, trace, icv)
+  estimator := NewKmerLrEnsembleEstimator(config, classifier, icv)
 
   classifiers, predictions := estimator.Estimate(config, data_train, data_test)
 
@@ -47,7 +42,7 @@ func learn_parameters(config Config, classifier *KmerLrEnsemble, data_train, dat
   filename_trace := fmt.Sprintf("%s.trace", basename_out)
   // export trace
   if config.SaveTrace {
-    SaveTrace(config, filename_trace, trace)
+    SaveTrace(config, filename_trace, estimator.GetTrace())
   }
   for i, classifier := range classifiers {
     if icv == -1 {
