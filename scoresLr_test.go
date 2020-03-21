@@ -123,7 +123,6 @@ func TestScores2(test *testing.T) {
 
 func TestScores3(test *testing.T) {
   config := Config{}
-  config.Lambda  = 5.385329e+00
   config.Verbose = 0
   config.Seed    = 1
 
