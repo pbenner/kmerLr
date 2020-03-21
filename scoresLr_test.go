@@ -120,3 +120,41 @@ func TestScores2(test *testing.T) {
   }
   os.Remove("scoresLr_test_co_1.json")
 }
+
+func TestScores3(test *testing.T) {
+  config := Config{}
+  config.Lambda  = 5.385329e+00
+  config.Verbose = 0
+  config.Seed    = 1
+
+  filename_fg := "scoresLr_test_co_fg.table"
+  filename_bg := "scoresLr_test_co_bg.table"
+
+  main_learn_scores(config, []string{"learn", "--no-normalization", "--lambda-auto=1", "--co-occurrence", "--co-preselection=4", filename_fg, filename_bg, "scoresLr_test_co"})
+
+  classifier := ImportScoresLrEnsemble(config, "scoresLr_test_co_1.json")
+
+  data           := compile_training_data_scores(config, []int{}, FeatureIndices{}, filename_fg, filename_bg)
+  data_selection := classifier.SelectData(config, data)
+
+  for i := 0; i < len(data.Data); i++ {
+    for j, feature := range classifier.Features {
+      i1 := classifier.Index[feature[0]]
+      i2 := classifier.Index[feature[1]]
+      if i1 == i2 {
+        v1 := data.Data[i].ValueAt(i1+1)
+        v2 := data_selection[i].ValueAt(j+1)
+        if math.Abs(v1 - v2) > 1e-10 {
+          test.Error("test failed")
+        }
+      } else {
+        v1 := data.Data[i].ValueAt(i1+1)*data.Data[i].ValueAt(i2+1)
+        v2 := data_selection[i].ValueAt(j+1)
+        if math.Abs(v1 - v2) > 1e-10 {
+          test.Error("test failed")
+        }
+      }
+    }
+  }
+  os.Remove("scoresLr_test_co_1.json")
+}
