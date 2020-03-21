@@ -128,7 +128,11 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
       PrintStderr(config, 1, "Selecting %d features... ", n)
     } else {
       d := r.Nonzero()
-      PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features... ", d, n-d)
+      if d > n {
+        PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, removing %d features... ", d, d-n)
+      } else {
+        PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features... ", d, n-d)
+      }
     }
     selection, lambda, ok := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.Index, obj.L1Reg)
     PrintStderr(config, 1, "done\n")
