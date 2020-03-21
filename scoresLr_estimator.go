@@ -128,9 +128,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
   r := (*ScoresLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
     // select features on the initial data set
-    if r == nil {
-      PrintStderr(config, 1, "Selecting %d features... ", n)
-    } else {
+    if r != nil {
       d := r.Nonzero()
       if d > n {
         PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, removing %d features... ", d, d-n)

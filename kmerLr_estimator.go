@@ -129,9 +129,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
     // select features on the initial data set
-    if r == nil {
-      PrintStderr(config, 1, "Selecting %d features... ", n)
-    } else {
+    if r != nil {
       d := r.Nonzero()
       if d > n {
         PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, removing %d features... ", d, d-n)
