@@ -126,12 +126,13 @@ func TestScores3(test *testing.T) {
   config.Verbose = 0
   config.Seed    = 1
 
-  filename_fg := "scoresLr_test_co_fg.table"
-  filename_bg := "scoresLr_test_co_bg.table"
+  filename_fg  := "scoresLr_test_co_fg.table"
+  filename_bg  := "scoresLr_test_co_bg.table"
+  filename_out := "scoresLr_test_co_3.json"
 
-  main_learn_scores(config, []string{"learn", "--no-normalization", "--lambda-auto=1", "--co-occurrence", "--co-preselection=4", filename_fg, filename_bg, "scoresLr_test_co"})
+  main_learn_scores(config, []string{"learn", "--no-normalization", "--lambda-auto=3", "--co-occurrence", "--co-preselection=5", filename_fg, filename_bg, "scoresLr_test_co"})
 
-  classifier := ImportScoresLrEnsemble(config, "scoresLr_test_co_1.json")
+  classifier := ImportScoresLrEnsemble(config, filename_out)
 
   data           := compile_training_data_scores(config, []int{}, FeatureIndices{}, filename_fg, filename_bg)
   data_selection := classifier.SelectData(config, data)
@@ -155,5 +156,5 @@ func TestScores3(test *testing.T) {
       }
     }
   }
-  os.Remove("scoresLr_test_co_1.json")
+  os.Remove(filename_out)
 }
