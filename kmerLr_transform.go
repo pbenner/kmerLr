@@ -182,9 +182,14 @@ type Transform struct {
 /* -------------------------------------------------------------------------- */
 
 func NewTransform(n int) Transform {
+  if n < 0 {
+    panic("internal error")
+  }
   t := Transform{}
-  t.Mu    = make([]float64, n)
-  t.Sigma = make([]float64, n)
+  t.Mu    = make([]float64, n+1)
+  t.Sigma = make([]float64, n+1)
+  t.Mu   [0] = 0.0
+  t.Sigma[0] = 1.0
   return t
 }
 

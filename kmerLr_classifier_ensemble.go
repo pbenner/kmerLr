@@ -317,7 +317,7 @@ func (obj *KmerLrEnsemble) AddKmerLr(classifier *KmerLr) error {
   // create new transform
   transform := Transform{}
   if !classifier.Transform.Nil() {
-    transform = NewTransform(len(features)+1)
+    transform = NewTransform(len(features))
     if !obj.Transform.Nil() {
       if err := transform.Insert(obj.Transform, features, obj.Features, kmers, obj.Kmers); err != nil {
         return err
