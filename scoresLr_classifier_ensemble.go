@@ -353,7 +353,7 @@ func (obj *ScoresLrEnsemble) SelectData(config Config, data_ ScoresDataSet) []Co
     v := []float64{data[i_].ValueAt(0)}
     for j, feature := range obj.Features {
       if feature[0] == feature[1] {
-        i1, ok := imap[feature[0]]; if !ok {
+        i1, ok := imap[obj.Index[feature[0]]]; if !ok {
           panic("internal error")
         }
         if value := data[i_].ValueAt(i1+1); value != 0.0 {
@@ -361,10 +361,10 @@ func (obj *ScoresLrEnsemble) SelectData(config Config, data_ ScoresDataSet) []Co
           v = append(v, value)
         }
       } else {
-        i1, ok := imap[feature[0]]; if !ok {
+        i1, ok := imap[obj.Index[feature[0]]]; if !ok {
           panic("internal error")
         }
-        i2, ok := imap[feature[1]]; if !ok {
+        i2, ok := imap[obj.Index[feature[1]]]; if !ok {
           panic("internal error")
         }
         if value := data[i_].ValueAt(i1+1)*data[i_].ValueAt(i2+1); value != 0.0 {
