@@ -91,6 +91,7 @@ func (obj *ScoresLrEstimator) n_params(config Config, data []ConstVector, lambda
 /* -------------------------------------------------------------------------- */
 
 func (obj *ScoresLrEstimator) estimate(config Config, data ScoresDataSet, transform Transform, cooccurrence bool) *ScoresLr {
+  transform.Apply(config, data.Data)
   if err := obj.LogisticRegression.SetSparseData(data.Data, data.Labels, len(data.Data)); err != nil {
     log.Fatal(err)
   }
@@ -110,11 +111,14 @@ func (obj *ScoresLrEstimator) estimate(config Config, data ScoresDataSet, transf
   }
 }
 
-func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, transform TransformFull, lambda int, cooccurrence bool) (*ScoresLr, []ConstVector) {
+func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, transform TransformFull, lambdaAuto int, cooccurrence bool) (*ScoresLr, []ConstVector) {
   if len(data.Data) == 0 {
     return nil, nil
   }
-  m, n := obj.n_params(config, data.Data, lambda, obj.Cooccurrence)
+  var selection *featureSelection
+  var lambda     float64
+  var ok         bool
+  m, n := obj.n_params(config, data.Data, lambdaAuto, obj.Cooccurrence)
   // compute class weights
   obj.LogisticRegression.SetLabels(data.Labels)
   // create a copy of data arrays, from which to select subsets
@@ -122,7 +126,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
   obj.reduced_data.Labels = data.Labels
   s := newFeatureSelector(config, KmerClassList{}, data.Index, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*ScoresLr)(nil)
-  for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
+  for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
     // select features on the initial data set
     if r == nil {
       PrintStderr(config, 1, "Selecting %d features... ", n)
@@ -134,7 +138,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
         PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features... ", d, n-d)
       }
     }
-    selection, lambda, ok := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.Index, obj.L1Reg)
+    selection, lambda, ok = s.Select(data.Data, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.Index, obj.L1Reg)
     PrintStderr(config, 1, "done\n")
     if !ok && r != nil {
       break
@@ -148,6 +152,10 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
     r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
+  }
+  if selection != nil {
+    // select data without applying transform
+    selection.Data(config, obj.reduced_data.Data, data.Data)
   }
   r_data := obj.reduced_data.Data
   obj.reduced_data = ScoresDataSet{}

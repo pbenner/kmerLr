@@ -73,7 +73,7 @@ func newFeatureSelector(config Config, kmers KmerClassList, index []int, cooccur
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) Select(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, lambda float64) (featureSelection, float64, bool) {
+func (obj featureSelector) Select(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, lambda float64) (*featureSelection, float64, bool) {
   if obj.M != data[0].Dim()-1 {
     panic("internal error")
   }
@@ -110,7 +110,7 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   l       := obj.computeLambda(b, g, g_)
   k, s, f := obj.selectKmers(b)
   tr      := obj.Transform.Select(b)
-  return featureSelection{obj, k, s, f, t, tr, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
+  return &featureSelection{obj, k, s, f, t, tr, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -237,7 +237,7 @@ type featureSelection struct {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelection) Theta() DenseBareRealVector {
+func (obj *featureSelection) Theta() DenseBareRealVector {
   r := []float64{}
   for i := 0; i < len(obj.b); i++ {
     if obj.b[i] {
@@ -247,7 +247,7 @@ func (obj featureSelection) Theta() DenseBareRealVector {
   return NewDenseBareRealVector(r)
 }
 
-func (obj featureSelection) Data(config Config, data_dst, data []ConstVector) {
+func (obj *featureSelection) Data(config Config, data_dst, data []ConstVector) {
   k := []int{}
   m := obj.featureSelector.M
   // remap data indices
@@ -281,21 +281,20 @@ func (obj featureSelection) Data(config Config, data_dst, data []ConstVector) {
     v = append([]float64{}, v[0:len(v)]...)
     data_dst[i_] = UnsafeSparseConstRealVector(i, v, obj.c+1)
   }
-  obj.transform.Apply(config, data_dst)
 }
 
-func (obj featureSelection) Kmers() KmerClassList {
+func (obj *featureSelection) Kmers() KmerClassList {
   return obj.kmers
 }
 
-func (obj featureSelection) Index() []int {
+func (obj *featureSelection) Index() []int {
   return obj.index
 }
 
-func (obj featureSelection) Features() FeatureIndices {
+func (obj *featureSelection) Features() FeatureIndices {
   return obj.features
 }
 
-func (obj featureSelection) Transform() Transform {
+func (obj *featureSelection) Transform() Transform {
   return obj.transform
 }

@@ -89,6 +89,7 @@ func (obj *KmerLrEstimator) n_params(config Config, data []ConstVector, lambdaAu
 /* -------------------------------------------------------------------------- */
 
 func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform Transform, cooccurrence bool) *KmerLr {
+  transform.Apply(config, data.Data)
   if err := obj.LogisticRegression.SetSparseData(data.Data, data.Labels, len(data.Data)); err != nil {
     log.Fatal(err)
   }
@@ -115,6 +116,9 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
   if len(data.Kmers) != data.Data[0].Dim()-1 {
     panic("internal error")
   }
+  var selection *featureSelection
+  var lambda     float64
+  var ok         bool
   m, n := obj.n_params(config, data.Data, lambdaAuto, cooccurrence)
   // compute class weights
   obj.LogisticRegression.SetLabels(data.Labels)
@@ -123,7 +127,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
   obj.reduced_data.Labels = data.Labels
   s := newFeatureSelector(config, data.Kmers, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
-  for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs ; epoch++ {
+  for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
     // select features on the initial data set
     if r == nil {
       PrintStderr(config, 1, "Selecting %d features... ", n)
@@ -135,7 +139,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
         PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features... ", d, n-d)
       }
     }
-    selection, lambda, ok := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, nil, obj.L1Reg)
+    selection, lambda, ok = s.Select(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, nil, obj.L1Reg)
     PrintStderr(config, 1, "done\n")
     if !ok && r != nil {
       break
@@ -149,6 +153,10 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
     r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
+  }
+  if selection != nil {
+    // select data without applying transform
+    selection.Data(config, obj.reduced_data.Data, data.Data)
   }
   r_data := obj.reduced_data.Data
   obj.reduced_data = KmerDataSet{}
