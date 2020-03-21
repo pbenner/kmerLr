@@ -107,6 +107,9 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
       c        += 1
     }
   }
+  if c > obj.N {
+    ok = true
+  }
   l       := obj.computeLambda(b, g, g_)
   k, s, f := obj.selectKmers(b)
   tr      := obj.Transform.Select(b)
