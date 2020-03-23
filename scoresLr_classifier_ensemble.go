@@ -107,7 +107,7 @@ func (obj *ScoresLrEnsemble) Summarize(config Config, x []float64) float64 {
 func (obj *ScoresLrEnsemble) Loss(config Config, data []ConstVector, c []bool) []float64 {
   lr := logisticRegression{}
   lr.Lambda = config.Lambda
-  //lr.Pool   = config.Pool
+  lr.Pool   = config.PoolLR
   if config.Balance {
     lr.ClassWeights = compute_class_weights(c)
   } else {
@@ -125,7 +125,7 @@ func (obj *ScoresLrEnsemble) Loss(config Config, data []ConstVector, c []bool) [
 func (obj *ScoresLrEnsemble) Predict(config Config, data []ConstVector) []float64 {
   lr := logisticRegression{}
   lr.Lambda = config.Lambda
-  //lr.Pool   = config.Pool
+  lr.Pool   = config.PoolLR
   r := make([]float64, len(data))
   t := make([]float64, len(obj.Theta))
   for i, _ := range data {

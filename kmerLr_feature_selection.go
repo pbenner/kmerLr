@@ -67,7 +67,7 @@ func newFeatureSelector(config Config, kmers KmerClassList, index []int, cooccur
     // data dimension (without co-occurrences)
     M           : m,
     Epsilon     : epsilon,
-    Pool        : config.Pool }
+    Pool        : config.PoolLR }
   return r
 }
 
@@ -175,7 +175,7 @@ func (obj featureSelector) gradient(data []ConstVector, theta []float64) []float
   lr.Theta        = theta
   lr.ClassWeights = obj.ClassWeights
   lr.Cooccurrence = obj.Cooccurrence
-  //lr.Pool         = obj.Pool
+  lr.Pool         = obj.Pool
   lr.Transform    = obj.Transform
   return lr.Gradient(nil, data, obj.Labels)
 }

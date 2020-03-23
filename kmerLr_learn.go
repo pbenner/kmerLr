@@ -122,6 +122,7 @@ func main_learn(config Config, args []string) {
   optScaleStepSize   := options. StringLong("scale-step-size",  0 ,        "1.0", "scale standard step-size")
   optThreadsCV       := options.    IntLong("threads-cv",       0 ,            1, "number of threads for cross-validation")
   optThreadsSaga     := options.    IntLong("threads-saga",     0 ,            1, "number of threads for SAGA algorithm")
+  optThreadsLR       := options.    IntLong("threads-lr",       0 ,            1, "number of threads for evaluating the logistic loss and gradient")
   optHelp            := options.   BoolLong("help",            'h',               "print help")
 
   options.SetParameters("<<M> <N>|<MODEL.json>> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
@@ -254,6 +255,9 @@ func main_learn(config Config, args []string) {
   }
   if *optThreadsSaga > 1 {
     config.PoolSaga = threadpool.New(*optThreadsSaga, 100)
+  }
+  if *optThreadsLR > 1 {
+    config.PoolLR = threadpool.New(*optThreadsLR, 100)
   }
   config.Balance         = *optBalance
   config.Copreselection  = *optCopreselection

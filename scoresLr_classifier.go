@@ -54,7 +54,7 @@ func (obj *ScoresLr) Predict(config Config, data []ConstVector) []float64 {
   lr := logisticRegression{}
   lr.Theta  = obj   .Theta
   lr.Lambda = config.Lambda
-  //lr.Pool   = config.Pool
+  lr.Pool   = config.PoolLR
   r := make([]float64, len(data))
   for i, _ := range data {
     r[i] = lr.LogPdf(data[i].(SparseConstRealVector))
@@ -66,7 +66,7 @@ func (obj *ScoresLr) Loss(config Config, data []ConstVector, c []bool) float64 {
   lr := logisticRegression{}
   lr.Theta  = obj   .Theta
   lr.Lambda = config.Lambda
-  //lr.Pool   = config.Pool
+  lr.Pool   = config.PoolLR
   if config.Balance {
     lr.ClassWeights = compute_class_weights(c)
   } else {

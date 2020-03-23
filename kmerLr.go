@@ -50,6 +50,7 @@ type Config struct {
   Pool            threadpool.ThreadPool
   PoolCV          threadpool.ThreadPool
   PoolSaga        threadpool.ThreadPool
+  PoolLR          threadpool.ThreadPool
   Verbose         int
 }
 
