@@ -26,6 +26,8 @@ import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/autodiff/statistics/vectorDistribution"
 import   "github.com/pbenner/autodiff/statistics/vectorEstimator"
 
+import . "github.com/pbenner/gonetics"
+
 /* -------------------------------------------------------------------------- */
 
 type KmerLrEstimator struct {
@@ -73,6 +75,16 @@ func (obj *KmerLrEstimator) CloneVectorEstimator() VectorEstimator {
 }
 
 /* -------------------------------------------------------------------------- */
+
+func (obj *KmerLrEstimator) Reset() {
+  if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
+    log.Fatal(err)
+  } else {
+    obj.LogisticRegression = *estimator
+    obj.Features           = FeatureIndices{}
+    obj.Kmers              = KmerClassList {}
+  }
+}
 
 func (obj *KmerLrEstimator) n_params(config Config, data []ConstVector, lambdaAuto int, cooccurrence bool) (int, int) {
   if m := data[0].Dim()-1; lambdaAuto != 0 {
