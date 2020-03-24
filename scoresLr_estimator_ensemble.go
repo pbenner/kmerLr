@@ -98,6 +98,10 @@ func (obj ScoresLrEstimatorEnsemble) Estimate(config Config, data_train, data_te
     r, r_data := obj.Estimators[0].estimate_loop(config, data_train, transform, config.Copreselection, false)
     data_train.Data  = r_data
     data_train.Index = r.Index
+    // reset all estimators
+    for _, estimator := range obj.Estimators {
+      estimator.Reset()
+    }
   }
   transform := TransformFull{}
   if !config.NoNormalization {

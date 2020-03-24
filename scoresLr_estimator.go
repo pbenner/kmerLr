@@ -76,6 +76,16 @@ func (obj *ScoresLrEstimator) CloneVectorEstimator() VectorEstimator {
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *ScoresLrEstimator) Reset() {
+  if estimator, err := vectorEstimator.NewLogisticRegression(1, true); err != nil {
+    log.Fatal(err)
+  } else {
+    obj.LogisticRegression = *estimator
+    obj.Features           = FeatureIndices{}
+    obj.Index              = []int{}
+  }
+}
+
 func (obj *ScoresLrEstimator) n_params(config Config, data []ConstVector, lambdaAuto int, cooccurrence bool) (int, int) {
   if m := data[0].Dim()-1; lambdaAuto != 0 {
     return m, lambdaAuto
