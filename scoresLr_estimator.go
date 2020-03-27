@@ -121,13 +121,10 @@ func (obj *ScoresLrEstimator) estimate(config Config, data ScoresDataSet, transf
   }
 }
 
-func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, transform TransformFull, lambdaAuto int, cooccurrence bool) (*ScoresLr, []ConstVector) {
+func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, transform TransformFull, lambdaAuto int, cooccurrence bool) *ScoresLr {
   if len(data.Data) == 0 {
-    return nil, nil
+    return nil
   }
-  var selection *featureSelection
-  var lambda     float64
-  var ok         bool
   m, n := obj.n_params(config, data.Data, lambdaAuto, obj.Cooccurrence)
   // compute class weights
   obj.LogisticRegression.SetLabels(data.Labels)
@@ -146,7 +143,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
         PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features...\n", d, n-d)
       }
     }
-    selection, lambda, ok = s.Select(data.Data, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.Index, obj.L1Reg)
+    selection, lambda, ok := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.Index, obj.L1Reg)
     if !ok && r != nil {
       break
     }
@@ -160,20 +157,15 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
     r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
   }
-  if selection != nil {
-    // select data without applying transform
-    selection.Data(config, obj.reduced_data.Data, data.Data)
-  }
-  r_data := obj.reduced_data.Data
   obj.reduced_data = ScoresDataSet{}
-  return r, r_data
+  return r
 }
 
 func (obj *ScoresLrEstimator) Estimate(config Config, data ScoresDataSet, transform TransformFull) []*ScoresLr {
   classifiers := make([]*ScoresLr, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
     PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambda)
-    classifiers[i], _ = obj.estimate_loop(config, data, transform, lambda, obj.Cooccurrence)
+    classifiers[i] = obj.estimate_loop(config, data, transform, lambda, obj.Cooccurrence)
   }
   return classifiers
 }

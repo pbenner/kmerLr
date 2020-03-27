@@ -87,3 +87,47 @@ func (obj *ScoresLr) Nonzero() int {
   }
   return n
 }
+
+/* -------------------------------------------------------------------------- */
+
+func (obj *ScoresLr) SelectData(config Config, data_ ScoresDataSet) []ConstVector {
+  data     := data_.Data
+  data_dst := make([]ConstVector, len(data))
+  index    := data_.Index
+  imap     := make(map[int]int)
+  for i, j := range index {
+    imap[j] = i
+  }
+  for i_ := 0; i_ < len(data); i_++ {
+    i := []int    {                 0 }
+    v := []float64{data[i_].ValueAt(0)}
+    for j, feature := range obj.Features {
+      if feature[0] == feature[1] {
+        i1, ok := imap[obj.Index[feature[0]]]; if !ok {
+          panic("internal error")
+        }
+        if value := data[i_].ValueAt(i1+1); value != 0.0 {
+          i = append(i, j+1)
+          v = append(v, value)
+        }
+      } else {
+        i1, ok := imap[obj.Index[feature[0]]]; if !ok {
+          panic("internal error")
+        }
+        i2, ok := imap[obj.Index[feature[1]]]; if !ok {
+          panic("internal error")
+        }
+        if value := data[i_].ValueAt(i1+1)*data[i_].ValueAt(i2+1); value != 0.0 {
+          i = append(i, j+1)
+          v = append(v, value)
+        }
+      }
+    }
+    // resize slice and restrict capacity
+    i = append([]int    {}, i[0:len(i)]...)
+    v = append([]float64{}, v[0:len(v)]...)
+    data_dst[i_] = UnsafeSparseConstRealVector(i, v, len(obj.Features)+1)
+  }
+  obj.Transform.Apply(config, data_dst)
+  return data_dst
+}

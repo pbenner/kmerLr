@@ -121,16 +121,13 @@ func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform 
   }
 }
 
-func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, transform TransformFull, lambdaAuto int, cooccurrence bool) (*KmerLr, []ConstVector) {
+func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, transform TransformFull, lambdaAuto int, cooccurrence bool) *KmerLr {
   if len(data.Data) == 0 {
-    return nil, nil
+    return nil
   }
   if len(data.Kmers) != data.Data[0].Dim()-1 {
     panic("internal error")
   }
-  var selection *featureSelection
-  var lambda     float64
-  var ok         bool
   m, n := obj.n_params(config, data.Data, lambdaAuto, cooccurrence)
   // compute class weights
   obj.LogisticRegression.SetLabels(data.Labels)
@@ -149,7 +146,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
         PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features...\n", d, n-d)
       }
     }
-    selection, lambda, ok = s.Select(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, nil, obj.L1Reg)
+    selection, lambda, ok := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, nil, obj.L1Reg)
     if !ok && r != nil {
       break
     }
@@ -163,20 +160,15 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
     r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
   }
-  if selection != nil {
-    // select data without applying transform
-    selection.Data(config, obj.reduced_data.Data, data.Data)
-  }
-  r_data := obj.reduced_data.Data
   obj.reduced_data = KmerDataSet{}
-  return r, r_data
+  return r
 }
 
 func (obj *KmerLrEstimator) Estimate(config Config, data KmerDataSet, transform TransformFull) []*KmerLr {
   classifiers := make([]*KmerLr, len(config.LambdaAuto))
   for i, lambda := range config.LambdaAuto {
     PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambda)
-    classifiers[i], _ = obj.estimate_loop(config, data, transform, lambda, obj.Cooccurrence)
+    classifiers[i] = obj.estimate_loop(config, data, transform, lambda, obj.Cooccurrence)
   }
   return classifiers
 }
