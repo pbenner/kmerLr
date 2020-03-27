@@ -144,13 +144,12 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
     if r != nil {
       d := r.Nonzero()
       if d > n {
-        PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, removing %d features... ", d, d-n)
+        PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, removing %d features...\n", d, d-n)
       } else {
-        PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features... ", d, n-d)
+        PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features...\n", d, n-d)
       }
     }
     selection, lambda, ok = s.Select(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, nil, obj.L1Reg)
-    PrintStderr(config, 1, "done\n")
     if !ok && r != nil {
       break
     }
