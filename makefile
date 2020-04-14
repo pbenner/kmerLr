@@ -9,7 +9,7 @@ GOBIN     = $(shell echo $${GOPATH}/bin)
 all: kmerLr
 
 kmerLr: $(FILES_DEP)
-	go build -ldflags "\
+	go build -v -ldflags "\
 	   -X main.Version=$(VERSION) \
 	   -X main.BuildTime=`TZ=UTC date -u '+%Y-%m-%dT%H:%M:%SZ'` \
 	   -X main.GitHash=`git rev-parse HEAD`" \
