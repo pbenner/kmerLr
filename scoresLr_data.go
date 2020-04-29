@@ -201,6 +201,8 @@ func reduce_samples_scores(config Config, fg, bg []ConstVector) ([]ConstVector, 
   m2 := config.MaxSamples - m1
   if m1 <= 0 || m2 <= 0 {
     log.Fatal("cannot reduce samples")
+  } else {
+    PrintStderr(config, 1, "Reduced training data from (%d,%d) to (%d,%d) samples\n", n1, n2, m1, m2)
   }
   return fg[0:m1], bg[0:m2]
 }
