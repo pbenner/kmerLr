@@ -46,6 +46,7 @@ type Config struct {
   EvalLoss        bool
   MaxEpochs       int
   MaxIterations   int
+  MaxSamples      int
   NoNormalization bool
   Pool            threadpool.ThreadPool
   PoolCV          threadpool.ThreadPool

@@ -100,6 +100,7 @@ func main_learn_scores(config Config, args []string) {
   optEnsembleSummary := options. StringLong("ensemble-summary", 0 ,       "mean", "summary for classifier predictions [mean (default), product]")
   optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
   optMaxIterations   := options.    IntLong("max-iterations",   0 ,            0, "maximum number of iterations")
+  optMaxSamples      := options.    IntLong("max-samples",      0 ,            0, "maximum number of samples")
   optEpsilon         := options. StringLong("epsilon",          0 ,       "0e-0", "optimization tolerance level for parameters")
   optEpsilonLambda   := options. StringLong("epsilon-lambda",   0 ,       "0e-0", "optimization tolerance level for lambda parameter")
   optEpsilonLoss     := options. StringLong("epsilon-loss",     0 ,       "1e-5", "optimization tolerance level for loss function")
@@ -214,6 +215,7 @@ func main_learn_scores(config Config, args []string) {
   config.EvalLoss        = *optEvalLoss
   config.MaxEpochs       = *optMaxEpochs
   config.MaxIterations   = *optMaxIterations
+  config.MaxSamples      = *optMaxSamples
   config.SaveTrace       = *optSaveTrace
   config.NoNormalization = *optNoNormalization
   if config.EpsilonLoss != 0.0 {

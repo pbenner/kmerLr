@@ -191,9 +191,26 @@ func import_scores(config Config, filename string, index []int, features Feature
 
 /* -------------------------------------------------------------------------- */
 
+func reduce_samples_scores(config Config, fg, bg []ConstVector) ([]ConstVector, []ConstVector) {
+  if config.MaxSamples == 0 || len(fg) + len(bg) <= config.MaxSamples {
+    return fg, bg
+  }
+  n1 := len(fg)
+  n2 := len(bg)
+  m1 := int(float64(n1)/float64(n1+n2)*float64(config.MaxSamples))
+  m2 := config.MaxSamples - m1
+  if m1 <= 0 || m2 <= 0 {
+    log.Fatal("cannot reduce samples")
+  }
+  return fg[0:m1], bg[0:m2]
+}
+
+/* -------------------------------------------------------------------------- */
+
 func compile_training_data_scores(config Config, index []int, features FeatureIndices, filename_fg, filename_bg string) ScoresDataSet {
   scores_fg, index, dim := import_scores(config, filename_fg, index, features, -1)
   scores_bg,     _,   _ := import_scores(config, filename_bg, index, features, dim)
+  scores_fg, scores_bg   = reduce_samples_scores(config, scores_fg, scores_bg)
   // define labels (assign foreground regions a label of 1)
   labels := make([]bool, len(scores_fg)+len(scores_bg))
   for i := 0; i < len(scores_fg); i++ {

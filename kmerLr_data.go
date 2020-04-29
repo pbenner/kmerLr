@@ -172,9 +172,26 @@ func scan_sequences(config Config, kmersCounter *KmerCounter, binarize bool, seq
 
 /* -------------------------------------------------------------------------- */
 
+func reduce_samples(config Config, fg, bg []string) ([]string, []string) {
+  if config.MaxSamples == 0 || len(fg) + len(bg) <= config.MaxSamples {
+    return fg, bg
+  }
+  n1 := len(fg)
+  n2 := len(bg)
+  m1 := int(float64(n1)/float64(n1+n2)*float64(config.MaxSamples))
+  m2 := config.MaxSamples - m1
+  if m1 <= 0 || m2 <= 0 {
+    log.Fatal("cannot reduce samples")
+  }
+  return fg[0:m1], bg[0:m2]
+}
+
+/* -------------------------------------------------------------------------- */
+
 func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, binarize bool, filename_fg, filename_bg string) KmerDataSet {
   fg := import_fasta(config, filename_fg)
   bg := import_fasta(config, filename_bg)
+  fg, bg  = reduce_samples(config, fg, bg)
   labels := make([]bool, len(fg)+len(bg))
   for i := 0; i < len(fg); i++ {
     labels[i] = true
