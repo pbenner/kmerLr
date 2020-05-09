@@ -171,6 +171,13 @@ func (obj TransformFull) Select(b []bool) Transform {
   return tr
 }
 
+func (obj TransformFull) SelectAll() Transform {
+  tr := Transform{}
+  tr.Mu    = obj.Mu
+  tr.Sigma = obj.Sigma
+  return tr
+}
+
 /* -------------------------------------------------------------------------- */
 /* -------------------------------------------------------------------------- */
 

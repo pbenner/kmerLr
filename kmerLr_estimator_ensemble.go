@@ -112,8 +112,7 @@ func (obj KmerLrEstimatorEnsemble) Estimate(config Config, data_train, data_test
   }
   classifiers := obj.estimate_ensemble(config, data_train, transform)
   predictions := make([][]float64, len(config.LambdaAuto))
-  for i, lambda := range config.LambdaAuto {
-    PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambda)
+  for i, _ := range classifiers {
     data_test     := classifiers[i].SelectData(config, data_test)
     predictions[i] = classifiers[i].Predict   (config, data_test)
   }

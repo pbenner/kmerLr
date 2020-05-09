@@ -121,6 +121,36 @@ func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform 
   }
 }
 
+func (obj *KmerLrEstimator) estimate_fixed(config Config, data KmerDataSet, transform TransformFull, lambda float64, cooccurrence bool) *KmerLr {
+  if len(data.Data) == 0 {
+    return nil
+  }
+  if len(data.Kmers) != data.Data[0].Dim()-1 {
+    panic("internal error")
+  }
+  m, n := obj.n_params(config, data.Data, 0, cooccurrence)
+  // compute class weights
+  obj.LogisticRegression.SetLabels(data.Labels)
+  // create a copy of data arrays, from which to select subsets
+  obj.reduced_data.Data   = make([]ConstVector, len(data.Data))
+  obj.reduced_data.Labels = data.Labels
+  s := newFeatureSelector(config, data.Kmers, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
+
+  selection, _, _ := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, nil, obj.L1Reg)
+  obj.L1Reg    = lambda
+  obj.Features = selection.Features()
+  obj.Kmers    = selection.Kmers()
+  obj.Theta    = selection.Theta()
+  // create actual training data set
+  selection.Data(config, obj.reduced_data.Data, data.Data)
+
+  PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
+  r := obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
+
+  obj.reduced_data = KmerDataSet{}
+  return r
+}
+
 func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, transform TransformFull, lambdaAuto int, cooccurrence bool) *KmerLr {
   if len(data.Data) == 0 {
     return nil
@@ -165,10 +195,16 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
 }
 
 func (obj *KmerLrEstimator) Estimate(config Config, data KmerDataSet, transform TransformFull) []*KmerLr {
-  classifiers := make([]*KmerLr, len(config.LambdaAuto))
-  for i, lambda := range config.LambdaAuto {
-    PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambda)
-    classifiers[i] = obj.estimate_loop(config, data, transform, lambda, obj.Cooccurrence)
+  if config.Lambda != 0.0 {
+    classifiers   := make([]*KmerLr, 1)
+    classifiers[0] = obj.estimate_fixed(config, data, transform, config.Lambda, obj.Cooccurrence)
+    return classifiers
+  } else {
+    classifiers := make([]*KmerLr, len(config.LambdaAuto))
+    for i, lambdaAuto := range config.LambdaAuto {
+      PrintStderr(config, 1, "Estimating classifier with %d non-zero coefficients...\n", lambdaAuto)
+      classifiers[i] = obj.estimate_loop(config, data, transform, lambdaAuto, obj.Cooccurrence)
+    }
+    return classifiers
   }
-  return classifiers
 }

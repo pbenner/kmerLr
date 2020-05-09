@@ -92,6 +92,7 @@ func learn_scores(config Config, classifier *ScoresLrEnsemble, filename_json, fi
 func main_learn_scores(config Config, args []string) {
   options := getopt.New()
 
+  optLambda          := options. StringLong("lambda",           0 ,        "0.0", "set fixed regularization strength")
   optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "comma separated list of integers specifying the number of features to select; for each value a separate classifier is estimated")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model co-occurrences")
@@ -178,6 +179,11 @@ func main_learn_scores(config Config, args []string) {
   } else {
     config.StepSizeFactor = v
   }
+  if s, err := strconv.ParseFloat(*optLambda, 64); err != nil {
+    log.Fatal(err)
+  } else {
+    config.Lambda = s
+  }
   if fields := strings.Split(*optLambdaAuto, ","); len(fields) == 0 {
     options.PrintUsage(os.Stderr)
     os.Exit(1)
@@ -189,7 +195,14 @@ func main_learn_scores(config Config, args []string) {
         config.LambdaAuto = append(config.LambdaAuto, int(n))
       }
     }
+    if len(config.LambdaAuto) == 0 {
+      options.PrintUsage(os.Stdout)
+      os.Exit(1)
+    }
     sort.Ints(config.LambdaAuto)
+  }
+  if config.Lambda != 0.0 && (len(config.LambdaAuto) != 1 || config.LambdaAuto[0] != 0) {
+    log.Fatal("options --lambda and --lambda-auto are incompatible")
   }
   if *optKFoldCV < 1 {
     options.PrintUsage(os.Stdout)
