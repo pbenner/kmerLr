@@ -125,26 +125,29 @@ func (obj *ScoresLrEstimator) estimate_fixed(config Config, data ScoresDataSet, 
   if len(data.Data) == 0 {
     return nil
   }
-  m, n := obj.n_params(config, data.Data, 0, obj.Cooccurrence)
+  m, _ := obj.n_params(config, data.Data, 0, obj.Cooccurrence)
   // compute class weights
   obj.LogisticRegression.SetLabels(data.Labels)
   // create a copy of data arrays, from which to select subsets
   obj.reduced_data.Data   = make([]ConstVector, len(data.Data))
   obj.reduced_data.Labels = data.Labels
-  s := newFeatureSelector(config, KmerClassList{}, data.Index, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
+  s := newFeatureSelector(config, KmerClassList{}, data.Index, cooccurrence, data.Labels, transform, obj.ClassWeights, m, 0, config.EpsilonLambda)
+  r := (*ScoresLr)(nil)
+  for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
+    selection, ok := s.SelectFixed(data.Data, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.Index, lambda)
+    if !ok && r != nil {
+      break
+    }
+    obj.L1Reg    = lambda
+    obj.Features = selection.Features()
+    obj.Index    = selection.Index()
+    obj.Theta    = selection.Theta()
+    // create actual training data sets
+    selection.Data(config, obj.reduced_data.Data, data.Data)
 
-  selection, _, _ := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, KmerClassList{}, obj.Index, obj.L1Reg)
-
-  obj.L1Reg    = lambda
-  obj.Features = selection.Features()
-  obj.Index    = selection.Index()
-  obj.Theta    = selection.Theta()
-  // create actual training data sets
-  selection.Data(config, obj.reduced_data.Data, data.Data)
-
-  PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
-  r := obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
-
+    PrintStderr(config, 1, "Estimating parameters with lambda=%e and %d features...\n", lambda, len(obj.Features))
+    r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
+  }
   obj.reduced_data = ScoresDataSet{}
   return r
 }

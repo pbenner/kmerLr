@@ -116,7 +116,45 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   return &featureSelection{obj, k, s, f, t, tr, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
 }
 
+func (obj featureSelector) SelectFixed(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, l float64) (*featureSelection, bool) {
+  if obj.M != data[0].Dim()-1 {
+    panic("internal error")
+  }
+  ok := false
+  // copy all features i with theta_{i+1} != 0
+  t, c, b := obj.restoreNonzero(theta, features, kmers, index)
+  // compute gradient for selecting new features
+  g := obj.gradient(data, t)
+  // add new features
+  for k := 1; k < len(g); k++ {
+    if g[k] >= l && b[k] == false {
+      ok   = true
+      b[k] = true
+      c   += 1
+    }
+  }
+  k, s, f := obj.selectKmers(b)
+  tr      := obj.Transform.Select(b)
+  return &featureSelection{obj, k, s, f, t, tr, b, c}, ok
+}
+
 /* -------------------------------------------------------------------------- */
+
+func (obj featureSelector) alloc(theta []float64) ([]bool, []float64) {
+  t := []float64(nil)
+  b := []bool   (nil)
+  m := obj.M
+  if obj.Cooccurrence {
+    t = make([]float64, CoeffIndex(m).Dim())
+    b = make([]bool   , CoeffIndex(m).Dim())
+  } else {
+    t = make([]float64, m+1)
+    b = make([]bool   , m+1)
+  }
+  b[0] = true
+  t[0] = theta[0]
+  return b, t
+}
 
 func (obj featureSelector) computeLambda(b []bool, g, g_ []float64) float64 {
   if obj.N > len(g) {
@@ -134,19 +172,9 @@ func (obj featureSelector) computeLambda(b []bool, g, g_ []float64) float64 {
 }
 
 func (obj featureSelector) restoreNonzero(theta []float64, features FeatureIndices, kmers KmerClassList, index []int) ([]float64, int, []bool) {
-  t := []float64(nil)
-  b := []bool   (nil)
-  c := 0
-  m := obj.M
-  if obj.Cooccurrence {
-    t = make([]float64, CoeffIndex(m).Dim())
-    b = make([]bool   , CoeffIndex(m).Dim())
-  } else {
-    t = make([]float64, m+1)
-    b = make([]bool   , m+1)
-  }
-  b[0] = true
-  t[0] = theta[0]
+  b, t := obj.alloc(theta)
+  c    := 0
+  m    := obj.M
   if len(obj.Index) > 0 {
     for i, feature := range features {
       j := CoeffIndex(m).Ind2Sub(obj.IndexMap[index[feature[0]]], obj.IndexMap[index[feature[1]]])

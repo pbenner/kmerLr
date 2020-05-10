@@ -128,25 +128,29 @@ func (obj *KmerLrEstimator) estimate_fixed(config Config, data KmerDataSet, tran
   if len(data.Kmers) != data.Data[0].Dim()-1 {
     panic("internal error")
   }
-  m, n := obj.n_params(config, data.Data, 0, cooccurrence)
+  m, _ := obj.n_params(config, data.Data, 0, cooccurrence)
   // compute class weights
   obj.LogisticRegression.SetLabels(data.Labels)
   // create a copy of data arrays, from which to select subsets
   obj.reduced_data.Data   = make([]ConstVector, len(data.Data))
   obj.reduced_data.Labels = data.Labels
-  s := newFeatureSelector(config, data.Kmers, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
+  s := newFeatureSelector(config, data.Kmers, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, 0, config.EpsilonLambda)
+  r := (*KmerLr)(nil)
+  for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
+    selection, ok := s.SelectFixed(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, nil, lambda)
+    if !ok && r != nil {
+      break
+    }
+    obj.L1Reg    = lambda
+    obj.Features = selection.Features()
+    obj.Kmers    = selection.Kmers()
+    obj.Theta    = selection.Theta()
+    // create actual training data set
+    selection.Data(config, obj.reduced_data.Data, data.Data)
 
-  selection, _, _ := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, nil, obj.L1Reg)
-  obj.L1Reg    = lambda
-  obj.Features = selection.Features()
-  obj.Kmers    = selection.Kmers()
-  obj.Theta    = selection.Theta()
-  // create actual training data set
-  selection.Data(config, obj.reduced_data.Data, data.Data)
-
-  PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
-  r := obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
-
+    PrintStderr(config, 1, "Estimating parameters with lambda=%e and %d features...\n", lambda, len(obj.Features))
+    r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
+  }
   obj.reduced_data = KmerDataSet{}
   return r
 }
