@@ -127,7 +127,7 @@ func (obj featureSelector) SelectFixed(data []ConstVector, theta []float64, feat
   g := obj.gradient(data, t)
   // add new features
   for k := 1; k < len(g); k++ {
-    if g[k] >= l && b[k] == false {
+    if math.Abs(g[k]) >= l && b[k] == false {
       ok   = true
       b[k] = true
       c   += 1
