@@ -118,24 +118,14 @@ func (obj AbsFloatInt) SortReverse() {
 /* -------------------------------------------------------------------------- */
 
 func NLargestAbsFloat64(x []float64, n int) ([]float64, []int) {
+  i := make([]int, len(x))
+  for j := 0; j < len(x); j++ {
+    i[j] = j
+  }
+  AbsFloatInt{x, i}.SortReverse()
   if len(x) <= n {
-    i := make([]int, len(x))
-    for j := 0; j < len(x); j++ {
-      i[j] = j
-    }
-    AbsFloatInt{x, i}.SortReverse()
     return x, i
   } else {
-    y := make([]float64, n)
-    i := make([]int    , n)
-    // find positions of largest absolute values
-    for j := 0; j < len(x); j++ {
-      if math.Abs(x[j]) > math.Abs(y[n-1]) {
-        y[n-1] = x[j]
-        i[n-1] = j
-        AbsFloatInt{y, i}.SortReverse()
-      }
-    }
-    return y, i
+    return x[0:n], i[0:n]
   }
 }
