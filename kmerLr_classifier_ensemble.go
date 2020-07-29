@@ -131,7 +131,7 @@ func (obj *KmerLrEnsemble) Predict(config Config, data []ConstVector) []float64 
   for i, _ := range data {
     for j := 0; j < len(obj.Theta); j++ {
       lr.Theta = obj.Theta[j]
-      t[j] = lr.LogPdf(data[i].(SparseConstRealVector))
+      t[j] = lr.LogPdf(data[i].(SparseConstFloat64Vector))
     }
     r[i] = obj.Summarize(config, t)
   }
@@ -373,7 +373,7 @@ func (obj *KmerLrEnsemble) ImportConfig(config ConfigDistribution, t ScalarType)
     if err := lr.ImportConfig(config.Distributions[j], t); err != nil {
       return err
     } else {
-      obj.Theta[j] = lr.Theta.GetValues()
+      obj.Theta[j] = AsDenseFloat64Vector(lr.Theta)
     }
   }
   if err := obj.Transform.ImportConfig(config.Distributions[n-1], t); err != nil {
@@ -397,7 +397,7 @@ func (obj *KmerLrEnsemble) ImportConfig(config ConfigDistribution, t ScalarType)
 func (obj *KmerLrEnsemble) ExportConfig() ConfigDistribution {
   distributions := []ConfigDistribution{}
   for j := 0; j < len(obj.Theta); j++ {    
-    if lr, err := vectorDistribution.NewLogisticRegression(NewDenseBareRealVector(obj.Theta[j])); err != nil {
+    if lr, err := vectorDistribution.NewLogisticRegression(NewDenseFloat64Vector(obj.Theta[j])); err != nil {
       panic("internal error")
     } else {
       distributions = append(distributions, lr.ExportConfig())

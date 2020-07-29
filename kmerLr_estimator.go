@@ -58,7 +58,7 @@ func NewKmerLrEstimator(config Config, classifier *KmerLr, icv int) *KmerLrEstim
       r.LogisticRegression.MaxIterations = config.MaxIterations
     }
     if len(classifier.Theta) > 0 {
-      r.SetParameters(NewDenseBareRealVector(classifier.Theta))
+      r.LogisticRegression.Theta = DenseFloat64Vector(classifier.Theta)
     }
     return r
   }
@@ -113,7 +113,7 @@ func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform 
     return nil
   } else {
     r := &KmerLr{}
-    r.Theta          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
+    r.Theta          = r_.(*vectorDistribution.LogisticRegression).Theta.(DenseFloat64Vector)
     r.KmerLrFeatures = obj.KmerLrFeatures
     r.Cooccurrence   = cooccurrence
     r.Transform      = transform
@@ -137,7 +137,7 @@ func (obj *KmerLrEstimator) estimate_fixed(config Config, data KmerDataSet, tran
   s := newFeatureSelector(config, data.Kmers, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, 0, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
-    selection, ok := s.SelectFixed(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, nil, lambda)
+    selection, ok := s.SelectFixed(data.Data, AsDenseFloat64Vector(obj.Theta), obj.Features, obj.Kmers, nil, lambda)
     if !ok && r != nil {
       break
     }
@@ -180,7 +180,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
         PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features...\n", d, n-d)
       }
     }
-    selection, lambda, ok := s.Select(data.Data, obj.Theta.GetValues(), obj.Features, obj.Kmers, nil, obj.L1Reg)
+    selection, lambda, ok := s.Select(data.Data, obj.Theta, obj.Features, obj.Kmers, nil, obj.L1Reg)
     if !ok && r != nil {
       break
     }

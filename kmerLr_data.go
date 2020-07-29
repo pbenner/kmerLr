@@ -118,7 +118,7 @@ func convert_counts(config Config, counts KmerCounts, features FeatureIndices) C
   // resize slice and restrict capacity
   i = append([]int    {}, i[0:len(i)]...)
   v = append([]float64{}, v[0:len(v)]...)
-  return UnsafeSparseConstRealVector(i, v, n)
+  return UnsafeSparseConstFloat64Vector(i, v, n)
 }
 
 func convert_counts_list(config Config, countsList *KmerCountsList, features FeatureIndices) []ConstVector {

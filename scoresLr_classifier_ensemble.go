@@ -131,7 +131,7 @@ func (obj *ScoresLrEnsemble) Predict(config Config, data []ConstVector) []float6
   for i, _ := range data {
     for j := 0; j < len(obj.Theta); j++ {
       lr.Theta = obj.Theta[j]
-      t[j] = lr.LogPdf(data[i].(SparseConstRealVector))
+      t[j] = lr.LogPdf(data[i].(SparseConstFloat64Vector))
     }
     r[i] = obj.Summarize(config, t)
   }
@@ -362,7 +362,7 @@ func (obj *ScoresLrEnsemble) ImportConfig(config ConfigDistribution, t ScalarTyp
     if err := lr.ImportConfig(config.Distributions[j], t); err != nil {
       return err
     } else {
-      obj.Theta[j] = lr.Theta.GetValues()
+      obj.Theta[j] = lr.Theta.(DenseFloat64Vector)
     }
   }
   if err := obj.Transform.ImportConfig(config.Distributions[n-1], t); err != nil {
@@ -386,7 +386,7 @@ func (obj *ScoresLrEnsemble) ImportConfig(config ConfigDistribution, t ScalarTyp
 func (obj *ScoresLrEnsemble) ExportConfig() ConfigDistribution {
   distributions := []ConfigDistribution{}
   for j := 0; j < len(obj.Theta); j++ {    
-    if lr, err := vectorDistribution.NewLogisticRegression(NewDenseBareRealVector(obj.Theta[j])); err != nil {
+    if lr, err := vectorDistribution.NewLogisticRegression(NewDenseFloat64Vector(obj.Theta[j])); err != nil {
       panic("internal error")
     } else {
       distributions = append(distributions, lr.ExportConfig())

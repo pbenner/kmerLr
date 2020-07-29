@@ -56,8 +56,8 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector, cooccurrence bo
     if data[i_].Dim() != m+1 {
       panic("internal error")
     }
-    i := data[i_].(SparseConstRealVector).GetSparseIndices()
-    v := data[i_].(SparseConstRealVector).GetSparseValues ()
+    i := data[i_].(SparseConstFloat64Vector).GetSparseIndices()
+    v := data[i_].(SparseConstFloat64Vector).GetSparseValues ()
     q := len(i)
 
     for j := 1; j < q; j++ {
@@ -85,8 +85,8 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector, cooccurrence bo
     if data[i_].Dim() != m+1 {
       panic("internal error")
     }
-    i := data[i_].(SparseConstRealVector).GetSparseIndices()
-    v := data[i_].(SparseConstRealVector).GetSparseValues ()
+    i := data[i_].(SparseConstFloat64Vector).GetSparseIndices()
+    v := data[i_].(SparseConstFloat64Vector).GetSparseValues ()
     q := len(i)
 
     for j := 1; j < q; j++ {
@@ -406,14 +406,14 @@ func (obj Transform) Apply(config Config, data []ConstVector) {
     if data[i].Dim() != m {
       panic("data has invalid dimension")
     }
-    indices := data[i].(SparseConstRealVector).GetSparseIndices()
-    values  := data[i].(SparseConstRealVector).GetSparseValues ()
+    indices := data[i].(SparseConstFloat64Vector).GetSparseIndices()
+    values  := data[i].(SparseConstFloat64Vector).GetSparseValues ()
     for j1, j2 := range indices {
       if j2 < len(obj.Mu) {
         values[j1] = (values[j1] - obj.Mu[j2])/obj.Sigma[j2]
       }
     }
-    data[i] = UnsafeSparseConstRealVector(indices, values, m)
+    data[i] = UnsafeSparseConstFloat64Vector(indices, values, m)
   }
   PrintStderr(config, 1, "done\n")
 }

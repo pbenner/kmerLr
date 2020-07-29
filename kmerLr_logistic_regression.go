@@ -44,7 +44,7 @@ func (obj logisticRegression) Dim() int {
   return len(obj.Theta)-1
 }
 
-func (obj logisticRegression) LinearPdf(x SparseConstRealVector) float64 {
+func (obj logisticRegression) LinearPdf(x SparseConstFloat64Vector) float64 {
   i := x.GetSparseIndices()
   v := x.GetSparseValues ()
   n := x.Dim()-1
@@ -108,7 +108,7 @@ func (obj logisticRegression) LinearPdf(x SparseConstRealVector) float64 {
   return r
 }
 
-func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, y bool) float64 {
+func (obj logisticRegression) ClassLogPdf(x SparseConstFloat64Vector, y bool) float64 {
   r := obj.LinearPdf(x)
   if y {
     return -LogAdd(0.0, -r)
@@ -117,7 +117,7 @@ func (obj logisticRegression) ClassLogPdf(x SparseConstRealVector, y bool) float
   }
 }
 
-func (obj logisticRegression) LogPdf(v SparseConstRealVector) float64 {
+func (obj logisticRegression) LogPdf(v SparseConstFloat64Vector) float64 {
   return obj.ClassLogPdf(v, true)
 }
 
@@ -138,9 +138,9 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
   }
   for i_ := 0; i_ < len(data); i_++ {
     w := 0.0
-    r := obj.LogPdf(data[i_].(SparseConstRealVector))
-    i := data[i_].(SparseConstRealVector).GetSparseIndices()
-    v := data[i_].(SparseConstRealVector).GetSparseValues ()
+    r := obj.LogPdf(data[i_].(SparseConstFloat64Vector))
+    i := data[i_].(SparseConstFloat64Vector).GetSparseIndices()
+    v := data[i_].(SparseConstFloat64Vector).GetSparseValues ()
     n := data[i_].Dim()-1
     q := len(i)
 
@@ -208,9 +208,9 @@ func (obj logisticRegression) Loss(data []ConstVector, c []bool) float64 {
 
   for i := 0; i < n; i++ {
     if c[i] {
-      r -= obj.ClassWeights[1]*obj.ClassLogPdf(data[i].(SparseConstRealVector), c[i])
+      r -= obj.ClassWeights[1]*obj.ClassLogPdf(data[i].(SparseConstFloat64Vector), c[i])
     } else {
-      r -= obj.ClassWeights[0]*obj.ClassLogPdf(data[i].(SparseConstRealVector), c[i])
+      r -= obj.ClassWeights[0]*obj.ClassLogPdf(data[i].(SparseConstFloat64Vector), c[i])
     }
   }
   if obj.Lambda != 0.0 {

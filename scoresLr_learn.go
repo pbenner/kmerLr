@@ -83,7 +83,7 @@ func learn_scores(config Config, classifier *ScoresLrEnsemble, filename_json, fi
   }
   // create index for sparse data
   for i, _ := range data.Data {
-    data.Data[i].(SparseConstRealVector).CreateIndex()
+    data.Data[i].(SparseConstFloat64Vector).CreateIndex()
   }
   if config.KFoldCV <= 1 {
     learn_scores_parameters(config, classifier, data, ScoresDataSet{}, -1, basename_out)

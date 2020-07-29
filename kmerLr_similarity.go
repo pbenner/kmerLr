@@ -63,8 +63,8 @@ func compute_similarity(config Config, theta []float64, x1, x2 ConstVector) floa
   r2 := 0.0
   for i := 0; i < len(theta); i++ {
     vt := theta[i]
-    v1 := x1.ValueAt(i)
-    v2 := x2.ValueAt(i)
+    v1 := x1.Float64At(i)
+    v2 := x2.Float64At(i)
     r0 += v1*vt*v2
     r1 += v1*vt*v1
     r2 += v2*vt*v2
@@ -106,7 +106,7 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
   for i := 0; i < len(data.Data); i++ {
     result[i] = make([]float64, len(data.Data))
     // create sparse vector index
-    data.Data[i].ValueAt(1)
+    data.Data[i].Float64At(1)
   }
   config.Pool.RangeJob(0, len(data.Data), func(i int, pool threadpool.ThreadPool, erf func() error) error {
     config := config; config.Pool = pool

@@ -62,7 +62,7 @@ func (obj *KmerLrEstimator) estimate_step_size(x []ConstVector) {
       it.Next()
     }
     for ; it.Ok(); it.Next() {
-      r += it.GetValue()*it.GetValue()
+      r += it.GetConst().GetFloat64()*it.GetConst().GetFloat64()
     }
     if r > max_squared_sum {
       max_squared_sum = r
@@ -77,8 +77,8 @@ func (obj *KmerLrEstimator) estimate_step_size(x []ConstVector) {
 
 func (obj *KmerLrEstimator) estimate_proximal(config Config, data_train KmerDataSet, transform Transform) *KmerLr {
   obj.estimate_step_size(data_train.Data)
-  theta0 := obj.Theta.GetValues()
-  theta1 := obj.Theta.GetValues()
+  theta0 := []float64(obj.Theta)
+  theta1 := []float64(obj.Theta)
   lr     := logisticRegression{theta1, obj.ClassWeights, 0.0, false, TransformFull{}, config.Pool}
   for i := 0; i < obj.LogisticRegression.MaxIterations; i++ {
     // receive step size during each iteration, since the hook
@@ -101,18 +101,18 @@ func (obj *KmerLrEstimator) estimate_proximal(config Config, data_train KmerData
       break
     } else {
       // execute hook if available
-      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseConstRealVector(theta1), ConstReal(delta), ConstReal(obj.L1Reg), i) {
+      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseFloat64Vector(theta1), ConstFloat64(delta), ConstFloat64(obj.L1Reg), i) {
         break
       }
     }
   }
-  obj.Theta = NewDenseBareRealVector(theta1)
+  obj.Theta = NewDenseFloat64Vector(theta1)
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
     log.Fatal(err)
     return nil
   } else {
     r := &KmerLr{}
-    r.Theta          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
+    r.Theta          = r_.(*vectorDistribution.LogisticRegression).Theta.(DenseFloat64Vector)
     r.KmerLrFeatures = obj.KmerLrFeatures
     r.Transform      = transform
     return r

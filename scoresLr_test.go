@@ -142,14 +142,14 @@ func TestScores3(test *testing.T) {
       i1 := classifier.Index[feature[0]]
       i2 := classifier.Index[feature[1]]
       if i1 == i2 {
-        v1 := data.Data[i].ValueAt(i1+1)
-        v2 := data_selection[i].ValueAt(j+1)
+        v1 := data.Data[i].Float64At(i1+1)
+        v2 := data_selection[i].Float64At(j+1)
         if math.Abs(v1 - v2) > 1e-10 {
           test.Error("test failed")
         }
       } else {
-        v1 := data.Data[i].ValueAt(i1+1)*data.Data[i].ValueAt(i2+1)
-        v2 := data_selection[i].ValueAt(j+1)
+        v1 := data.Data[i].Float64At(i1+1)*data.Data[i].Float64At(i2+1)
+        v2 := data_selection[i].Float64At(j+1)
         if math.Abs(v1 - v2) > 1e-10 {
           test.Error("test failed")
         }

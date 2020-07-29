@@ -57,7 +57,7 @@ func (obj *ScoresLr) Predict(config Config, data []ConstVector) []float64 {
   lr.Pool   = config.PoolLR
   r := make([]float64, len(data))
   for i, _ := range data {
-    r[i] = lr.LogPdf(data[i].(SparseConstRealVector))
+    r[i] = lr.LogPdf(data[i].(SparseConstFloat64Vector))
   }
   return r
 }
@@ -100,13 +100,13 @@ func (obj *ScoresLr) SelectData(config Config, data_ ScoresDataSet) []ConstVecto
   }
   for i_ := 0; i_ < len(data); i_++ {
     i := []int    {                 0 }
-    v := []float64{data[i_].ValueAt(0)}
+    v := []float64{data[i_].Float64At(0)}
     for j, feature := range obj.Features {
       if feature[0] == feature[1] {
         i1, ok := imap[obj.Index[feature[0]]]; if !ok {
           panic("internal error")
         }
-        if value := data[i_].ValueAt(i1+1); value != 0.0 {
+        if value := data[i_].Float64At(i1+1); value != 0.0 {
           i = append(i, j+1)
           v = append(v, value)
         }
@@ -117,7 +117,7 @@ func (obj *ScoresLr) SelectData(config Config, data_ ScoresDataSet) []ConstVecto
         i2, ok := imap[obj.Index[feature[1]]]; if !ok {
           panic("internal error")
         }
-        if value := data[i_].ValueAt(i1+1)*data[i_].ValueAt(i2+1); value != 0.0 {
+        if value := data[i_].Float64At(i1+1)*data[i_].Float64At(i2+1); value != 0.0 {
           i = append(i, j+1)
           v = append(v, value)
         }
@@ -126,7 +126,7 @@ func (obj *ScoresLr) SelectData(config Config, data_ ScoresDataSet) []ConstVecto
     // resize slice and restrict capacity
     i = append([]int    {}, i[0:len(i)]...)
     v = append([]float64{}, v[0:len(v)]...)
-    data_dst[i_] = UnsafeSparseConstRealVector(i, v, len(obj.Features)+1)
+    data_dst[i_] = UnsafeSparseConstFloat64Vector(i, v, len(obj.Features)+1)
   }
   obj.Transform.Apply(config, data_dst)
   return data_dst

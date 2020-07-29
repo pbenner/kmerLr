@@ -36,7 +36,7 @@ func kmer_abundance(data []ConstVector, c []bool, i int, label bool) float64 {
   for j := 0; j < len(data); j++ {
     if c[j] == label {
       n += 1
-      if data[j].ValueAt(i+1) > 0.0 {
+      if data[j].Float64At(i+1) > 0.0 {
         k += 1
       }
     }

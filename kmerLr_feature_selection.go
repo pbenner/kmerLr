@@ -268,14 +268,14 @@ type featureSelection struct {
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *featureSelection) Theta() DenseBareRealVector {
+func (obj *featureSelection) Theta() DenseFloat64Vector {
   r := []float64{}
   for i := 0; i < len(obj.b); i++ {
     if obj.b[i] {
       r = append(r, obj.theta[i])
     }
   }
-  return NewDenseBareRealVector(r)
+  return NewDenseFloat64Vector(r)
 }
 
 func (obj *featureSelection) Data(config Config, data_dst, data []ConstVector) {
@@ -296,12 +296,12 @@ func (obj *featureSelection) Data(config Config, data_dst, data []ConstVector) {
     for j1, j2 := range k {
       if j2 >= data[i_].Dim() {
         i1, i2 := CoeffIndex(m).Sub2Ind(j2-1)
-        if value := data[i_].ValueAt(i1+1)*data[i_].ValueAt(i2+1); value != 0.0 {
+        if value := data[i_].Float64At(i1+1)*data[i_].Float64At(i2+1); value != 0.0 {
           i = append(i, j1)
           v = append(v, value)
         }
       } else {
-        if value := data[i_].ValueAt(j2); value != 0.0 {
+        if value := data[i_].Float64At(j2); value != 0.0 {
           i = append(i, j1)
           v = append(v, value)
         }
@@ -310,7 +310,7 @@ func (obj *featureSelection) Data(config Config, data_dst, data []ConstVector) {
     // resize slice and restrict capacity
     i = append([]int    {}, i[0:len(i)]...)
     v = append([]float64{}, v[0:len(v)]...)
-    data_dst[i_] = UnsafeSparseConstRealVector(i, v, obj.c+1)
+    data_dst[i_] = UnsafeSparseConstFloat64Vector(i, v, obj.c+1)
   }
 }
 

@@ -89,7 +89,7 @@ func learn(config Config, classifier *KmerLrEnsemble, filename_json, filename_fg
   }
   // create index for sparse data
   for i, _ := range data.Data {
-    data.Data[i].(SparseConstRealVector).CreateIndex()
+    data.Data[i].(SparseConstFloat64Vector).CreateIndex()
   }
   if config.KFoldCV <= 1 {
     learn_parameters(config, classifier, data, KmerDataSet{}, -1, basename_out)

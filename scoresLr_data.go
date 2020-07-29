@@ -122,7 +122,7 @@ func convert_scores(config Config, scores []float64, index []int, features Featu
   // resize slice and restrict capacity
   i = append([]int    {}, i[0:len(i)]...)
   v = append([]float64{}, v[0:len(v)]...)
-  return UnsafeSparseConstRealVector(i, v, n)
+  return UnsafeSparseConstFloat64Vector(i, v, n)
 }
 
 /* -------------------------------------------------------------------------- */

@@ -40,13 +40,13 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
     for it := xi.ConstIterator(); it.Ok(); it.Next() {
       j1 := it.Index()
       // compute inner product between response y and feature vectors <y, x_j>
-      inner_xy[j1] += w[i_]*y[i_]*it.GetValue()
+      inner_xy[j1] += w[i_]*y[i_]*it.GetConst().GetFloat64()
       // compute normalization constant
-      norm[j1] += w[i_]*it.GetValue()*it.GetValue()
+      norm[j1] += w[i_]*it.GetConst().GetFloat64()*it.GetConst().GetFloat64()
       // compute inner product between feature vectors <x_j, x_k>
       for is := xi.ConstIterator(); is.Ok(); is.Next() {
         j2 := is.Index()
-        inner_xx[j1][j2] += w[i_]*it.GetValue()*is.GetValue()
+        inner_xx[j1][j2] += w[i_]*it.GetConst().GetFloat64()*is.GetConst().GetFloat64()
       }
     }
   }
@@ -75,7 +75,7 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
       break
     } else {
       // execute hook if available
-      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseConstRealVector(theta1), ConstReal(delta), ConstReal(obj.L1Reg), iter) {
+      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseFloat64Vector(theta1), ConstFloat64(delta), ConstFloat64(obj.L1Reg), iter) {
         break
       }
     }
@@ -86,16 +86,16 @@ func (obj *KmerLrEstimator) estimate_coordinate_loop(config Config, data_train K
 func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDataSet, transform Transform) *KmerLr {
   obj.estimate_step_size(data_train.Data)
   class_weights := compute_class_weights(data_train.Labels)
-  theta0  := obj.Theta.GetValues()
-  theta0_ := obj.Theta.GetValues()
-  theta1  := obj.Theta.GetValues()
+  theta0  := []float64(obj.Theta)
+  theta0_ := []float64(obj.Theta)
+  theta1  := []float64(obj.Theta)
   lr      := logisticRegression{theta1, obj.ClassWeights, 0.0, false, TransformFull{}, config.Pool}
   w := make([]float64, len(data_train.Data))
   z := make([]float64, len(data_train.Data))
   for iter := 0; iter < obj.LogisticRegression.MaxIterations; iter++ {
     // compute linear approximation
     for i := 0; i < len(data_train.Data); i++ {
-      r   := lr.LinearPdf(data_train.Data[i].(SparseConstRealVector))
+      r   := lr.LinearPdf(data_train.Data[i].(SparseConstFloat64Vector))
       p   := math.Exp(-LogAdd(0.0, -r))
       w[i] = p*(1.0 - p)
       if data_train.Labels[i] {
@@ -120,18 +120,18 @@ func (obj *KmerLrEstimator) estimate_coordinate(config Config, data_train KmerDa
       break
     } else {
       // execute hook if available
-      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseConstRealVector(theta1), ConstReal(delta), ConstReal(obj.L1Reg), iter) {
+      if obj.LogisticRegression.Hook != nil && obj.LogisticRegression.Hook(DenseFloat64Vector(theta1), ConstFloat64(delta), ConstFloat64(obj.L1Reg), iter) {
         break
       }
     }
   }
-  obj.Theta = NewDenseBareRealVector(theta1)
+  obj.Theta = NewDenseFloat64Vector(theta1)
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
     log.Fatal(err)
     return nil
   } else {
     r := &KmerLr{}
-    r.Theta          = r_.(*vectorDistribution.LogisticRegression).Theta.GetValues()
+    r.Theta          = r_.(*vectorDistribution.LogisticRegression).Theta.(DenseFloat64Vector)
     r.KmerLrFeatures = obj.KmerLrFeatures
     r.Transform      = transform
     return r

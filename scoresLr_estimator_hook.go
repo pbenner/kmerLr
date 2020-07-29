@@ -31,8 +31,8 @@ func NewScoresHook(config Config, icv int, estimator *ScoresLrEstimator) HookTyp
   loss_new := math.NaN()
   loss := func(x ConstVector, lambda ConstScalar) float64 {
     lr := logisticRegression{}
-    lr.Theta        = x.GetValues()
-    lr.Lambda       = lambda.GetValue()
+    lr.Theta        = x.(DenseFloat64Vector)
+    lr.Lambda       = lambda.GetFloat64()
     lr.ClassWeights = estimator.ClassWeights
     return lr.Loss(estimator.reduced_data.Data, estimator.reduced_data.Labels)
   }
@@ -50,12 +50,12 @@ func NewScoresHook(config Config, icv int, estimator *ScoresLrEstimator) HookTyp
       }
     }
     for it := x.ConstIterator(); it.Ok(); it.Next() {
-      if it.GetValue() != 0.0 {
+      if it.GetConst().GetFloat64() != 0.0 {
         n += 1
       }
     }
     if config.SaveTrace {
-      estimator.trace.Append(iteration, n, change.GetValue(), lambda.GetValue(), loss_new, time.Since(s))
+      estimator.trace.Append(iteration, n, change.GetFloat64(), lambda.GetFloat64(), loss_new, time.Since(s))
     }
     if config.Verbose > 1 {
       if config.SaveTrace {

@@ -45,23 +45,23 @@ func TestKmers1(test *testing.T) {
     data2 := compile_training_data(config, kmersCounter, data1.Kmers, features, false, "kmerLr_test.fa", "kmerLr_test.fa")
 
     for i, _ := range features[0:len(features)-4] {
-      if data1.Data[0].ValueAt(i+1) != data2.Data[0].ValueAt(i+1) {
+      if data1.Data[0].Float64At(i+1) != data2.Data[0].Float64At(i+1) {
         test.Error("test failed")
       }
-      if data1.Data[1].ValueAt(i+1) != data2.Data[1].ValueAt(i+1) {
+      if data1.Data[1].Float64At(i+1) != data2.Data[1].Float64At(i+1) {
         test.Error("test failed")
       }
     }
-    if data2.Data[0].ValueAt(len(features)-3) != 0 {
+    if data2.Data[0].Float64At(len(features)-3) != 0 {
       test.Error("test failed")
     }
-    if data2.Data[0].ValueAt(len(features)-2) != 7 {
+    if data2.Data[0].Float64At(len(features)-2) != 7 {
       test.Error("test failed")
     }
-    if data2.Data[0].ValueAt(len(features)-1) != 1 {
+    if data2.Data[0].Float64At(len(features)-1) != 1 {
       test.Error("test failed")
     }
-    if data2.Data[0].ValueAt(len(features)-0) != 21 {
+    if data2.Data[0].Float64At(len(features)-0) != 21 {
       test.Error("test failed")
     }
   }
@@ -85,10 +85,10 @@ func TestKmers2(test *testing.T) {
       test.Error("test failed")
     } else {
       for i, _ := range features {
-        if data1.Data[0].ValueAt(i+1) != data2.Data[0].ValueAt(i+1) {
+        if data1.Data[0].Float64At(i+1) != data2.Data[0].Float64At(i+1) {
           test.Error("test failed")
         }
-        if data1.Data[1].ValueAt(i+1) != data2.Data[1].ValueAt(i+1) {
+        if data1.Data[1].Float64At(i+1) != data2.Data[1].Float64At(i+1) {
           test.Error("test failed")
         }
       }
@@ -116,7 +116,7 @@ func TestKmers3(test *testing.T) {
 
   for _, x := range data.Data {
     for it := x.ConstIterator(); it.Ok(); it.Next() {
-      if it.GetValue() == 0.0 {
+      if it.GetConst().GetFloat64() == 0.0 {
         test.Error("test failed")
       }
     }
@@ -145,7 +145,7 @@ func TestKmers4(test *testing.T) {
 
   for _, x := range data.Data {
     for it := x.ConstIterator(); it.Ok(); it.Next() {
-      if it.GetValue() == 0.0 {
+      if it.GetConst().GetFloat64() == 0.0 {
         test.Error("test failed")
       }
     }
@@ -158,20 +158,20 @@ func TestKmers5(test *testing.T) {
   config.Seed    = 1
   config.Verbose = 0
 
-  main_learn(config, []string{"learn", "--lambda-auto=2", "--revcomp", "8", "8", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test"})
+  main_learn(config, []string{"learn", "--lambda-auto=2", "--epsilon=0", "--epsilon-loss=1e-4", "--revcomp", "8", "8", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test"})
 
   classifier := ImportKmerLrEnsemble(config, "kmerLr_test_2.json").GetComponent(0)
 
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
   }
-  if math.Abs(classifier.Theta[0] - -0.002399112897182792) > 1e-5 {
+  if math.Abs(classifier.Theta[0] - -0.00291893244153284) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[1] - -0.03289389340005168) > 1e-5 {
+  if math.Abs(classifier.Theta[1] - -0.03182273906990171) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[2] - 0.03552066615422328) > 1e-5 {
+  if math.Abs(classifier.Theta[2] -  0.03976503402038145) > 1e-5 {
     test.Error("test failed")
   }
   if len(classifier.Features) != 2 {

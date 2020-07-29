@@ -39,7 +39,7 @@ func ImportKmerLrEnsemble(config Config, filename string) *KmerLrEnsemble {
   classifier := new(KmerLrEnsemble)
   // export model
   PrintStderr(config, 1, "Importing distribution from `%s'... ", filename)
-  if err := ImportDistribution(filename, classifier, BareRealType); err != nil {
+  if err := ImportDistribution(filename, classifier, Float64Type); err != nil {
     PrintStderr(config, 1, "failed\n")
     log.Fatal(err)
   }
