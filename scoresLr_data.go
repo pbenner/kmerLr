@@ -216,7 +216,7 @@ func import_scores(config Config, filename string, index []int, names []string, 
             if names[i] != names_data[j] {
               PrintStderr(config, 1, "failed\n")
               log.Fatalf("feature names do not match: column %d is named `%s', expected `%s'", j, names_data[j], names[i])
-              }
+            }
           }
         }
       }
