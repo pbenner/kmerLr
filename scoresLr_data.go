@@ -178,17 +178,15 @@ func import_scores(config Config, filename string, index []int, names []string, 
       }
       scores = append(scores, convert_scores(config, c, index, features))
     }
-    return scores, index, names, dim
   } else {
     if _, err := f.Seek(0, io.SeekStart); err != nil {
       PrintStderr(config, 1, "failed\n")
       log.Fatal(err)
     }
-    if names, data, err := read_scores_table(config, f); err != nil {
+    if names_data, data, err := read_scores_table(config, f); err != nil {
       PrintStderr(config, 1, "failed\n")
       log.Fatal(err)
     } else {
-      PrintStderr(config, 1, "done\n")
       for _, c := range data {
         if dim == -1 {
           dim = len(c)
@@ -201,13 +199,26 @@ func import_scores(config Config, filename string, index []int, names []string, 
           for i := 0; i < dim; i++ {
             index[i] = i
           }
+          // there is no index from a previous classifier, so we can
+          // take the names from the data file
+          names = names_data
+        } else {
+          // check if names match
+          if len(names) != 0 && len(names_data) != 0 {
+            for i, j := range index {
+              if names[i] != names_data[j] {
+                PrintStderr(config, 1, "failed\n")
+                log.Fatalf("feature names do not match: column %d is named `%s', expected `%s'", j, names_data[j], names[i])
+              }
+            }
+          }
         }
         scores = append(scores, convert_scores(config, c, index, features))
       }
-      return scores, index, names, dim
+      PrintStderr(config, 1, "done\n")
     }
   }
-  panic("internal error")
+  return scores, index, names, dim
 }
 
 /* -------------------------------------------------------------------------- */

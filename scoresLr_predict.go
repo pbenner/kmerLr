@@ -45,9 +45,10 @@ func predict_scores(config Config, filename_json, filename_in, filename_out stri
 func main_predict_scores(config Config, args []string) {
   options := getopt.New()
 
-  optHelp   := options.BoolLong("help", 'h', "print help")
+  optHeader := options.BoolLong("header",  0 , "input files contain a header with feature names")
+  optHelp   := options.BoolLong("help",   'h', "print help")
 
-  options.SetParameters("<MODEL.json> <SEQUENCES.fa> [RESULT.table]")
+  options.SetParameters("<MODEL.json> <SCORES.table> [RESULT.table]")
   options.Parse(args)
 
   // parse options
@@ -56,6 +57,7 @@ func main_predict_scores(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
+  config.Header = *optHeader
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
   if len(options.Args()) != 2 && len(options.Args()) != 3 {

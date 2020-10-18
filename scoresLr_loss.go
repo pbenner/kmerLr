@@ -46,20 +46,15 @@ func main_loss_scores(config Config, args []string) {
 
   optBalance := options.  BoolLong("balance", 0 ,        "set class weights so that the data set is balanced")
   optLambda  := options.StringLong("lambda",  0 , "0.0", "regularization strength (L1)")
+  optHeader  := options.  BoolLong("header",  0 ,        "input files contain a header with feature names")
   optHelp    := options.  BoolLong("help",   'h',        "print help")
 
-  options.SetParameters("<MODEL.json> <FOREGROUND.fa> <BACKGROUND.fa> [RESULT.table]")
+  options.SetParameters("<MODEL.json> <FOREGROUND.table> <BACKGROUND.table> [RESULT.table]")
   options.Parse(args)
 
   // parse options
   //////////////////////////////////////////////////////////////////////////////
   if *optHelp {
-    options.PrintUsage(os.Stdout)
-    os.Exit(0)
-  }
-  // parse arguments
-  //////////////////////////////////////////////////////////////////////////////
-  if len(options.Args()) != 3 && len(options.Args()) != 4 {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
@@ -69,6 +64,13 @@ func main_loss_scores(config Config, args []string) {
     config.Lambda = v
   }
   config.Balance = *optBalance
+  config.Header  = *optHeader
+  // parse arguments
+  //////////////////////////////////////////////////////////////////////////////
+  if len(options.Args()) != 3 && len(options.Args()) != 4 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(0)
+  }
 
   filename_json := options.Args()[0]
   filename_fg   := options.Args()[1]
