@@ -192,28 +192,33 @@ func import_scores(config Config, filename string, index []int, names []string, 
           dim = len(c)
         }
         if len(c) != dim {
+          PrintStderr(config, 1, "failed\n")
           log.Fatal("Error: data has variable number of features")
         }
-        if len(index) == 0 {
-          index = make([]int, dim)
-          for i := 0; i < dim; i++ {
-            index[i] = i
-          }
-          // there is no index from a previous classifier, so we can
-          // take the names from the data file
-          names = names_data
-        } else {
-          // check if names match
-          if len(names) != 0 && len(names_data) != 0 {
-            for i, j := range index {
-              if names[i] != names_data[j] {
-                PrintStderr(config, 1, "failed\n")
-                log.Fatalf("feature names do not match: column %d is named `%s', expected `%s'", j, names_data[j], names[i])
-              }
-            }
-          }
+        if len(names_data) > 0 && len(names_data) != len(c) {
+          PrintStderr(config, 1, "failed\n")
+          log.Fatal("Error: number of features does not match header")
         }
         scores = append(scores, convert_scores(config, c, index, features))
+      }
+      if len(index) == 0 {
+        index = make([]int, dim)
+        for i := 0; i < dim; i++ {
+          index[i] = i
+        }
+        // there is no index from a previous classifier, so we can
+        // take the names from the data file
+        names = names_data
+      } else {
+        // check if names match
+        if len(names) != 0 && len(names_data) != 0 {
+          for i, j := range index {
+            if names[i] != names_data[j] {
+              PrintStderr(config, 1, "failed\n")
+              log.Fatalf("feature names do not match: column %d is named `%s', expected `%s'", j, names_data[j], names[i])
+              }
+          }
+        }
       }
       PrintStderr(config, 1, "done\n")
     }
