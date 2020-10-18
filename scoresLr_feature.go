@@ -29,6 +29,7 @@ type ScoresLrFeatures struct {
   Cooccurrence   bool
   Features       FeatureIndices
   Index        []int
+  Names        []string
 }
 
 /* -------------------------------------------------------------------------- */
@@ -37,11 +38,13 @@ func (obj ScoresLrFeatures) Clone() ScoresLrFeatures {
   r := ScoresLrFeatures{}
   r.Cooccurrence    = obj.Cooccurrence
   r.Features        = make(FeatureIndices, len(obj.Features))
-  r.Index           = make([]int, len(obj.Index))
+  r.Index           = make([]int,    len(obj.Index))
+  r.Names           = make([]string, len(obj.Names))
   for i, feature := range obj.Features {
     r.Features[i] = [2]int{feature[0], feature[1]}
   }
   copy(r.Index, obj.Index)
+  copy(r.Names, obj.Names)
   return r
 }
 
@@ -58,9 +61,13 @@ func (obj *ScoresLrFeatures) ImportConfig(config ConfigDistribution, t ScalarTyp
   index, ok := config.GetNamedParametersAsInts("Index"); if !ok {
     return fmt.Errorf("invalid config file")
   }
+  names, ok := config.GetNamedParametersAsStrings("Names"); if !ok {
+    return fmt.Errorf("invalid config file")
+  }
   obj.Cooccurrence = cooccurrence
   obj.Features     = features
   obj.Index        = index
+  obj.Names        = names
   return nil
 }
 
@@ -69,9 +76,11 @@ func (obj *ScoresLrFeatures) ExportConfig() ConfigDistribution {
     Cooccurrence   bool
     Features       FeatureIndices
     Index        []int
+    Names        []string
   }{}
   config.Cooccurrence = obj.Cooccurrence
   config.Features     = obj.Features
   config.Index        = obj.Index
+  config.Names        = obj.Names
   return NewConfigDistribution("features-scores", config)
 }

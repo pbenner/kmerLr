@@ -33,6 +33,7 @@ type featureSelector struct {
   Kmers           KmerClassList
   KmersMap        map[KmerClassId]int
   Index         []int
+  Names         []string
   IndexMap        map[int]int
   Transform       TransformFull
   Cooccurrence    bool
@@ -44,7 +45,7 @@ type featureSelector struct {
 
 /* -------------------------------------------------------------------------- */
 
-func newFeatureSelector(config Config, kmers KmerClassList, index []int, cooccurrence bool, labels []bool, transform TransformFull, class_weights [2]float64, m, n int, epsilon float64) featureSelector {
+func newFeatureSelector(config Config, kmers KmerClassList, index []int, names []string, cooccurrence bool, labels []bool, transform TransformFull, class_weights [2]float64, m, n int, epsilon float64) featureSelector {
   kmersMap := make(map[KmerClassId]int)
   for i := 0; i < len(kmers); i++ {
     kmersMap[kmers[i].KmerClassId] = i
@@ -57,6 +58,7 @@ func newFeatureSelector(config Config, kmers KmerClassList, index []int, cooccur
     Kmers       : kmers,
     KmersMap    : kmersMap,
     Index       : index,
+    Names       : names,
     IndexMap    : indexMap,
     Transform   : transform,
     Labels      : labels,
@@ -73,7 +75,7 @@ func newFeatureSelector(config Config, kmers KmerClassList, index []int, cooccur
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) Select(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, lambda float64) (*featureSelection, float64, bool) {
+func (obj featureSelector) Select(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, names []string, lambda float64) (*featureSelection, float64, bool) {
   if obj.M != data[0].Dim()-1 {
     panic("internal error")
   }
@@ -110,13 +112,13 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   if c > obj.N {
     ok = true
   }
-  l       := obj.computeLambda(b, g, g_)
-  k, s, f := obj.selectKmers(b)
-  tr      := obj.Transform.Select(b)
-  return &featureSelection{obj, k, s, f, t, tr, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
+  l          := obj.computeLambda(b, g, g_)
+  k, x, s, f := obj.selectKmers(b)
+  tr         := obj.Transform.Select(b)
+  return &featureSelection{obj, k, x, s, f, t, tr, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
 }
 
-func (obj featureSelector) SelectFixed(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, l float64) (*featureSelection, bool) {
+func (obj featureSelector) SelectFixed(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, names []string, l float64) (*featureSelection, bool) {
   if obj.M != data[0].Dim()-1 {
     panic("internal error")
   }
@@ -133,9 +135,9 @@ func (obj featureSelector) SelectFixed(data []ConstVector, theta []float64, feat
       c   += 1
     }
   }
-  k, s, f := obj.selectKmers(b)
-  tr      := obj.Transform.Select(b)
-  return &featureSelection{obj, k, s, f, t, tr, b, c}, ok
+  k, x, s, f := obj.selectKmers(b)
+  tr         := obj.Transform.Select(b)
+  return &featureSelection{obj, k, x, s, f, t, tr, b, c}, ok
 }
 
 /* -------------------------------------------------------------------------- */
@@ -208,9 +210,10 @@ func (obj featureSelector) gradient(data []ConstVector, theta []float64) []float
   return lr.Gradient(nil, data, obj.Labels)
 }
 
-func (obj featureSelector) selectKmers(b []bool) (KmerClassList, []int, FeatureIndices) {
+func (obj featureSelector) selectKmers(b []bool) (KmerClassList, []int, []string, FeatureIndices) {
   r := KmerClassList{}
-  s := []int{}
+  x := []int{}
+  s := []string{}
   f := FeatureIndices{}
   m := obj.M
   z := make([]bool, m)
@@ -221,6 +224,9 @@ func (obj featureSelector) selectKmers(b []bool) (KmerClassList, []int, FeatureI
       z[i1] = true
       z[i2] = true
     }
+  }
+  if len(obj.Kmers) != 0 && len(obj.Index) != 0 {
+    panic("internal error")
   }
   if len(obj.Kmers) != 0 {
     for k := 0; k < m; k++ {
@@ -239,8 +245,11 @@ func (obj featureSelector) selectKmers(b []bool) (KmerClassList, []int, FeatureI
   if len(obj.Index) != 0 {
     for k := 0; k < m; k++ {
       if z[k] {
-        i[k] = len(s)
-        s    = append(s, obj.Index[k])
+        i[k] = len(x)
+        x    = append(x, obj.Index[k])
+        if len(obj.Names) > 0 {
+          s  = append(s, obj.Names[k])
+        }
       }
     }
     for j := 1; j < len(b); j++ {
@@ -250,7 +259,7 @@ func (obj featureSelector) selectKmers(b []bool) (KmerClassList, []int, FeatureI
       }
     }
   }
-  return r, s, f
+  return r, x, s, f
 }
 
 /* -------------------------------------------------------------------------- */
@@ -259,6 +268,7 @@ type featureSelection struct {
   featureSelector
   kmers     KmerClassList
   index   []int
+  names   []string
   features  FeatureIndices
   theta   []float64
   transform Transform
@@ -320,6 +330,10 @@ func (obj *featureSelection) Kmers() KmerClassList {
 
 func (obj *featureSelection) Index() []int {
   return obj.index
+}
+
+func (obj *featureSelection) Names() []string {
+  return obj.names
 }
 
 func (obj *featureSelection) Features() FeatureIndices {

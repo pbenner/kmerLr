@@ -236,6 +236,7 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
   m2 := make(map[[2]int]int)
   ki := make(map[int]int)
   z  := make(map[int]struct{})
+  s  := make(map[int]string)
   // map kmer pairs to feature indices (ensemble classifier)
   for i, feature := range obj.ScoresLrFeatures.Features {
     i1 := obj.ScoresLrFeatures.Index[feature[0]]
@@ -243,6 +244,10 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
     m1[[2]int{i1,i2}] = i
     z [i1] = struct{}{}
     z [i2] = struct{}{}
+    if len(obj.ScoresLrFeatures.Names) > 0 {
+      s[i1] = obj.ScoresLrFeatures.Names[feature[0]]
+      s[i2] = obj.ScoresLrFeatures.Names[feature[1]]
+    }
   }
   // map kmer pairs to feature indices (new ScoresLr classifier)
   for i, feature := range classifier.ScoresLrFeatures.Features {
@@ -253,14 +258,24 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
       m2[[2]int{i1,i2}] = i
       z [i1] = struct{}{}
       z [i2] = struct{}{}
+      if len(classifier.ScoresLrFeatures.Names) > 0 {
+        s[i1] = classifier.ScoresLrFeatures.Names[feature[0]]
+        s[i2] = classifier.ScoresLrFeatures.Names[feature[1]]
+      }
     }
   }
   // create index union
-  index := []int{}
+  index := []int   {}
+  names := []string{}
   for i, _ := range z {
     index = append(index, i)
   }
   sort.Ints(index)
+  if len(s) > 0 {
+    for _, i := range index {
+      names = append(names, s[i])
+    }
+  }
   // create map
   for i, j := range index {
     ki[j] = i
@@ -318,6 +333,7 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
   }
   obj.ScoresLrFeatures.Features = features
   obj.ScoresLrFeatures.Index    = index
+  obj.ScoresLrFeatures.Names    = names
   obj.Theta                     = coefficients
   obj.Transform                 = transform
   return nil

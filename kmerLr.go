@@ -39,6 +39,7 @@ type Config struct {
   Epsilon         float64
   EpsilonLambda   float64
   EpsilonLoss     float64
+  Header          bool
   KFoldCV         int
   StepSizeFactor  float64
   Seed            int64

@@ -76,7 +76,7 @@ func learn_scores(config Config, classifier *ScoresLrEnsemble, filename_json, fi
   if filename_json != "" {
     classifier = ImportScoresLrEnsemble(config, filename_json)
   }
-  data := compile_training_data_scores(config, classifier.Index, classifier.Features, filename_fg, filename_bg)
+  data := compile_training_data_scores(config, classifier.Index, classifier.Names, classifier.Features, filename_fg, filename_bg)
 
   if len(data.Data) == 0 {
     log.Fatal("Error: no training data given")
@@ -105,6 +105,7 @@ func main_learn_scores(config Config, args []string) {
   optEnsembleSize    := options.    IntLong("ensemble-size",    0 ,            1, "estimate ensemble classifier")
   optEnsembleSummary := options. StringLong("ensemble-summary", 0 ,       "mean", "summary for classifier predictions [mean (default), product]")
   optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
+  optHeader          := options.   BoolLong("header",           0 ,               "input files contain a header with feature names")
   optMaxIterations   := options.    IntLong("max-iterations",   0 ,            0, "maximum number of iterations")
   optMaxSamples      := options.    IntLong("max-samples",      0 ,            0, "maximum number of samples")
   optEpsilon         := options. StringLong("epsilon",          0 ,       "0e-0", "optimization tolerance level for parameters")
@@ -232,6 +233,7 @@ func main_learn_scores(config Config, args []string) {
   config.EnsembleSize    = *optEnsembleSize
   config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss
+  config.Header          = *optHeader
   config.MaxEpochs       = *optMaxEpochs
   config.MaxIterations   = *optMaxIterations
   config.MaxSamples      = *optMaxSamples

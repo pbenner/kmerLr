@@ -25,23 +25,33 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func coefficients_print_scores(index []int, features FeatureIndices, k int) string {
+func coefficients_print_scores(index []int, names []string, features FeatureIndices, k int) string {
   k1 := index[features[k][0]]
   k2 := index[features[k][1]]
-  if k1 == k2 {
-    return fmt.Sprintf("%d", k1+1)
+  if len(names) == 0 {
+    if k1 == k2 {
+      return fmt.Sprintf("%d", k1+1)
+    } else {
+      return fmt.Sprintf("%d & %d", k1+1, k2+1)
+    }
   } else {
-    return fmt.Sprintf("%d & %d", k1+1, k2+1)
+    n1 := names[features[k][0]]
+    n2 := names[features[k][1]]
+    if k1 == k2 {
+      return fmt.Sprintf("%s", n1)
+    } else {
+      return fmt.Sprintf("%s & %s", n1, n2)
+    }
   }
 }
 
-func coefficients_format_scores(index []int, features FeatureIndices, coefficients AbsFloatInt) string {
+func coefficients_format_scores(index []int, names []string, features FeatureIndices, coefficients AbsFloatInt) string {
   m := 0
   for k := 0; k < coefficients.Len(); k++ {
     if coefficients.a[k] == 0.0 {
       break
     }
-    if r := len(coefficients_print_scores(index, features, coefficients.b[k])); r > m {
+    if r := len(coefficients_print_scores(index, names, features, coefficients.b[k])); r > m {
       m = r
     }
   }
@@ -54,6 +64,7 @@ func coefficients_scores_(config Config, classifier *ScoresLr, i_ int, rescale b
   coefficients := NewAbsFloatInt(len(classifier.Theta)-1)
   features     := classifier.Features
   index        := classifier.Index
+  names        := classifier.Names
 
   // insert coefficients into the map
   if rescale && len(classifier.Transform.Sigma) > 0 {
@@ -69,7 +80,7 @@ func coefficients_scores_(config Config, classifier *ScoresLr, i_ int, rescale b
   }
   coefficients.SortReverse()
 
-  format := coefficients_format_scores(index, features, coefficients)
+  format := coefficients_format_scores(index, names, features, coefficients)
 
   fmt.Printf("Classifier %d:\n", i_)
   for i := 0; i < coefficients.Len(); i++ {
@@ -80,10 +91,20 @@ func coefficients_scores_(config Config, classifier *ScoresLr, i_ int, rescale b
     }
     k1 := index[features[k][0]]
     k2 := index[features[k][1]]
-    if k1 == k2 {
-      fmt.Printf(format, i+1, v, k1+1)
+    if len(names) == 0 {
+      if k1 == k2 {
+        fmt.Printf(format, i+1, v, k1+1)
+      } else {
+        fmt.Printf(format, i+1, v, fmt.Sprintf("%d & %d", k1+1, k2+1))
+      }
     } else {
-      fmt.Printf(format, i+1, v, fmt.Sprintf("%d & %d", k1+1, k2+1))
+      n1 := names[features[k][0]]
+      n2 := names[features[k][1]]
+      if k1 == k2 {
+        fmt.Printf(format, i+1, v, n1)
+      } else {
+        fmt.Printf(format, i+1, v, fmt.Sprintf("%s & %s", n1, n2))
+      }
     }
     fmt.Println()
   }

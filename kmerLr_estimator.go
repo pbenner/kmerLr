@@ -134,10 +134,10 @@ func (obj *KmerLrEstimator) estimate_fixed(config Config, data KmerDataSet, tran
   // create a copy of data arrays, from which to select subsets
   obj.reduced_data.Data   = make([]ConstVector, len(data.Data))
   obj.reduced_data.Labels = data.Labels
-  s := newFeatureSelector(config, data.Kmers, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, 0, config.EpsilonLambda)
+  s := newFeatureSelector(config, data.Kmers, nil, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, 0, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
-    selection, ok := s.SelectFixed(data.Data, AsDenseFloat64Vector(obj.Theta), obj.Features, obj.Kmers, nil, lambda)
+    selection, ok := s.SelectFixed(data.Data, AsDenseFloat64Vector(obj.Theta), obj.Features, obj.Kmers, nil, nil, lambda)
     if !ok && r != nil {
       break
     }
@@ -168,7 +168,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
   // create a copy of data arrays, from which to select subsets
   obj.reduced_data.Data   = make([]ConstVector, len(data.Data))
   obj.reduced_data.Labels = data.Labels
-  s := newFeatureSelector(config, data.Kmers, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
+  s := newFeatureSelector(config, data.Kmers, nil, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, n, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
     // select features on the initial data set
@@ -180,7 +180,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
         PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features...\n", d, n-d)
       }
     }
-    selection, lambda, ok := s.Select(data.Data, obj.Theta, obj.Features, obj.Kmers, nil, obj.L1Reg)
+    selection, lambda, ok := s.Select(data.Data, obj.Theta, obj.Features, obj.Kmers, nil, nil, obj.L1Reg)
     if !ok && r != nil {
       break
     }

@@ -35,6 +35,7 @@ type ScoresDataSet struct {
   Data   []ConstVector
   Labels []bool
   Index  []int
+  Names  []string
 }
 
 /* -------------------------------------------------------------------------- */
@@ -52,16 +53,34 @@ func bufioReadLine(reader *bufio.Reader) (string, error) {
   return l[0:len(l)-1], err
 }
 
-func read_scores_table(r io.Reader) ([][]float64, error) {
+func read_scores_table(config Config, r io.Reader) ([]string, [][]float64, error) {
   reader := bufio.NewReader(r)
+  names  :=   []string {}
   entry  := [][]float64{}
-  for i_ := 1;; i_++ {
+  i_     := 1
+  if config.Header {
+    for ;; i_++ {
+      l, err := bufioReadLine(reader)
+      if err == io.EOF {
+        return names, entry, nil
+      }
+      if err != nil {
+        return names, entry, err
+      }
+      if len(l) == 0 {
+        continue
+      }
+      names = strings.FieldsFunc(l, func(x rune) bool { return x == ',' })
+      break
+    }
+  }
+  for ;; i_++ {
     l, err := bufioReadLine(reader)
     if err == io.EOF {
       break
     }
     if err != nil {
-      return entry, err
+      return names, entry, err
     }
     if len(l) == 0 {
       continue
@@ -72,12 +91,12 @@ func read_scores_table(r io.Reader) ([][]float64, error) {
     for i := 0; i < len(data); i++ {
       v, err := strconv.ParseFloat(strings.TrimSpace(data[i]), 64)
       if err != nil {
-        return entry, fmt.Errorf("parsing scores failed at line `%d': %v", i_, err)
+        return names, entry, fmt.Errorf("parsing scores failed at line `%d': %v", i_, err)
       }
       entry[len(entry)-1][i] = v
     }
   }
-  return entry, nil
+  return names, entry, nil
 }
 
 /* -------------------------------------------------------------------------- */
@@ -127,7 +146,7 @@ func convert_scores(config Config, scores []float64, index []int, features Featu
 
 /* -------------------------------------------------------------------------- */
 
-func import_scores(config Config, filename string, index []int, features FeatureIndices, dim int) ([]ConstVector, []int, int) {
+func import_scores(config Config, filename string, index []int, names []string, features FeatureIndices, dim int) ([]ConstVector, []int, []string, int) {
   f, err := os.Open(filename)
   if err != nil {
     log.Fatal(err)
@@ -141,7 +160,7 @@ func import_scores(config Config, filename string, index []int, features Feature
     // scores are in GRanges format
     PrintStderr(config, 1, "done\n")
     if granges.Length() == 0 {
-      return scores, index, dim
+      return scores, index, names, dim
     }
     data := granges.GetMeta("counts").([][]float64)
     for _, c := range data {
@@ -164,7 +183,7 @@ func import_scores(config Config, filename string, index []int, features Feature
       PrintStderr(config, 1, "failed\n")
       log.Fatal(err)
     }
-    if data, err := read_scores_table(f); err != nil {
+    if names_, data, err := read_scores_table(config, f); err != nil {
       PrintStderr(config, 1, "failed\n")
       log.Fatal(err)
     } else {
@@ -176,17 +195,18 @@ func import_scores(config Config, filename string, index []int, features Feature
         if len(c) != dim {
           log.Fatal("Error: data has variable number of features")
         }
-      if len(index) == 0 {
-        index = make([]int, dim)
-        for i := 0; i < dim; i++ {
-          index[i] = i
+        if len(index) == 0 {
+          index = make([]int, dim)
+          for i := 0; i < dim; i++ {
+            index[i] = i
+          }
         }
-      }
+        names  = names_
         scores = append(scores, convert_scores(config, c, index, features))
       }
     }
   }
-  return scores, index, dim
+  return scores, index, names, dim
 }
 
 /* -------------------------------------------------------------------------- */
@@ -209,19 +229,19 @@ func reduce_samples_scores(config Config, fg, bg []ConstVector) ([]ConstVector, 
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data_scores(config Config, index []int, features FeatureIndices, filename_fg, filename_bg string) ScoresDataSet {
-  scores_fg, index, dim := import_scores(config, filename_fg, index, features, -1)
-  scores_bg,     _,   _ := import_scores(config, filename_bg, index, features, dim)
+func compile_training_data_scores(config Config, index []int, names []string, features FeatureIndices, filename_fg, filename_bg string) ScoresDataSet {
+  scores_fg, index, names, dim := import_scores(config, filename_fg, index, names, features, -1)
+  scores_bg,     _,     _,   _ := import_scores(config, filename_bg, index, names, features, dim)
   scores_fg, scores_bg   = reduce_samples_scores(config, scores_fg, scores_bg)
   // define labels (assign foreground regions a label of 1)
   labels := make([]bool, len(scores_fg)+len(scores_bg))
   for i := 0; i < len(scores_fg); i++ {
     labels[i] = true
   }
-  return ScoresDataSet{append(scores_fg, scores_bg...), labels, index}
+  return ScoresDataSet{append(scores_fg, scores_bg...), labels, index, names}
 }
 
-func compile_test_data_scores(config Config, index []int, features FeatureIndices, filename string) ScoresDataSet {
-  scores, index, _ := import_scores(config, filename, index, features, -1)
-  return ScoresDataSet{scores, nil, index}
+func compile_test_data_scores(config Config, index []int, names []string, features FeatureIndices, filename string) ScoresDataSet {
+  scores, index, names, _ := import_scores(config, filename, index, names, features, -1)
+  return ScoresDataSet{scores, nil, index, names}
 }
