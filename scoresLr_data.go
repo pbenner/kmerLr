@@ -158,7 +158,6 @@ func import_scores(config Config, filename string, index []int, names []string, 
   PrintStderr(config, 1, "Reading scores from `%s'... ", filename)
   if err := granges.ReadTable(f, []string{"counts"}, []string{"[][]float64"}); err == nil {
     // scores are in GRanges format
-    PrintStderr(config, 1, "done\n")
     if granges.Length() == 0 {
       return scores, index, names, dim
     }
@@ -220,9 +219,9 @@ func import_scores(config Config, filename string, index []int, names []string, 
           }
         }
       }
-      PrintStderr(config, 1, "done\n")
     }
   }
+  PrintStderr(config, 1, "done\n")
   return scores, index, names, dim
 }
 
