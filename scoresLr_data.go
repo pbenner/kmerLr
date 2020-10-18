@@ -178,12 +178,13 @@ func import_scores(config Config, filename string, index []int, names []string, 
       }
       scores = append(scores, convert_scores(config, c, index, features))
     }
+    return scores, index, names, dim
   } else {
     if _, err := f.Seek(0, io.SeekStart); err != nil {
       PrintStderr(config, 1, "failed\n")
       log.Fatal(err)
     }
-    if names_, data, err := read_scores_table(config, f); err != nil {
+    if names, data, err := read_scores_table(config, f); err != nil {
       PrintStderr(config, 1, "failed\n")
       log.Fatal(err)
     } else {
@@ -201,12 +202,12 @@ func import_scores(config Config, filename string, index []int, names []string, 
             index[i] = i
           }
         }
-        names  = names_
         scores = append(scores, convert_scores(config, c, index, features))
       }
+      return scores, index, names, dim
     }
   }
-  return scores, index, names, dim
+  panic("internal error")
 }
 
 /* -------------------------------------------------------------------------- */
