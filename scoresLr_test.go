@@ -134,7 +134,7 @@ func TestScores3(test *testing.T) {
 
   classifier := ImportScoresLrEnsemble(config, filename_out)
 
-  data           := compile_training_data_scores(config, []int{}, FeatureIndices{}, filename_fg, filename_bg)
+  data           := compile_training_data_scores(config, []int{}, []string{}, FeatureIndices{}, filename_fg, filename_bg)
   data_selection := classifier.SelectData(config, data)
 
   for i := 0; i < len(data.Data); i++ {
