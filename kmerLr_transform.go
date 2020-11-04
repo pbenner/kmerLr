@@ -257,7 +257,7 @@ func (t1 Transform) Insert(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
   return nil
 }
 
-func (t1 Transform) InsertScores(t2 Transform, f1, f2 FeatureIndices) error {
+func (t1 Transform) InsertScores(t2 Transform, f1, f2 FeatureIndices, i1, i2 []int) error {
   if t1.Dim() != len(f1)+1 {
     panic("internal error")
   }
@@ -267,11 +267,11 @@ func (t1 Transform) InsertScores(t2 Transform, f1, f2 FeatureIndices) error {
   // create index
   m := make(map[[2]int]int)
   for i, feature := range f1 {
-    m[feature] = i
+    m[[2]int{i1[feature[0]], i1[feature[1]]}] = i
   }
   for j, feature := range f2 {
     // insert only if feature is present in target transform
-    if i, ok := m[feature]; ok {
+    if i, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
       if t1.Mu[i+1] == 0.0 {
         t1.Mu[i+1] = t2.Mu[j+1]
       } else
@@ -345,7 +345,7 @@ func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
   return true
 }
 
-func (t1 Transform) EqualsScores(t2 Transform, f1, f2 FeatureIndices) bool {
+func (t1 Transform) EqualsScores(t2 Transform, f1, f2 FeatureIndices, i1, i2 []int) bool {
   { // check if transforms are nil
     b1 := false
     b2 := false
@@ -365,10 +365,10 @@ func (t1 Transform) EqualsScores(t2 Transform, f1, f2 FeatureIndices) bool {
   // compare mu
   m := make(map[[2]int]float64)
   for i, feature := range f1 {
-    m[[2]int{feature[0], feature[1]}] = t1.Mu[i+1]
+    m[[2]int{i1[feature[0]], i1[feature[1]]}] = t1.Mu[i+1]
   }
   for i, feature := range f2 {
-    if v, ok := m[[2]int{feature[0], feature[1]}]; ok {
+    if v, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
       if math.Abs(v - t2.Mu[i+1]) > 1e-12 {
         return false
       }
@@ -377,10 +377,10 @@ func (t1 Transform) EqualsScores(t2 Transform, f1, f2 FeatureIndices) bool {
   // compare sigma
   m = make(map[[2]int]float64)
   for i, feature := range f1 {
-    m[[2]int{feature[0], feature[1]}] = t1.Sigma[i+1]
+    m[[2]int{i1[feature[0]], i1[feature[1]]}] = t1.Sigma[i+1]
   }
   for i, feature := range f2 {
-    if v, ok := m[[2]int{feature[0], feature[1]}]; ok {
+    if v, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
       if math.Abs(v - t2.Sigma[i+1]) > 1e-12 {
         return false
       }

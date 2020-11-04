@@ -228,7 +228,7 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
   if obj.Cooccurrence != classifier.Cooccurrence {
     return fmt.Errorf("co-occurrence is not consistent across classifiers")
   }
-  if !obj.Transform.Nil() && !obj.Transform.EqualsScores(classifier.Transform, obj.Features, classifier.Features) {
+  if !obj.Transform.Nil() && !obj.Transform.EqualsScores(classifier.Transform, obj.Features, classifier.Features, obj.Index, classifier.Index) {
     return fmt.Errorf("data transform is not consistent across classifiers")
   }
   n  := len(obj.Theta)
@@ -323,11 +323,11 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
   if !classifier.Transform.Nil() {
     transform = NewTransform(len(features))
     if !obj.Transform.Nil() {
-      if err := transform.InsertScores(obj.Transform, features, obj.Features); err != nil {
+      if err := transform.InsertScores(obj.Transform, features, obj.Features, index, obj.Index); err != nil {
         return err
       }
     }
-    if err := transform.InsertScores(classifier.Transform, features, classifier.Features); err != nil {
+    if err := transform.InsertScores(classifier.Transform, features, classifier.Features, index, classifier.Index); err != nil {
       return err
     }
   }
