@@ -137,6 +137,8 @@ func main() {
       main_coefficients(config, options.Args())
     case "count-features":
       main_count_features(config, options.Args())
+    case "export":
+      main_export(config, options.Args())
     case "similarity":
       main_similarity(config, options.Args())
     default:

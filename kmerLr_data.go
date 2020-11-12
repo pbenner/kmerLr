@@ -18,8 +18,10 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
 import   "log"
+import   "io"
+import   "bufio"
 import   "os"
 
 import . "github.com/pbenner/autodiff"
@@ -58,6 +60,44 @@ func import_fasta(config Config, filename string) []string {
     r[i] = string(s.Sequences[name])
   }
   return r
+}
+
+/* -------------------------------------------------------------------------- */
+
+func export_kmers(config Config, filename string, data KmerDataSet) {
+  var writer io.Writer
+  if filename == "" {
+    writer = os.Stdout
+  } else {
+    f, err := os.Create(filename)
+    if err != nil {
+      panic(err)
+    }
+    defer f.Close()
+
+    w := bufio.NewWriter(f)
+    defer w.Flush()
+
+    writer = w
+  }
+  for j := 0; j < len(data.Kmers); j++ {
+    if j == 0 {
+      fmt.Fprintf(writer,  "%s", data.Kmers[j])
+    } else {
+      fmt.Fprintf(writer, ",%s", data.Kmers[j])
+    }
+  }
+  fmt.Fprintf(writer, "\n")
+  for i := 0; i < len(data.Data); i++ {
+    for j := 1; j < data.Data[i].Dim(); j++ {
+      if j == 1 {
+        fmt.Fprintf(writer,  "%d", data.Data[i].IntAt(j))
+      } else {
+        fmt.Fprintf(writer, ",%d", data.Data[i].IntAt(j))
+      }
+    }
+    fmt.Fprintf(writer, "\n")
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -217,6 +257,8 @@ func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClass
   counts_list := NewKmerCountsList(counts...)
   // set counts_list.Kmers to the set of kmers on which the
   // classifier was trained on
-  counts_list.SetKmers(kmers)
+  if len(kmers) != 0 {
+    counts_list.SetKmers(kmers)
+  }
   return KmerDataSet{convert_counts_list(config, &counts_list, features), nil, counts_list.Kmers}
 }
