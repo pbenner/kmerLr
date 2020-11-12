@@ -257,8 +257,28 @@ func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClass
   counts_list := NewKmerCountsList(counts...)
   // set counts_list.Kmers to the set of kmers on which the
   // classifier was trained on
+  counts_list.SetKmers(kmers)
+  return KmerDataSet{convert_counts_list(config, &counts_list, features), nil, counts_list.Kmers}
+}
+
+/* -------------------------------------------------------------------------- */
+
+func compile_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, binarize bool, filenames []string) []KmerDataSet {
+  r := make([]KmerDataSet, len(filenames))
+  c := make([]KmerCounts , 0)
+  k := make([]int        , len(filenames)+1)
+  for i, filename := range filenames {
+    seq   := import_fasta(config, filename)
+    c      = append(c, scan_sequences(config, kmersCounter, binarize, seq)...)
+    k[i+1] = len(c)
+  }
+  counts_list := NewKmerCountsList(c...)
   if len(kmers) != 0 {
     counts_list.SetKmers(kmers)
   }
-  return KmerDataSet{convert_counts_list(config, &counts_list, features), nil, counts_list.Kmers}
+  for i, _ := range filenames {
+    tmp := counts_list.Slice(k[i], k[i+1])
+    r[i] = KmerDataSet{convert_counts_list(config, &tmp, features), nil, counts_list.Kmers}
+  }
+  return r
 }
