@@ -200,9 +200,9 @@ func TestKmers6(test *testing.T) {
   classifier := ImportKmerLrEnsemble(config, "kmerLr_test_co_2.json").GetComponent(0)
 
   theta := []float64{
-    -0.0067583002814767340,
-     0.0063305676173333325,
-     0.0063305676173333325 }
+    -0.00053639011677299,
+     0.04741316860833697,
+     0.04741316860833697 }
   features := [][]int{
     []int{0,1}, []int{0,2} }
 
@@ -222,20 +222,20 @@ func TestKmers6(test *testing.T) {
       test.Error("test failed")
     }
   }
-  if v := loss_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa")[0]; math.Abs(v - 13.862886) > 1e-4 {
+  if v := loss_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa")[0]; math.Abs(v - 13.410096) > 1e-4 {
     test.Error("test failed")
   }
   w := []float64{
-    -6.902001e-01,
-    -6.902001e-01,
-    -6.902001e-01,
-    -6.902001e-01,
-    -6.902001e-01,
-    -6.902001e-01,
-    -6.902001e-01,
-    -6.902001e-01,
-    -6.902001e-01,
-    -6.902001e-01 }
+    -0.6471131198388077,
+    -0.6471131198388077,
+    -0.6471131198388077,
+    -0.6471131198388077,
+    -0.6471131198388077,
+    -0.6471131198388077,
+    -0.6471131198388077,
+    -0.6471131198388077,
+    -0.6471131198388077,
+    -0.6471131198388077 }
   if v := predict_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {
@@ -246,16 +246,16 @@ func TestKmers6(test *testing.T) {
     }
   }
   w = []float64{
-    -6.965320e-01,
-    -6.965320e-01,
-    -6.965320e-01,
-    -6.965320e-01,
-    -6.965320e-01,
-    -6.965320e-01,
-    -6.965320e-01,
-    -6.965320e-01,
-    -6.965320e-01,
-    -6.965320e-01 }
+    -0.7419648699699566,
+    -0.7419648699699566,
+    -0.7419648699699566,
+    -0.7419648699699566,
+    -0.7419648699699566,
+    -0.7419648699699566,
+    -0.7419648699699566,
+    -0.7419648699699566,
+    -0.7419648699699566,
+    -0.7419648699699566 }
   if v := predict_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_bg.fa"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {
