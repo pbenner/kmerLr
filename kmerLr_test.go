@@ -165,13 +165,13 @@ func TestKmers5(test *testing.T) {
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
   }
-  if math.Abs(classifier.Theta[0] - -0.31940528426237613) > 1e-5 {
+  if math.Abs(classifier.Theta[0] - -0.0028074623110495417) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[1] -  0.07977375890147176) > 1e-5 {
+  if math.Abs(classifier.Theta[1] -  0.012961013135855091) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[2] -  0.13668490900588814) > 1e-5 {
+  if math.Abs(classifier.Theta[2] -  0.03276175675938973) > 1e-5 {
     test.Error("test failed")
   }
   if len(classifier.Features) != 2 {
@@ -183,7 +183,7 @@ func TestKmers5(test *testing.T) {
   if f := classifier.Features[1]; f[0] != 1 || f[1] != 1 {
     test.Error("test failed")
   }
-  if v := loss_(config, "kmerLr_test_2.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")[0]; math.Abs(v - 15.399797) > 1e-4 {
+  if v := loss_(config, "kmerLr_test_2.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")[0]; math.Abs(v - 15.185564942332633) > 1e-4 {
     test.Error("test failed")
   }
   os.Remove("kmerLr_test_2.json")
