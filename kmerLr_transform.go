@@ -408,12 +408,15 @@ func (obj Transform) Apply(config Config, data []ConstVector) {
     }
     indices := data[i].(SparseConstFloat64Vector).GetSparseIndices()
     values  := data[i].(SparseConstFloat64Vector).GetSparseValues ()
-    for j1, j2 := range indices {
-      if j2 < len(obj.Mu) {
-        values[j1] = (values[j1] - obj.Mu[j2])/obj.Sigma[j2]
+    result  := make([]float64, m)
+    for k, j := 0, 0; k < m; k++ {
+      if j < len(values) && indices[j] == k {
+        result[k] = (values[j] - obj.Mu[k])/obj.Sigma[k]; j++
+      } else {
+        result[k] = (      0.0 - obj.Mu[k])/obj.Sigma[k]
       }
     }
-    data[i] = UnsafeSparseConstFloat64Vector(indices, values, m)
+    data[i] = AsSparseConstFloat64Vector(NewDenseFloat64Vector(result))
   }
   PrintStderr(config, 1, "done\n")
 }

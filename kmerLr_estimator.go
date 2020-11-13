@@ -18,7 +18,7 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
 import   "log"
 
 import . "github.com/pbenner/autodiff"
@@ -100,8 +100,30 @@ func (obj *KmerLrEstimator) n_params(config Config, data []ConstVector, lambdaAu
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrEstimator) estimate_debug_gradient(config Config, data KmerDataSet) {
+  r := NewReal64(0.0)
+  s := NewReal64(0.0)
+  t := AsDenseReal64Vector(obj.Theta)
+  t.Variables(1)
+  lr, _ := vectorDistribution.NewLogisticRegression(t)
+  for i := 0; i < len(data.Data); i++ {
+    lr.ClassLogPdf(s, data.Data[i], data.Labels[i])
+    if data.Labels[i] {
+      s.Mul(s, ConstFloat64(obj.ClassWeights[1]))
+    } else {
+      s.Mul(s, ConstFloat64(obj.ClassWeights[0]))
+    }
+    r.Add(r, s)
+  }
+  r.Neg(r)
+  fmt.Printf("gradient (autodiff): %v\n\n", GetGradient(Float64Type, r))
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform Transform, cooccurrence bool) *KmerLr {
   transform.Apply(config, data.Data)
+  //obj.estimate_debug_gradient(config, data)
   if err := obj.LogisticRegression.SetSparseData(data.Data, data.Labels, len(data.Data)); err != nil {
     log.Fatal(err)
   }
