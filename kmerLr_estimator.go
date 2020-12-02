@@ -121,9 +121,11 @@ func (obj *KmerLrEstimator) estimate_debug_gradient(config Config, data KmerData
 
 /* -------------------------------------------------------------------------- */
 
-func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform Transform, cooccurrence bool) *KmerLr {
+func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform Transform, cooccurrence bool, debug bool) *KmerLr {
   transform.Apply(config, data.Data)
-  //obj.estimate_debug_gradient(config, data)
+  if debug {
+    obj.estimate_debug_gradient(config, data)
+  }
   if err := obj.LogisticRegression.SetSparseData(data.Data, data.Labels, len(data.Data)); err != nil {
     log.Fatal(err)
   }
@@ -171,7 +173,7 @@ func (obj *KmerLrEstimator) estimate_fixed(config Config, data KmerDataSet, tran
     selection.Data(config, obj.reduced_data.Data, data.Data)
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e and %d features...\n", lambda, len(obj.Features))
-    r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
+    r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence, false)
   }
   obj.reduced_data = KmerDataSet{}
   return r
@@ -184,6 +186,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
   if len(data.Kmers) != data.Data[0].Dim()-1 {
     panic("internal error")
   }
+  debug := false
   m, n := obj.n_params(config, data.Data, lambdaAuto, cooccurrence)
   // compute class weights
   obj.LogisticRegression.SetLabels(data.Labels)
@@ -202,7 +205,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
         PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features...\n", d, n-d)
       }
     }
-    selection, lambda, ok := s.Select(data.Data, obj.Theta, obj.Features, obj.Kmers, nil, nil, obj.L1Reg)
+    selection, lambda, ok := s.Select(data.Data, obj.Theta, obj.Features, obj.Kmers, nil, nil, obj.L1Reg, debug)
     if !ok && r != nil {
       break
     }
@@ -214,7 +217,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
     selection.Data(config, obj.reduced_data.Data, data.Data)
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
-    r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
+    r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence, debug)
   }
   obj.reduced_data = KmerDataSet{}
   return r

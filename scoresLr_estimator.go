@@ -176,7 +176,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
         PrintStderr(config, 1, "Estimated classifier has %d non-zero coefficients, selecting %d new features...\n", d, n-d)
       }
     }
-    selection, lambda, ok := s.Select(data.Data, obj.Theta, obj.Features, KmerClassList{}, obj.Index, obj.Names, obj.L1Reg)
+    selection, lambda, ok := s.Select(data.Data, obj.Theta, obj.Features, KmerClassList{}, obj.Index, obj.Names, obj.L1Reg, false)
     if !ok && r != nil {
       break
     }
