@@ -18,7 +18,7 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
 import   "math"
 
 import . "github.com/pbenner/autodiff"
@@ -75,15 +75,20 @@ func newFeatureSelector(config Config, kmers KmerClassList, index []int, names [
 
 /* -------------------------------------------------------------------------- */
 
-func (obj featureSelector) Select(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, names []string, lambda float64) (*featureSelection, float64, bool) {
+func (obj featureSelector) Select(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, names []string, lambda float64, debug bool) (*featureSelection, float64, bool) {
   if obj.M != data[0].Dim()-1 {
     panic("internal error")
   }
+  gd := []float64{}
   ok := false
   // copy all features i with theta_{i+1} != 0
   t, c, b := obj.restoreNonzero(theta, features, kmers, index)
   // compute gradient for selecting new features
   g_ := obj.gradient(data, t)[1:]
+  if debug {
+    gd = make([]float64, len(g_))
+    copy(gd, g_)
+  }
   // sort gradient entries with respect to absolute values
   g, i := NLargestAbsFloat64(g_, 2*obj.N)
   // add new features
@@ -111,6 +116,16 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   }
   if c > obj.N {
     ok = true
+  }
+  if debug {
+    for i := 1; i < len(b); i++ {
+      fmt.Printf("gradient: %v %v", i-1, gd[i-1])
+      if b[i] {
+        fmt.Println(" *")
+      } else {
+        fmt.Println()
+      }
+    }
   }
   l          := obj.computeLambda(b, g, g_)
   k, x, s, f := obj.selectKmers(b)
