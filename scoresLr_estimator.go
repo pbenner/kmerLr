@@ -135,7 +135,7 @@ func (obj *ScoresLrEstimator) estimate_fixed(config Config, data ScoresDataSet, 
   s := newFeatureSelector(config, KmerClassList{}, data.Index, data.Names, cooccurrence, data.Labels, transform, obj.ClassWeights, m, 0, config.EpsilonLambda)
   r := (*ScoresLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
-    selection, ok := s.SelectFixed(data.Data, obj.Theta, obj.Features, KmerClassList{}, obj.Index, obj.Names, lambda)
+    selection, ok := s.SelectFixed(data.Data, obj.Theta, obj.Features, KmerClassList{}, obj.Index, obj.Names, lambda, config.MaxFeatures)
     if !ok && r != nil {
       break
     }

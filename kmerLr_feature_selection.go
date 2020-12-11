@@ -118,7 +118,7 @@ func (obj featureSelector) Select(data []ConstVector, theta []float64, features 
   return &featureSelection{obj, k, x, s, f, t, tr, b, c}, l, ok || (obj.Epsilon > 0.0 && math.Abs(lambda - l) >= obj.Epsilon)
 }
 
-func (obj featureSelector) SelectFixed(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, names []string, l float64) (*featureSelection, bool) {
+func (obj featureSelector) SelectFixed(data []ConstVector, theta []float64, features FeatureIndices, kmers KmerClassList, index []int, names []string, l float64, max_features int) (*featureSelection, bool) {
   if obj.M != data[0].Dim()-1 {
     panic("internal error")
   }
@@ -133,6 +133,9 @@ func (obj featureSelector) SelectFixed(data []ConstVector, theta []float64, feat
       ok   = true
       b[k] = true
       c   += 1
+    }
+    if max_features > 0 && c >= max_features && ok {
+      break
     }
   }
   k, x, s, f := obj.selectKmers(b)

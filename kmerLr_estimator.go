@@ -159,7 +159,7 @@ func (obj *KmerLrEstimator) estimate_fixed(config Config, data KmerDataSet, tran
   s := newFeatureSelector(config, data.Kmers, nil, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, 0, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
-    selection, ok := s.SelectFixed(data.Data, AsDenseFloat64Vector(obj.Theta), obj.Features, obj.Kmers, nil, nil, lambda)
+    selection, ok := s.SelectFixed(data.Data, AsDenseFloat64Vector(obj.Theta), obj.Features, obj.Kmers, nil, nil, lambda, config.MaxFeatures)
     if !ok && r != nil {
       break
     }

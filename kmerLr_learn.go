@@ -115,6 +115,7 @@ func main_learn(config Config, args []string) {
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optLambda          := options. StringLong("lambda",           0 ,        "0.0", "set fixed regularization strength")
   optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "comma separated list of integers specifying the number of features to select; for each value a separate classifier is estimated")
+  optMaxFeatures     := options.    IntLong("max-features",     0 ,            0, "maximum number of features when a fixed lambda is set")
   optCopreselection  := options.    IntLong("co-preselection",  0 ,            0, "pre-select a subset of k-mers for co-occurrence modeling")
   optEnsembleSize    := options.    IntLong("ensemble-size",    0 ,            1, "estimate ensemble classifier")
   optEnsembleSummary := options. StringLong("ensemble-summary", 0 ,       "mean", "summary for classifier predictions [mean (default), product]")
@@ -286,6 +287,7 @@ func main_learn(config Config, args []string) {
   config.EnsembleSize    = *optEnsembleSize
   config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss
+  config.MaxFeatures     = *optMaxFeatures
   config.MaxEpochs       = *optMaxEpochs
   config.MaxIterations   = *optMaxIterations
   config.MaxSamples      = *optMaxSamples

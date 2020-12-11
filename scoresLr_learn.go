@@ -99,6 +99,7 @@ func main_learn_scores(config Config, args []string) {
 
   optLambda          := options. StringLong("lambda",           0 ,        "0.0", "set fixed regularization strength")
   optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "comma separated list of integers specifying the number of features to select; for each value a separate classifier is estimated")
+  optMaxFeatures     := options.    IntLong("max-features",     0 ,            0, "maximum number of features when a fixed lambda is set")
   optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
   optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model co-occurrences")
   optCopreselection  := options.    IntLong("co-preselection",  0 ,            0, "pre-select a subset of k-mers for co-occurrence modeling")
@@ -234,6 +235,7 @@ func main_learn_scores(config Config, args []string) {
   config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss
   config.Header          = *optHeader
+  config.MaxFeatures     = *optMaxFeatures
   config.MaxEpochs       = *optMaxEpochs
   config.MaxIterations   = *optMaxIterations
   config.MaxSamples      = *optMaxSamples

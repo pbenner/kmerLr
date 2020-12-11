@@ -34,6 +34,7 @@ type Config struct {
   Copreselection  int
   Lambda          float64
   LambdaAuto    []int
+  MaxFeatures     int
   EnsembleSize    int
   EnsembleSummary string
   Epsilon         float64
