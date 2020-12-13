@@ -42,6 +42,7 @@ type Config struct {
   EpsilonLoss     float64
   Header          bool
   KFoldCV         int
+  AdaptStepSize   bool
   StepSizeFactor  float64
   Seed            int64
   SaveTrace       bool

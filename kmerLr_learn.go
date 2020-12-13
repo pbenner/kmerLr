@@ -104,37 +104,38 @@ func main_learn(config Config, args []string) {
   options := getopt.New()
 
   // alphabet options
-  optAlphabet        := options. StringLong("alphabet",         0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
-  optBinarize        := options.   BoolLong("binarize",         0 ,               "binarize k-mer counts")
-  optComplement      := options.   BoolLong("complement",       0 ,               "consider complement sequences")
-  optCooccurrence    := options.   BoolLong("co-occurrence",    0 ,               "model k-mer co-occurrences")
-  optMaxAmbiguous    := options. StringLong("max-ambiguous",    0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
-  optReverse         := options.   BoolLong("reverse",          0 ,               "consider reverse sequences")
-  optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
+  optAlphabet        := options. StringLong("alphabet",           0 , "nucleotide", "nucleotide, gapped-nucleotide, or iupac-nucleotide")
+  optBinarize        := options.   BoolLong("binarize",           0 ,               "binarize k-mer counts")
+  optComplement      := options.   BoolLong("complement",         0 ,               "consider complement sequences")
+  optCooccurrence    := options.   BoolLong("co-occurrence",      0 ,               "model k-mer co-occurrences")
+  optMaxAmbiguous    := options. StringLong("max-ambiguous",      0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
+  optReverse         := options.   BoolLong("reverse",            0 ,               "consider reverse sequences")
+  optRevcomp         := options.   BoolLong("revcomp",            0 ,               "consider reverse complement sequences")
   // other options
-  optBalance         := options.   BoolLong("balance",          0 ,               "set class weights so that the data set is balanced")
-  optLambda          := options. StringLong("lambda",           0 ,        "0.0", "set fixed regularization strength")
-  optLambdaAuto      := options. StringLong("lambda-auto",      0 ,          "0", "comma separated list of integers specifying the number of features to select; for each value a separate classifier is estimated")
-  optMaxFeatures     := options.    IntLong("max-features",     0 ,            0, "maximum number of features when a fixed lambda is set")
-  optCopreselection  := options.    IntLong("co-preselection",  0 ,            0, "pre-select a subset of k-mers for co-occurrence modeling")
-  optEnsembleSize    := options.    IntLong("ensemble-size",    0 ,            1, "estimate ensemble classifier")
-  optEnsembleSummary := options. StringLong("ensemble-summary", 0 ,       "mean", "summary for classifier predictions [mean (default), product]")
-  optMaxEpochs       := options.    IntLong("max-epochs",       0 ,            0, "maximum number of epochs")
-  optMaxIterations   := options.    IntLong("max-iterations",   0 ,            0, "maximum number of iterations")
-  optMaxSamples      := options.    IntLong("max-samples",      0 ,            0, "maximum number of samples")
-  optEpsilon         := options. StringLong("epsilon",          0 ,       "0e-0", "optimization tolerance level for parameters")
-  optEpsilonLambda   := options. StringLong("epsilon-lambda",   0 ,       "0e-0", "optimization tolerance level for lambda parameter")
-  optEpsilonLoss     := options. StringLong("epsilon-loss",     0 ,       "1e-5", "optimization tolerance level for loss function")
-  optSaveTrace       := options.   BoolLong("save-trace",       0 ,               "save trace to file")
-  optTraceFilename   := options. StringLong("trace-filename",   0 ,          "", "specify alternative filename for trace")
-  optEvalLoss        := options.   BoolLong("eval-loss",        0 ,               "evaluate loss function after each epoch")
-  optNoNormalization := options.   BoolLong("no-normalization", 0 ,               "do not normalize data")
-  optKFoldCV         := options.    IntLong("k-fold-cv",        0 ,            1, "perform k-fold cross-validation")
-  optScaleStepSize   := options. StringLong("scale-step-size",  0 ,        "1.0", "scale standard step-size")
-  optThreadsCV       := options.    IntLong("threads-cv",       0 ,            1, "number of threads for cross-validation")
-  optThreadsSaga     := options.    IntLong("threads-saga",     0 ,            1, "number of threads for SAGA algorithm")
-  optThreadsLR       := options.    IntLong("threads-lr",       0 ,            1, "number of threads for evaluating the logistic loss and gradient")
-  optHelp            := options.   BoolLong("help",            'h',               "print help")
+  optBalance         := options.   BoolLong("balance",            0 ,               "set class weights so that the data set is balanced")
+  optLambda          := options. StringLong("lambda",             0 ,        "0.0", "set fixed regularization strength")
+  optLambdaAuto      := options. StringLong("lambda-auto",        0 ,          "0", "comma separated list of integers specifying the number of features to select; for each value a separate classifier is estimated")
+  optMaxFeatures     := options.    IntLong("max-features",       0 ,            0, "maximum number of features when a fixed lambda is set")
+  optCopreselection  := options.    IntLong("co-preselection",    0 ,            0, "pre-select a subset of k-mers for co-occurrence modeling")
+  optEnsembleSize    := options.    IntLong("ensemble-size",      0 ,            1, "estimate ensemble classifier")
+  optEnsembleSummary := options. StringLong("ensemble-summary",   0 ,       "mean", "summary for classifier predictions [mean (default), product]")
+  optMaxEpochs       := options.    IntLong("max-epochs",         0 ,            0, "maximum number of epochs")
+  optMaxIterations   := options.    IntLong("max-iterations",     0 ,            0, "maximum number of iterations")
+  optMaxSamples      := options.    IntLong("max-samples",        0 ,            0, "maximum number of samples")
+  optEpsilon         := options. StringLong("epsilon",            0 ,       "0e-0", "optimization tolerance level for parameters")
+  optEpsilonLambda   := options. StringLong("epsilon-lambda",     0 ,       "0e-0", "optimization tolerance level for lambda parameter")
+  optEpsilonLoss     := options. StringLong("epsilon-loss",       0 ,       "1e-5", "optimization tolerance level for loss function")
+  optSaveTrace       := options.   BoolLong("save-trace",         0 ,               "save trace to file")
+  optTraceFilename   := options. StringLong("trace-filename",     0 ,          "", "specify alternative filename for trace")
+  optEvalLoss        := options.   BoolLong("eval-loss",          0 ,               "evaluate loss function after each epoch")
+  optNoNormalization := options.   BoolLong("no-normalization",   0 ,               "do not normalize data")
+  optKFoldCV         := options.    IntLong("k-fold-cv",          0 ,            1, "perform k-fold cross-validation")
+  optScaleStepSize   := options. StringLong("scale-step-size",    0 ,        "1.0", "scale standard step-size")
+  optAdaptStepSize   := options.   BoolLong("adaptive-step-size", 0 ,               "adaptive step size during optimization")
+  optThreadsCV       := options.    IntLong("threads-cv",         0 ,            1, "number of threads for cross-validation")
+  optThreadsSaga     := options.    IntLong("threads-saga",       0 ,            1, "number of threads for SAGA algorithm")
+  optThreadsLR       := options.    IntLong("threads-lr",         0 ,            1, "number of threads for evaluating the logistic loss and gradient")
+  optHelp            := options.   BoolLong("help",              'h',               "print help")
 
   options.SetParameters("<<M> <N>|<MODEL.json>> <FOREGROUND.fa> <BACKGROUND.fa> <BASENAME_RESULT>")
   options.Parse(args)
@@ -282,11 +283,12 @@ func main_learn(config Config, args []string) {
   if *optThreadsLR > 1 {
     config.PoolLR = threadpool.New(*optThreadsLR, 100)
   }
+  config.AdaptStepSize   = *optAdaptStepSize
   config.Balance         = *optBalance
   config.Copreselection  = *optCopreselection
   config.EnsembleSize    = *optEnsembleSize
-  config.KFoldCV         = *optKFoldCV
   config.EvalLoss        = *optEvalLoss
+  config.KFoldCV         = *optKFoldCV
   config.MaxFeatures     = *optMaxFeatures
   config.MaxEpochs       = *optMaxEpochs
   config.MaxIterations   = *optMaxIterations
@@ -295,6 +297,9 @@ func main_learn(config Config, args []string) {
   config.TraceFilename   = *optTraceFilename
   config.NoNormalization = *optNoNormalization
   if config.EpsilonLoss != 0.0 {
+    config.EvalLoss = true
+  }
+  if config.AdaptStepSize {
     config.EvalLoss = true
   }
   learn(config, classifier, filename_in, filename_fg, filename_bg, basename_out)
