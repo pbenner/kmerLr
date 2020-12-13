@@ -145,7 +145,7 @@ func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform 
   }
 }
 
-func (obj *KmerLrEstimator) estimate_fixed(config Config, data KmerDataSet, transform TransformFull, lambda float64, cooccurrence bool) *KmerLr {
+func (obj *KmerLrEstimator) estimate_fixed(config Config, data KmerDataSet, transform TransformFull, cooccurrence bool) *KmerLr {
   if len(data.Data) == 0 {
     return nil
   }
@@ -161,18 +161,18 @@ func (obj *KmerLrEstimator) estimate_fixed(config Config, data KmerDataSet, tran
   s := newFeatureSelector(config, data.Kmers, nil, nil, cooccurrence, data.Labels, transform, obj.ClassWeights, m, 0, config.EpsilonLambda)
   r := (*KmerLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
-    selection, ok := s.SelectFixed(data.Data, AsDenseFloat64Vector(obj.Theta), obj.Features, obj.Kmers, nil, nil, lambda, config.MaxFeatures)
+    selection, ok := s.SelectFixed(data.Data, AsDenseFloat64Vector(obj.Theta), obj.Features, obj.Kmers, nil, nil, config.Lambda, config.MaxFeatures)
     if !ok && r != nil {
       break
     }
-    obj.L1Reg    = lambda
+    obj.L1Reg    = config.Lambda
     obj.Features = selection.Features()
     obj.Kmers    = selection.Kmers()
     obj.Theta    = selection.Theta()
     // create actual training data set
     selection.Data(config, obj.reduced_data.Data, data.Data)
 
-    PrintStderr(config, 1, "Estimating parameters with lambda=%e and %d features...\n", lambda, len(obj.Features))
+    PrintStderr(config, 1, "Estimating parameters with lambda=%e and %d features...\n", config.Lambda, len(obj.Features))
     r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence, false)
   }
   obj.reduced_data = KmerDataSet{}
@@ -226,7 +226,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
 func (obj *KmerLrEstimator) Estimate(config Config, data KmerDataSet, transform TransformFull) []*KmerLr {
   if config.Lambda != 0.0 {
     classifiers   := make([]*KmerLr, 1)
-    classifiers[0] = obj.estimate_fixed(config, data, transform, config.Lambda, obj.Cooccurrence)
+    classifiers[0] = obj.estimate_fixed(config, data, transform, obj.Cooccurrence)
     return classifiers
   } else {
     classifiers := make([]*KmerLr, len(config.LambdaAuto))

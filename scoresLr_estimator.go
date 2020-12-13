@@ -122,7 +122,7 @@ func (obj *ScoresLrEstimator) estimate(config Config, data ScoresDataSet, transf
   }
 }
 
-func (obj *ScoresLrEstimator) estimate_fixed(config Config, data ScoresDataSet, transform TransformFull, lambda float64, cooccurrence bool) *ScoresLr {
+func (obj *ScoresLrEstimator) estimate_fixed(config Config, data ScoresDataSet, transform TransformFull, cooccurrence bool) *ScoresLr {
   if len(data.Data) == 0 {
     return nil
   }
@@ -135,11 +135,11 @@ func (obj *ScoresLrEstimator) estimate_fixed(config Config, data ScoresDataSet, 
   s := newFeatureSelector(config, KmerClassList{}, data.Index, data.Names, cooccurrence, data.Labels, transform, obj.ClassWeights, m, 0, config.EpsilonLambda)
   r := (*ScoresLr)(nil)
   for epoch := 0; config.MaxEpochs == 0 || epoch < config.MaxEpochs; epoch++ {
-    selection, ok := s.SelectFixed(data.Data, obj.Theta, obj.Features, KmerClassList{}, obj.Index, obj.Names, lambda, config.MaxFeatures)
+    selection, ok := s.SelectFixed(data.Data, obj.Theta, obj.Features, KmerClassList{}, obj.Index, obj.Names, config.Lambda, config.MaxFeatures)
     if !ok && r != nil {
       break
     }
-    obj.L1Reg    = lambda
+    obj.L1Reg    = config.Lambda
     obj.Features = selection.Features()
     obj.Index    = selection.Index()
     obj.Names    = selection.Names()
@@ -147,7 +147,7 @@ func (obj *ScoresLrEstimator) estimate_fixed(config Config, data ScoresDataSet, 
     // create actual training data sets
     selection.Data(config, obj.reduced_data.Data, data.Data)
 
-    PrintStderr(config, 1, "Estimating parameters with lambda=%e and %d features...\n", lambda, len(obj.Features))
+    PrintStderr(config, 1, "Estimating parameters with lambda=%e and %d features...\n", config.Lambda, len(obj.Features))
     r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
   }
   obj.reduced_data = ScoresDataSet{}
@@ -198,7 +198,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
 func (obj *ScoresLrEstimator) Estimate(config Config, data ScoresDataSet, transform TransformFull) []*ScoresLr {
   if config.Lambda != 0.0 {
     classifiers   := make([]*ScoresLr, 1)
-    classifiers[0] = obj.estimate_fixed(config, data, transform, config.Lambda, obj.Cooccurrence)
+    classifiers[0] = obj.estimate_fixed(config, data, transform, obj.Cooccurrence)
     return classifiers
   } else {
     classifiers := make([]*ScoresLr, len(config.LambdaAuto))
