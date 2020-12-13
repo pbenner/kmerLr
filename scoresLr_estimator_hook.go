@@ -70,33 +70,20 @@ func NewScoresHook(config Config, icv int, estimator *ScoresLrEstimator) HookTyp
       estimator.trace.Append(iteration, n, change.GetFloat64(), lambda.GetFloat64(), loss_new, time.Since(s))
     }
     if config.Verbose > 1 {
-      if config.SaveTrace {
-        if icv != -1 {
-          fmt.Printf("cv run    : %d\n", icv+1)
-        }
-        fmt.Printf("iteration : %d\n", iteration)
-        fmt.Printf("change    : %v\n", change)
-        fmt.Printf("lambda    : %v\n", lambda)
-        fmt.Printf("#coef     : %d\n", n-1)
-        fmt.Printf("var(#coef): %f\n", estimator.trace.CompVar(10))
-        if config.EvalLoss {
-          fmt.Printf("loss      : %f\n", loss_new)
-        }
-        fmt.Printf("time      : %v\n", time.Since(t))
+      if icv != -1 {
+        fmt.Printf("{ cv-run: %d, ", icv+1)
       } else {
-        if icv != -1 {
-          fmt.Printf("cv run: %d\n", icv+1)
-        }
-        fmt.Printf("iteration: %d\n", iteration)
-        fmt.Printf("change   : %v\n", change)
-        fmt.Printf("lambda   : %v\n", lambda)
-        fmt.Printf("#coef    : %d\n", n-1)
-        if config.EvalLoss {
-          fmt.Printf("loss     : %f\n", loss_new)
-        }
-        fmt.Printf("time     : %v\n", time.Since(t))
+        fmt.Printf("{ ")
       }
-      fmt.Println()
+      fmt.Printf("iteration: %d, ", iteration)
+      fmt.Printf("coefficients: %d, ", n-1)
+      fmt.Printf("lambda: %f, ", lambda)
+      if config.EvalLoss {
+        fmt.Printf("loss: %f, ", loss_new)
+        fmt.Printf("delta-loss: %f, ", math.Abs(loss_new-loss_old))
+      }
+      fmt.Printf("delta-theta: %f, ", change)
+      fmt.Printf("time: %-12v }\n", time.Since(t))
     }
     t = time.Now()
     if estimator.EpsilonLoss == 0.0 {
