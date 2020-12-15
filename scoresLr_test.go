@@ -38,13 +38,13 @@ func TestScores1(test *testing.T) {
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
   }
-  if math.Abs(classifier.Theta[0] - -0.01017467785504194) > 1e-5 {
+  if math.Abs(classifier.Theta[0] - -0.0128697267684826) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[1] - -0.5786522365231856) > 1e-5 {
+  if math.Abs(classifier.Theta[1] - -0.5831540735146012) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[2] - -0.01642987554158162) > 1e-5 {
+  if math.Abs(classifier.Theta[2] - -0.0162323018324944) > 1e-5 {
     test.Error("test failed")
   }
   if len(classifier.Features) != 2 {
@@ -75,10 +75,10 @@ func TestScores2(test *testing.T) {
   if len(classifier.Theta) != 2 {
     test.Error("test failed"); return
   }
-  if math.Abs(classifier.Theta[0] - -0.0014497332511020612) > 1e-5 {
+  if math.Abs(classifier.Theta[0] - 0.0012955950713445) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[1] - 0.3055074741822805) > 1e-5 {
+  if math.Abs(classifier.Theta[1] - 0.3061875981152939) > 1e-5 {
     test.Error("test failed")
   }
   if len(classifier.Features) != 1 {
@@ -91,10 +91,10 @@ func TestScores2(test *testing.T) {
     test.Error("test failed")
   }
   w := []float64{
-    -5.025654e-01, -6.547077e-01,
-    -5.850161e-01, -5.619555e-01,
-    -6.507984e-01, -3.987767e-01,
-    -6.489538e-01, -6.473589e-01 }
+    -0.5011064780552764, -0.6533044636477008,
+    -0.5835738451008732, -0.5605051285196739,
+    -0.6493924282943727, -0.3973526712989099,
+    -0.6475465431214809, -0.6459506599831043 }
   if v := predict_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {
@@ -105,10 +105,10 @@ func TestScores2(test *testing.T) {
     }
   }
   w = []float64{
-    -8.531373e-01, -8.220360e-01,
-    -8.446463e-01, -8.324747e-01,
-    -8.784024e-01, -8.430350e-01,
-    -9.011005e-01, -6.618126e-01 }
+    -0.8519410031310346, -0.8207994198830724,
+    -0.8434386878822429, -0.8312512961539217,
+    -0.8772406302236876, -0.8418253451559609,
+    -0.8999710423257699, -0.66041447963172 }
   if v := predict_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_bg.table"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {

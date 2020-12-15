@@ -29,7 +29,7 @@ import . "github.com/pbenner/gonetics"
 
 func TestKmers1(test *testing.T) {
   config := Config{}
-  config.Verbose  = 0
+  config.Verbose = 0
 
   kmersCounter, err := NewKmerCounter(4, 8, false, false, true, nil, GappedNucleotideAlphabet{}); if err != nil {
     test.Error(err)
@@ -158,20 +158,20 @@ func TestKmers5(test *testing.T) {
   config.Seed    = 1
   config.Verbose = 0
 
-  main_learn(config, []string{"learn", "--lambda-auto=2", "--epsilon=0", "--epsilon-loss=1e-4", "--revcomp", "8", "8", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test"})
+  main_learn(config, []string{"learn", "--lambda-auto=2", "--epsilon=0", "--epsilon-loss=1e-10", "--revcomp", "8", "8", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test"})
 
   classifier := ImportKmerLrEnsemble(config, "kmerLr_test_2.json").GetComponent(0)
 
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
   }
-  if math.Abs(classifier.Theta[0] - -0.0028074623110495417) > 1e-5 {
+  if math.Abs(classifier.Theta[0] - -2.800699979722743e-06) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[1] -  0.012961013135855091) > 1e-5 {
+  if math.Abs(classifier.Theta[1] -  0.020205386827976457) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[2] -  0.03276175675938973) > 1e-5 {
+  if math.Abs(classifier.Theta[2] -  0.020277337052388766) > 1e-5 {
     test.Error("test failed")
   }
   if len(classifier.Features) != 2 {
@@ -183,7 +183,7 @@ func TestKmers5(test *testing.T) {
   if f := classifier.Features[1]; f[0] != 1 || f[1] != 1 {
     test.Error("test failed")
   }
-  if v := loss_(config, "kmerLr_test_2.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")[0]; math.Abs(v - 15.185564942332633) > 1e-4 {
+  if v := loss_(config, "kmerLr_test_2.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")[0]; math.Abs(v - 15.192211792548518) > 1e-4 {
     test.Error("test failed")
   }
   os.Remove("kmerLr_test_2.json")
@@ -195,14 +195,14 @@ func TestKmers6(test *testing.T) {
   config.Seed    = 1
   config.Verbose = 0
 
-  main_learn(config, []string{"learn", "--lambda-auto=2", "--binarize", "--revcomp", "--co-occurrence", "8", "8", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa", "kmerLr_test_co"})
+  main_learn(config, []string{"learn", "--lambda-auto=2", "--epsilon-loss=1e-8", "--binarize", "--revcomp", "--co-occurrence", "8", "8", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa", "kmerLr_test_co"})
 
   classifier := ImportKmerLrEnsemble(config, "kmerLr_test_co_2.json").GetComponent(0)
 
   theta := []float64{
-    -0.00053639011677299,
-     0.04741316860833697,
-     0.04741316860833697 }
+    -0.00010777150676964,
+     0.04776584689852276,
+     0.04776584689852276 }
   features := [][]int{
     []int{0,1}, []int{0,2} }
 
@@ -222,20 +222,20 @@ func TestKmers6(test *testing.T) {
       test.Error("test failed")
     }
   }
-  if v := loss_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa")[0]; math.Abs(v - 13.410096) > 1e-4 {
+  if v := loss_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa")[0]; math.Abs(v - 13.40689515) > 1e-4 {
     test.Error("test failed")
   }
   w := []float64{
-    -0.6471131198388077,
-    -0.6471131198388077,
-    -0.6471131198388077,
-    -0.6471131198388077,
-    -0.6471131198388077,
-    -0.6471131198388077,
-    -0.6471131198388077,
-    -0.6471131198388077,
-    -0.6471131198388077,
-    -0.6471131198388077 }
+    -0.64657300345,
+    -0.64657300345,
+    -0.64657300345,
+    -0.64657300345,
+    -0.64657300345,
+    -0.64657300345,
+    -0.64657300345,
+    -0.64657300345,
+    -0.64657300345,
+    -0.64657300345 }
   if v := predict_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {
@@ -246,16 +246,16 @@ func TestKmers6(test *testing.T) {
     }
   }
   w = []float64{
-    -0.7419648699699566,
-    -0.7419648699699566,
-    -0.7419648699699566,
-    -0.7419648699699566,
-    -0.7419648699699566,
-    -0.7419648699699566,
-    -0.7419648699699566,
-    -0.7419648699699566,
-    -0.7419648699699566,
-    -0.7419648699699566 }
+    -0.74210984113,
+    -0.74210984113,
+    -0.74210984113,
+    -0.74210984113,
+    -0.74210984113,
+    -0.74210984113,
+    -0.74210984113,
+    -0.74210984113,
+    -0.74210984113,
+    -0.74210984113 }
   if v := predict_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_bg.fa"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {

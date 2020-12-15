@@ -124,7 +124,7 @@ func main_learn(config Config, args []string) {
   optMaxSamples      := options.    IntLong("max-samples",        0 ,            0, "maximum number of samples")
   optEpsilon         := options. StringLong("epsilon",            0 ,       "0e-0", "optimization tolerance level for parameters")
   optEpsilonLambda   := options. StringLong("epsilon-lambda",     0 ,       "0e-0", "optimization tolerance level for lambda parameter")
-  optEpsilonLoss     := options. StringLong("epsilon-loss",       0 ,       "1e-5", "optimization tolerance level for loss function")
+  optEpsilonLoss     := options. StringLong("epsilon-loss",       0 ,       "1e-8", "optimization tolerance level for loss function")
   optSaveTrace       := options.   BoolLong("save-trace",         0 ,               "save trace to file")
   optTraceFilename   := options. StringLong("trace-filename",     0 ,          "", "specify alternative filename for trace")
   optEvalLoss        := options.   BoolLong("eval-loss",          0 ,               "evaluate loss function after each epoch")
