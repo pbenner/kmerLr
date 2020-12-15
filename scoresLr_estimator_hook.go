@@ -80,7 +80,7 @@ func NewScoresHook(config Config, icv int, estimator *ScoresLrEstimator) HookTyp
       fmt.Printf("coefficients: %d, ", n-1)
       fmt.Printf("lambda: %f, ", lambda.GetFloat64())
       if config.EvalLoss {
-        fmt.Printf("loss: %f, ", loss_new)
+        fmt.Printf("loss: %e, ", loss_new)
         fmt.Printf("delta-loss: %e, ", math.Abs(loss_new-loss_old))
       }
       fmt.Printf("delta-theta: %e, ", change)
