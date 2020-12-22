@@ -73,7 +73,7 @@ func (obj *ScoresLr) Loss(config Config, data []ConstVector, c []bool) float64 {
     lr.ClassWeights[0] = 1.0
     lr.ClassWeights[1] = 1.0
   }
-  return lr.Loss(data, c)
+  return lr.Loss(data, c)/float64(len(data))
 }
 
 /* -------------------------------------------------------------------------- */
