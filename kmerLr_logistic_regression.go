@@ -86,8 +86,7 @@ func (obj logisticRegression) LinearPdf(x SparseConstFloat64Vector) float64 {
   } else {
     for k, j := 1, 1; k < n+1; k++ {
       if j < len(v) && i[j] == k {
-        r += obj.Transform.Apply(v[j], k)*obj.Theta[k]
-        j++
+        r += obj.Transform.Apply(v[j], k)*obj.Theta[k]; j++
       } else {
         r += obj.Transform.Apply( 0.0, k)*obj.Theta[k]
       }
