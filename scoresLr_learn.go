@@ -115,7 +115,7 @@ func main_learn_scores(config Config, args []string) {
   optSaveTrace       := options.   BoolLong("save-trace",         0 ,               "save trace to file")
   optTraceFilename   := options. StringLong("trace-filename",     0 ,          "", "specify alternative filename for trace")
   optEvalLoss        := options.   BoolLong("eval-loss",          0 ,               "evaluate loss function after each epoch")
-  optDataTransform   := options. StringLong("data-transform",     0 ,               "transform data before training classifier [none (default), standardize, variance-scaler, max-abs-scaler, mean-scaler]")
+  optDataTransform   := options. StringLong("data-transform",     0 ,          "",  "transform data before training classifier [none (default), standardize, variance-scaler, max-abs-scaler, mean-scaler]")
   optKFoldCV         := options.    IntLong("k-fold-cv",          0 ,            1, "perform k-fold cross-validation")
   optScaleStepSize   := options. StringLong("scale-step-size",    0 ,        "1.0", "scale standard step-size")
   optAdaptStepSize   := options.   BoolLong("adaptive-step-size", 0 ,               "adaptive step size during optimization")
@@ -245,6 +245,8 @@ func main_learn_scores(config Config, args []string) {
   config.TraceFilename   = *optTraceFilename
   config.DataTransform   = *optDataTransform
   switch strings.ToLower(config.DataTransform) {
+  case "":
+  case "none":
   case "standardize":
   case "variance-scaler":
   case "max-abs-scaler":
