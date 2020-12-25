@@ -33,17 +33,18 @@ type HookType func(x ConstVector, change, lambda ConstScalar, epoch int) bool
 func NewHook(config Config, icv int, estimator *KmerLrEstimator) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
-  loss := func(x ConstVector, lambda ConstScalar) float64 {
+  loss := func(x ConstVector, lambda float64) float64 {
     lr := logisticRegression{}
     lr.Theta        = x.(DenseFloat64Vector)
-    lr.Lambda       = lambda.GetFloat64()
+    lr.Lambda       = lambda
     lr.ClassWeights = estimator.ClassWeights
     return lr.Loss(estimator.reduced_data.Data, estimator.reduced_data.Labels)
   }
   t := time.Now()
   s := time.Now()
   c := 0
-  hook := func(x ConstVector, change, lambda ConstScalar, iteration int) bool {
+  hook := func(x ConstVector, change, lambda_ ConstScalar, iteration int) bool {
+    lambda := lambda_.GetFloat64()/float64(len(estimator.reduced_data.Data))
     loss_old, loss_new = loss_new, loss_old
     n := 0
     if config.EvalLoss {
@@ -71,7 +72,7 @@ func NewHook(config Config, icv int, estimator *KmerLrEstimator) HookType {
       }
     }
     if config.SaveTrace {
-      estimator.trace.Append(iteration, n, change.GetFloat64(), lambda.GetFloat64(), loss_new, time.Since(s))
+      estimator.trace.Append(iteration, n, change.GetFloat64(), lambda, loss_new, time.Since(s))
     }
     if config.Verbose > 1 {
       if icv != -1 {
@@ -81,7 +82,7 @@ func NewHook(config Config, icv int, estimator *KmerLrEstimator) HookType {
       }
       fmt.Printf("iteration: %d, ", iteration)
       fmt.Printf("coefficients: %d, ", n-1)
-      fmt.Printf("lambda: %e, ", lambda.GetFloat64())
+      fmt.Printf("lambda: %e, ", lambda)
       if config.EvalLoss {
         fmt.Printf("loss: %f, ", loss_new)
         fmt.Printf("delta-loss: %e, ", math.Abs(loss_new-loss_old))
