@@ -34,12 +34,11 @@ func NewHook(config Config, icv int, estimator *KmerLrEstimator) HookType {
   loss_old := math.NaN()
   loss_new := math.NaN()
   loss := func(x ConstVector, lambda ConstScalar) float64 {
-    n_samples := float64(len(estimator.reduced_data.Data))
     lr := logisticRegression{}
     lr.Theta        = x.(DenseFloat64Vector)
     lr.Lambda       = lambda.GetFloat64()
     lr.ClassWeights = estimator.ClassWeights
-    return lr.Loss(estimator.reduced_data.Data, estimator.reduced_data.Labels)/n_samples
+    return lr.Loss(estimator.reduced_data.Data, estimator.reduced_data.Labels)
   }
   t := time.Now()
   s := time.Now()
