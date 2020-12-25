@@ -195,6 +195,9 @@ func (obj *TransformFull) FitMaxAbsScaler(config Config, data []ConstVector, coo
       })
     }
   }
+  for j := 1; j < len(scale); j++ {
+    scale[j] = 1.0/scale[j]
+  }
   scale[0]   = 1.0
   obj.Offset = nil
   obj.Scale  = scale
@@ -238,9 +241,9 @@ func (obj *TransformFull) FitMeanScaler(config Config, data []ConstVector, coocc
       })
     }
   }
-  // normalize mean (probably less floating point operations if normalization is here)
+  // invert and normalize mean (probably less floating point operations if normalization is here)
   for j := 1; j < len(scale); j++ {
-    scale[j] /= float64(n)
+    scale[j] = float64(n)/scale[j]
   }
   scale[0]   = 1.0
   obj.Offset = nil
