@@ -117,7 +117,7 @@ func (obj *ScoresLrEnsemble) Loss(config Config, data []ConstVector, c []bool) [
   r := make([]float64, len(obj.Theta))
   for i, _ := range obj.Theta {
     lr.Theta = obj.Theta[i]
-    r[i] = lr.Loss(data, c)/float64(len(data))
+    r[i] = lr.Loss(data, c)
   }
   return r
 }

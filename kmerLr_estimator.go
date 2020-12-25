@@ -165,7 +165,7 @@ func (obj *KmerLrEstimator) estimate_fixed(config Config, data KmerDataSet, tran
     if !ok && r != nil {
       break
     }
-    obj.L1Reg    = config.Lambda
+    obj.L1Reg    = config.Lambda*float64(len(data.Data))
     obj.Features = selection.Features()
     obj.Kmers    = selection.Kmers()
     obj.Theta    = selection.Theta()
@@ -209,7 +209,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
     if !ok && r != nil {
       break
     }
-    obj.L1Reg    = lambda
+    obj.L1Reg    = lambda*float64(len(data.Data))
     obj.Features = selection.Features()
     obj.Kmers    = selection.Kmers()
     obj.Theta    = selection.Theta()

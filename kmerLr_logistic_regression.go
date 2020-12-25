@@ -84,28 +84,51 @@ func (obj logisticRegression) LinearPdf(x SparseConstFloat64Vector) float64 {
       }
     }
   } else {
-    for k, j := 1, 1; k < n+1; k++ {
-      if j < len(v) && i[j] == k {
-        r += obj.Transform.Apply(v[j], k)*obj.Theta[k]; j++
-      } else {
-        r += obj.Transform.Apply( 0.0, k)*obj.Theta[k]
+    if len(obj.Transform.Offset) == 0 {
+      for j := 1; j < q; j++ {
+        r += obj.Transform.Apply(v[j], i[j])*obj.Theta[i[j]]
       }
-    }
-    if obj.Cooccurrence {
-      s := make([]float64, obj.Pool.NumberOfThreads())
-      // iterate over full vector to account for zeros
-      obj.Pool.RangeJob_(n+1, len(obj.Theta), func(jFrom, jTo int, pool threadpool.ThreadPool, erf func() error) error {
-        k := pool.GetThreadId()
-        for j := jFrom; j < jTo; j++ {
-          i1, i2 := CoeffIndex(n).Sub2Ind(j-1)
-          v1   := x.Float64At(i1+1)
-          v2   := x.Float64At(i2+1)
-          s[k] += obj.Transform.Apply(v1*v2, j)*obj.Theta[j]
+      if obj.Cooccurrence {
+        s := make([]float64, q)
+        obj.Pool.RangeJob_(1, q, func(jFrom, jTo int, pool threadpool.ThreadPool, erf func() error) error {
+          for j1 := jFrom; j1 < jTo; j1++ {
+            for j2 := j1+1; j2 < q; j2++ {
+              i1 := i[j1]-1
+              i2 := i[j2]-1
+              j  := CoeffIndex(n).Ind2Sub(i1, i2)
+              s[j1] += obj.Transform.Apply(v[j1]*v[j2], j)*obj.Theta[j]
+            }
+          }
+          return nil
+        })
+        for i := 0; i < len(s); i++ {
+          r += s[i]
         }
-        return nil
-      })
-      for i := 0; i < len(s); i++ {
-        r += s[i]
+      }
+    } else {
+      // iterate over full vector to account for zeros
+      for k, j := 1, 1; k < n+1; k++ {
+        if j < len(v) && i[j] == k {
+          r += obj.Transform.Apply(v[j], k)*obj.Theta[k]; j++
+        } else {
+          r += obj.Transform.Apply( 0.0, k)*obj.Theta[k]
+        }
+      }
+      if obj.Cooccurrence {
+        s := make([]float64, obj.Pool.NumberOfThreads())
+        obj.Pool.RangeJob_(n+1, len(obj.Theta), func(jFrom, jTo int, pool threadpool.ThreadPool, erf func() error) error {
+          k := pool.GetThreadId()
+          for j := jFrom; j < jTo; j++ {
+            i1, i2 := CoeffIndex(n).Sub2Ind(j-1)
+            v1   := x.Float64At(i1+1)
+            v2   := x.Float64At(i2+1)
+            s[k] += obj.Transform.Apply(v1*v2, j)*obj.Theta[j]
+          }
+          return nil
+        })
+        for i := 0; i < len(s); i++ {
+          r += s[i]
+        }
       }
     }
   }
@@ -149,9 +172,9 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
     q := len(i)
 
     if labels[i_] {
-      w = obj.ClassWeights[1]*(math.Exp(r) - 1.0)
+      w = 1.0/float64(len(data))*obj.ClassWeights[1]*(math.Exp(r) - 1.0)
     } else {
-      w = obj.ClassWeights[0]*(math.Exp(r))
+      w = 1.0/float64(len(data))*obj.ClassWeights[0]*(math.Exp(r))
     }
     if obj.Transform.Nil() {
       for j := 0; j < q; j++ {
@@ -172,34 +195,32 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
       }
     } else {
       if len(obj.Transform.Offset) == 0 {
-        for j := 1; j < q; j++ {
-          r += obj.Transform.Apply(v[j], i[j])*obj.Theta[i[j]]
+        for j := 0; j < q; j++ {
+          g[i[j]] += w*obj.Transform.Apply(v[j], i[j])
         }
         if obj.Cooccurrence {
-          s := make([]float64, q)
           obj.Pool.RangeJob_(1, q, func(jFrom, jTo int, pool threadpool.ThreadPool, erf func() error) error {
             for j1 := jFrom; j1 < jTo; j1++ {
               for j2 := j1+1; j2 < q; j2++ {
                 i1 := i[j1]-1
                 i2 := i[j2]-1
                 j  := CoeffIndex(n).Ind2Sub(i1, i2)
-                s[j1] += obj.Transform.Apply(v[j1]*v[j2], j)*obj.Theta[j]
+                g[j] += w*obj.Transform.Apply(v[j1]*v[j2], j)
               }
             }
             return nil
           })
         }
       } else {
+        // iterate over full vector to account for zeros
         for k, j := 0, 0; k < n+1; k++ {
           if j < len(v) && i[j] == k {
-            g[k] += w*obj.Transform.Apply(v[j], k)
-            j++
+            g[k] += w*obj.Transform.Apply(v[j], k); j++
           } else {
             g[k] += w*obj.Transform.Apply( 0.0, k)
           }
         }
         if obj.Cooccurrence {
-          // iterate over full vector to account for zeros
           obj.Pool.RangeJob_(n+1, len(obj.Theta), func(jFrom, jTo int, pool threadpool.ThreadPool, erf func() error) error {
             for j := jFrom; j < jTo; j++ {
               i1, i2 := CoeffIndex(n).Sub2Ind(j-1)
@@ -241,6 +262,7 @@ func (obj logisticRegression) Loss(data []ConstVector, c []bool) float64 {
       r -= obj.ClassWeights[0]*obj.ClassLogPdf(data[i].(SparseConstFloat64Vector), c[i])
     }
   }
+  r = r/float64(len(data))
   if obj.Lambda != 0.0 {
     for j := 1; j < m; j++ {
       r += obj.Lambda*math.Abs(obj.Theta[j])

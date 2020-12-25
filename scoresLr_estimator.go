@@ -139,7 +139,7 @@ func (obj *ScoresLrEstimator) estimate_fixed(config Config, data ScoresDataSet, 
     if !ok && r != nil {
       break
     }
-    obj.L1Reg    = config.Lambda
+    obj.L1Reg    = config.Lambda*float64(len(data.Data))
     obj.Features = selection.Features()
     obj.Index    = selection.Index()
     obj.Names    = selection.Names()
@@ -180,7 +180,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
     if !ok && r != nil {
       break
     }
-    obj.L1Reg    = lambda
+    obj.L1Reg    = lambda*float64(len(data.Data))
     obj.Features = selection.Features()
     obj.Index    = selection.Index()
     obj.Names    = selection.Names()
