@@ -76,7 +76,7 @@ func learn_scores(config Config, classifier *ScoresLrEnsemble, filename_json, fi
   if filename_json != "" {
     classifier = ImportScoresLrEnsemble(config, filename_json)
   }
-  data := compile_training_data_scores(config, classifier.Index, classifier.Names, classifier.Features, filename_fg, filename_bg)
+  data := compile_training_data_scores(config, nil, nil, nil, true, filename_fg, filename_bg)
 
   if len(data.Data) == 0 {
     log.Fatal("Error: no training data given")

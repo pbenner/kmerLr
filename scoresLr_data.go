@@ -101,11 +101,11 @@ func read_scores_table(config Config, r io.Reader) ([]string, [][]float64, error
 
 /* -------------------------------------------------------------------------- */
 
-func convert_scores(config Config, scores []float64, index []int, features FeatureIndices) ConstVector {
+func convert_scores(config Config, scores []float64, index []int, features FeatureIndices, generate_features bool) ConstVector {
   n := 0
   i := []int    {}
   v := []float64{}
-  if len(features) == 0 {
+  if len(features) == 0 && generate_features {
     n = len(scores)+1
     i = make([]int    , n)
     v = make([]float64, n)
@@ -146,7 +146,7 @@ func convert_scores(config Config, scores []float64, index []int, features Featu
 
 /* -------------------------------------------------------------------------- */
 
-func import_scores(config Config, filename string, index []int, names []string, features FeatureIndices, dim int) ([]ConstVector, []int, []string, int) {
+func import_scores(config Config, filename string, index []int, names []string, features FeatureIndices, generate_features bool, dim int) ([]ConstVector, []int, []string, int) {
   f, err := os.Open(filename)
   if err != nil {
     log.Fatal(err)
@@ -175,7 +175,7 @@ func import_scores(config Config, filename string, index []int, names []string, 
           index[i] = i
         }
       }
-      scores = append(scores, convert_scores(config, c, index, features))
+      scores = append(scores, convert_scores(config, c, index, features, generate_features))
     }
   } else {
     if _, err := f.Seek(0, io.SeekStart); err != nil {
@@ -198,7 +198,7 @@ func import_scores(config Config, filename string, index []int, names []string, 
           PrintStderr(config, 1, "failed\n")
           log.Fatal("Error: number of features does not match header")
         }
-        scores = append(scores, convert_scores(config, c, index, features))
+        scores = append(scores, convert_scores(config, c, index, features, generate_features))
       }
       if len(index) == 0 {
         index = make([]int, dim)
@@ -245,9 +245,9 @@ func reduce_samples_scores(config Config, fg, bg []ConstVector) ([]ConstVector, 
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data_scores(config Config, index []int, names []string, features FeatureIndices, filename_fg, filename_bg string) ScoresDataSet {
-  scores_fg, index, names, dim := import_scores(config, filename_fg, index, names, features, -1)
-  scores_bg,     _,     _,   _ := import_scores(config, filename_bg, index, names, features, dim)
+func compile_training_data_scores(config Config, index []int, names []string, features FeatureIndices, generate_features bool, filename_fg, filename_bg string) ScoresDataSet {
+  scores_fg, index, names, dim := import_scores(config, filename_fg, index, names, features, generate_features, -1)
+  scores_bg,     _,     _,   _ := import_scores(config, filename_bg, index, names, features, generate_features, dim)
   scores_fg, scores_bg   = reduce_samples_scores(config, scores_fg, scores_bg)
   // define labels (assign foreground regions a label of 1)
   labels := make([]bool, len(scores_fg)+len(scores_bg))
@@ -257,7 +257,7 @@ func compile_training_data_scores(config Config, index []int, names []string, fe
   return ScoresDataSet{append(scores_fg, scores_bg...), labels, index, names}
 }
 
-func compile_test_data_scores(config Config, index []int, names []string, features FeatureIndices, filename string) ScoresDataSet {
-  scores, index, names, _ := import_scores(config, filename, index, names, features, -1)
+func compile_test_data_scores(config Config, index []int, names []string, features FeatureIndices, generate_features bool, filename string) ScoresDataSet {
+  scores, index, names, _ := import_scores(config, filename, index, names, features, generate_features, -1)
   return ScoresDataSet{scores, nil, index, names}
 }
