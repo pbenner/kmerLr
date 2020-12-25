@@ -130,11 +130,11 @@ func TestScores3(test *testing.T) {
   filename_bg  := "scoresLr_test_co_bg.table"
   filename_out := "scoresLr_test_co_3.json"
 
-  main_learn_scores(config, []string{"learn", "--no-normalization", "--lambda-auto=3", "--co-occurrence", "--co-preselection=5", filename_fg, filename_bg, "scoresLr_test_co"})
+  main_learn_scores(config, []string{"learn", "--lambda-auto=3", "--co-occurrence", "--co-preselection=5", filename_fg, filename_bg, "scoresLr_test_co"})
 
   classifier := ImportScoresLrEnsemble(config, filename_out)
 
-  data           := compile_training_data_scores(config, []int{}, []string{}, FeatureIndices{}, filename_fg, filename_bg)
+  data           := compile_training_data_scores(config, []int{}, []string{}, FeatureIndices{}, true, filename_fg, filename_bg)
   data_selection := classifier.SelectData(config, data)
 
   for i := 0; i < len(data.Data); i++ {

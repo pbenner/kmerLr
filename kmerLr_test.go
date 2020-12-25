@@ -18,7 +18,7 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
 import   "math"
 import   "os"
 import   "testing"
@@ -34,7 +34,7 @@ func TestKmers1(test *testing.T) {
   kmersCounter, err := NewKmerCounter(4, 8, false, false, true, nil, GappedNucleotideAlphabet{}); if err != nil {
     test.Error(err)
   } else {
-    data1 := compile_training_data(config, kmersCounter, nil, nil, false, "kmerLr_test.fa", "kmerLr_test.fa")
+    data1 := compile_training_data(config, kmersCounter, nil, nil, true, false, "kmerLr_test.fa", "kmerLr_test.fa")
 
     features := newFeatureIndices(len(data1.Kmers), false)
     features  = append(features, [2]int{4671 , 4672 }) // gntanc|gntanc     = 3, gntcaa|ttganc     = 0
@@ -42,7 +42,7 @@ func TestKmers1(test *testing.T) {
     features  = append(features, [2]int{19270, 57071}) // aacgcgna|tncgcgtt = 1, tgaatgca|tgcattca = 1
     features  = append(features, [2]int{4671 , 5486 }) // gntanc|gntanc     = 3, aagannt|anntctt   = 7
 
-    data2 := compile_training_data(config, kmersCounter, data1.Kmers, features, false, "kmerLr_test.fa", "kmerLr_test.fa")
+    data2 := compile_training_data(config, kmersCounter, data1.Kmers, features, false, false, "kmerLr_test.fa", "kmerLr_test.fa")
 
     for i, _ := range features[0:len(features)-4] {
       if data1.Data[0].Float64At(i+1) != data2.Data[0].Float64At(i+1) {
@@ -74,12 +74,12 @@ func TestKmers2(test *testing.T) {
   kmersCounter, err := NewKmerCounter(4, 8, false, false, true, nil, GappedNucleotideAlphabet{}); if err != nil {
     test.Error(err)
   } else {
-    data1 := compile_training_data(config, kmersCounter, nil, nil, false, "kmerLr_test.fa", "kmerLr_test.fa")
+    data1 := compile_training_data(config, kmersCounter, nil, nil, true, false, "kmerLr_test.fa", "kmerLr_test.fa")
 
     features := newFeatureIndices(len(data1.Kmers), false)
 
     kmersCounter, _ = NewKmerCounter(4, 8, false, false, true, nil, GappedNucleotideAlphabet{}, data1.Kmers...)
-    data2 := compile_training_data(config, kmersCounter, nil, nil, false, "kmerLr_test.fa", "kmerLr_test.fa")
+    data2 := compile_training_data(config, kmersCounter, nil, nil, true, false, "kmerLr_test.fa", "kmerLr_test.fa")
 
     if data1.Data[0].Dim() != data2.Data[0].Dim() {
       test.Error("test failed")
@@ -109,7 +109,7 @@ func TestKmers3(test *testing.T) {
   classifier.Alphabet = NucleotideAlphabet{}
 
   counter := classifier.GetKmerCounter()
-  data    := compile_training_data(config, counter, nil, nil, false, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
+  data    := compile_training_data(config, counter, nil, nil, true, false, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
 
   estimator := NewKmerLrEstimator(config, classifier, 0)
   estimator.Estimate(config, data, TransformFull{})
@@ -138,7 +138,7 @@ func TestKmers4(test *testing.T) {
   classifier.Alphabet = NucleotideAlphabet{}
 
   counter := classifier.GetKmerCounter()
-  data    := compile_training_data(config, counter, nil, nil, false, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
+  data    := compile_training_data(config, counter, nil, nil, true, false, "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")
 
   estimator := NewKmerLrEstimator(config, classifier, 0)
   estimator.Estimate(config, data, TransformFull{})
@@ -158,13 +158,14 @@ func TestKmers5(test *testing.T) {
   config.Seed    = 1
   config.Verbose = 0
 
-  main_learn(config, []string{"learn", "--lambda-auto=2", "--epsilon=0", "--epsilon-loss=1e-10", "--revcomp", "8", "8", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test"})
+  main_learn(config, []string{"learn", "--lambda-auto=2", "--epsilon=0", "--epsilon-loss=1e-10", "--revcomp", "--data-transform=standardizer", "8", "8", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test"})
 
   classifier := ImportKmerLrEnsemble(config, "kmerLr_test_2.json").GetComponent(0)
 
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
   }
+  fmt.Println(classifier.Theta)
   if math.Abs(classifier.Theta[0] - -2.800699979722743e-06) > 1e-5 {
     test.Error("test failed")
   }
