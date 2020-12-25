@@ -124,12 +124,6 @@ func (obj *KmerLrEstimator) estimate_debug_gradient(config Config, data KmerData
 
 func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform Transform, cooccurrence bool, debug bool) *KmerLr {
   transform.Apply(config, data.Data)
-  for i := 0; i < len(data.Data); i++ {
-    for j := 0; j < data.Data[i].Dim(); j++ {
-      fmt.Printf("%f ", data.Data[i].Float64At(j))
-    }
-    fmt.Println()
-  }
   if debug {
     obj.estimate_debug_gradient(config, data)
   }
