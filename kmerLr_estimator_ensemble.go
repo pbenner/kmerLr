@@ -91,9 +91,7 @@ func (obj KmerLrEstimatorEnsemble) Estimate(config Config, data_train, data_test
     transform := TransformFull{}
     // estimate transform on full data set so that all estimated
     // classifiers share the same transform
-    if !config.NoNormalization {
-      transform.Fit(config, append(data_train.Data, data_test.Data...), false)
-    }
+    transform.Fit(config, append(data_train.Data, data_test.Data...), false)
     // reduce data_train and data_test to pre-selected features
     r := obj.Estimators[0].estimate_loop(config, data_train, transform, config.Copreselection, false)
     r.Transform      = Transform{}
@@ -107,9 +105,7 @@ func (obj KmerLrEstimatorEnsemble) Estimate(config Config, data_train, data_test
     }
   }
   transform := TransformFull{}
-  if !config.NoNormalization {
-    transform.Fit(config, append(data_train.Data, data_test.Data...), obj.Estimators[0].Cooccurrence)
-  }
+  transform.Fit(config, append(data_train.Data, data_test.Data...), obj.Estimators[0].Cooccurrence)
   classifiers := obj.estimate_ensemble(config, data_train, transform)
   predictions := make([][]float64, len(config.LambdaAuto))
   for i, _ := range classifiers {

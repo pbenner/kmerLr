@@ -51,7 +51,7 @@ type Config struct {
   MaxEpochs       int
   MaxIterations   int
   MaxSamples      int
-  NoNormalization bool
+  DataTransform   string
   Pool            threadpool.ThreadPool
   PoolCV          threadpool.ThreadPool
   PoolSaga        threadpool.ThreadPool

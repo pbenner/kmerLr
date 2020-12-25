@@ -19,7 +19,9 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
+import   "log"
 import   "math"
+import   "strings"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -29,29 +31,46 @@ import   "github.com/pbenner/threadpool"
 /* -------------------------------------------------------------------------- */
 
 type TransformFull struct {
-  Mu    []float64
-  Sigma []float64
+  Offset []float64
+  Scale  []float64
 }
 
 /* -------------------------------------------------------------------------- */
 
 func (obj *TransformFull) Fit(config Config, data []ConstVector, cooccurrence bool) {
+  switch strings.ToLower(config.DataTransform) {
+  case "":
+  case "none":
+  case "standardize":
+    obj.FitStandardizer(config, data, cooccurrence)
+  case "variance-scaler":
+    obj.FitVarianceScaler(config, data, cooccurrence)
+  case "max-abs-scaler":
+    obj.FitMaxAbsScaler(config, data, cooccurrence)
+  case "mean-scaler":
+    obj.FitMeanScaler(config, data, cooccurrence)
+  default:
+    log.Fatal("invalid data transform")
+    panic("internal error")
+  }
+}
+
+func (obj *TransformFull) fitStandardizer(config Config, data []ConstVector, cooccurrence bool) {
   if len(data) == 0 {
     return
   }
-  PrintStderr(config, 1, "Fitting data transform... ")
   n := len(data)
   m := data[0].Dim()-1
-  mu    := []float64{}
-  sigma := []float64{}
+  offset := []float64{}
+  scale  := []float64{}
   if cooccurrence {
-    mu    = make([]float64, CoeffIndex(m).Dim()+1)
-    sigma = make([]float64, CoeffIndex(m).Dim()+1)
+    offset = make([]float64, CoeffIndex(m).Dim()+1)
+    scale  = make([]float64, CoeffIndex(m).Dim()+1)
   } else {
-    mu    = make([]float64, m+1)
-    sigma = make([]float64, m+1)
+    offset = make([]float64, m+1)
+    scale  = make([]float64, m+1)
   }
-  // compute mu
+  // compute offset
   for i_ := 0; i_ < n; i_++ {
     if data[i_].Dim() != m+1 {
       panic("internal error")
@@ -61,7 +80,7 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector, cooccurrence bo
     q := len(i)
 
     for j := 1; j < q; j++ {
-      mu[i[j]] += v[j]
+      offset[i[j]] += v[j]
     }
     if cooccurrence {
       config.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
@@ -69,18 +88,18 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector, cooccurrence bo
           i1    := i[j1]-1
           i2    := i[j2]-1
           j     := CoeffIndex(m).Ind2Sub(i1, i2)
-          mu[j] += v[j1]*v[j2]
+          offset[j] += v[j1]*v[j2]
         }
         return nil
       })
     }
   }
   // normalize mean (probably less floating point operations if normalization is here)
-  for j := 1; j < len(mu); j++ {
-    mu[j] /= float64(n)
+  for j := 1; j < len(offset); j++ {
+    offset[j] /= float64(n)
   }
-  k := make([]int, len(mu))
-  // compute sigma
+  k := make([]int, len(offset))
+  // compute scale
   for i_ := 0; i_ < n; i_++ {
     if data[i_].Dim() != m+1 {
       panic("internal error")
@@ -92,7 +111,7 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector, cooccurrence bo
     for j := 1; j < q; j++ {
       j_        := i[j]
       k    [j_] += 1
-      sigma[j_] += (v[j]-mu[j_])*(v[j]-mu[j_])
+      scale[j_] += (v[j]-offset[j_])*(v[j]-offset[j_])
     }
     if cooccurrence {
       config.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
@@ -101,51 +120,163 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector, cooccurrence bo
           i2 := i[j2]-1
           j  := CoeffIndex(m).Ind2Sub(i1, i2)
           k    [j] += 1
-          sigma[j] += (v[j1]*v[j2]-mu[j])*(v[j1]*v[j2]-mu[j])
+          scale[j] += (v[j1]*v[j2]-offset[j])*(v[j1]*v[j2]-offset[j])
         }
         return nil
       })
     }
   }
-  for j := 1; j < len(sigma); j++ {
+  for j := 1; j < len(scale); j++ {
     // account for zero entries
-    sj := sigma[j] + float64(n-k[j])*mu[j]*mu[j]
+    sj := scale[j] + float64(n-k[j])*offset[j]*offset[j]
     // compute standard deviation
     if sj == 0.0 {
-      sigma[j] = 1.0
+      scale[j] = 1.0
     } else {
-      sigma[j] = math.Sqrt(sj/float64(n))
+      scale[j] = math.Sqrt(sj/float64(n-1))
     }
+    // invert
+    scale[j] = 1.0/scale[j]
   }
-  mu   [0]  = 0.0
-  sigma[0]  = 1.0
-  obj.Sigma = sigma
-  obj.Mu    = mu
+  offset[0]  = 0.0
+  scale [0]  = 1.0
+  obj.Offset = offset
+  obj.Scale  = scale
+}
+
+func (obj *TransformFull) FitStandardizer(config Config, data []ConstVector, cooccurrence bool) {
+  PrintStderr(config, 1, "Fitting data transform (standardizer)... ")
+  obj.fitStandardizer(config, data, cooccurrence)
   PrintStderr(config, 1, "done\n")
 }
 
+func (obj *TransformFull) FitVarianceScaler(config Config, data []ConstVector, cooccurrence bool) {
+  PrintStderr(config, 1, "Fitting data transform (variance scaler)... ")
+  obj.fitStandardizer(config, data, cooccurrence)
+  obj.Offset = nil
+  PrintStderr(config, 1, "done\n")
+}
+
+func (obj *TransformFull) FitMaxAbsScaler(config Config, data []ConstVector, cooccurrence bool) {
+  if len(data) == 0 {
+    return
+  }
+  PrintStderr(config, 1, "Fitting data transform (max-abs scaler)... ")
+  n := len(data)
+  m := data[0].Dim()-1
+  scale := []float64{}
+  if cooccurrence {
+    scale = make([]float64, CoeffIndex(m).Dim()+1)
+  } else {
+    scale = make([]float64, m+1)
+  }
+  // compute offset
+  for i_ := 0; i_ < n; i_++ {
+    if data[i_].Dim() != m+1 {
+      panic("internal error")
+    }
+    i := data[i_].(SparseConstFloat64Vector).GetSparseIndices()
+    v := data[i_].(SparseConstFloat64Vector).GetSparseValues ()
+    q := len(i)
+
+    for j := 1; j < q; j++ {
+      scale[i[j]] = math.Max(scale[i[j]], math.Abs(v[j]))
+    }
+    if cooccurrence {
+      config.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
+        for j2 := j1+1; j2 < q; j2++ {
+          i1    := i[j1]-1
+          i2    := i[j2]-1
+          j     := CoeffIndex(m).Ind2Sub(i1, i2)
+          scale[j] = math.Max(scale[j], math.Abs(v[j1]*v[j2]))
+        }
+        return nil
+      })
+    }
+  }
+  scale[0]   = 1.0
+  obj.Offset = nil
+  obj.Scale  = scale
+  PrintStderr(config, 1, "done\n")
+}
+
+func (obj *TransformFull) FitMeanScaler(config Config, data []ConstVector, cooccurrence bool) {
+  if len(data) == 0 {
+    return
+  }
+  PrintStderr(config, 1, "Fitting data transform (mean scaler)... ")
+  n := len(data)
+  m := data[0].Dim()-1
+  scale := []float64{}
+  if cooccurrence {
+    scale = make([]float64, CoeffIndex(m).Dim()+1)
+  } else {
+    scale = make([]float64, m+1)
+  }
+  // compute offset
+  for i_ := 0; i_ < n; i_++ {
+    if data[i_].Dim() != m+1 {
+      panic("internal error")
+    }
+    i := data[i_].(SparseConstFloat64Vector).GetSparseIndices()
+    v := data[i_].(SparseConstFloat64Vector).GetSparseValues ()
+    q := len(i)
+
+    for j := 1; j < q; j++ {
+      scale[i[j]] += v[j]
+    }
+    if cooccurrence {
+      config.Pool.RangeJob(1, q, func(j1 int, pool threadpool.ThreadPool, erf func() error) error {
+        for j2 := j1+1; j2 < q; j2++ {
+          i1    := i[j1]-1
+          i2    := i[j2]-1
+          j     := CoeffIndex(m).Ind2Sub(i1, i2)
+          scale[j] += v[j1]*v[j2]
+        }
+        return nil
+      })
+    }
+  }
+  // normalize mean (probably less floating point operations if normalization is here)
+  for j := 1; j < len(scale); j++ {
+    scale[j] /= float64(n)
+  }
+  scale[0]   = 1.0
+  obj.Offset = nil
+  obj.Scale  = scale
+  PrintStderr(config, 1, "done\n")
+}
+
+/* -------------------------------------------------------------------------- */
+
 func (obj TransformFull) Nil() bool {
-  return len(obj.Mu) == 0
+  return len(obj.Offset) == 0 && len(obj.Scale) == 0
 }
 
 func (obj TransformFull) Apply(value float64, j int) float64 {
-  return (value - obj.Mu[j])/obj.Sigma[j]
+  if len(obj.Offset) > 0 {
+    value = value - obj.Offset[j]
+  }
+  if len(obj.Scale ) > 0 {
+    value = value * obj.Scale[j]
+  }
+  return value
 }
 
 func (obj TransformFull) Equals(t Transform) bool {
-  if len(obj.Mu) != len(t.Mu) {
+  if len(obj.Offset) != len(t.Offset) {
     return false
   }
-  if len(obj.Sigma) != len(t.Sigma) {
+  if len(obj.Scale ) != len(t.Scale ) {
     return false
   }
-  for i := 0; i < len(obj.Mu); i++ {
-    if math.Abs(obj.Mu[i] - t.Mu[i]) > 1e-12 {
+  for i := 0; i < len(obj.Offset); i++ {
+    if math.Abs(obj.Offset[i] - t.Offset[i]) > 1e-12 {
       return false
     }
   }
-  for i := 0; i < len(obj.Sigma); i++ {
-    if math.Abs(obj.Sigma[i] - t.Sigma[i]) > 1e-12 {
+  for i := 0; i < len(obj.Scale); i++ {
+    if math.Abs(obj.Scale[i] - t.Scale[i]) > 1e-12 {
       return false
     }
   }
@@ -154,17 +285,17 @@ func (obj TransformFull) Equals(t Transform) bool {
 
 func (obj TransformFull) Select(b []bool) Transform {
   tr := Transform{}
-  if len(obj.Mu) > 0 {
+  if len(obj.Offset) > 0 {
     for i := 0; i < len(b); i++ {
       if b[i] {
-        tr.Mu = append(tr.Mu, obj.Mu[i])
+        tr.Offset = append(tr.Offset, obj.Offset[i])
       }
     }
   }
-  if len(obj.Sigma) > 0 {
+  if len(obj.Scale) > 0 {
     for i := 0; i < len(b); i++ {
       if b[i] {
-        tr.Sigma = append(tr.Sigma, obj.Sigma[i])
+        tr.Scale = append(tr.Scale, obj.Scale[i])
       }
     }
   }
@@ -173,8 +304,8 @@ func (obj TransformFull) Select(b []bool) Transform {
 
 func (obj TransformFull) SelectAll() Transform {
   tr := Transform{}
-  tr.Mu    = obj.Mu
-  tr.Sigma = obj.Sigma
+  tr.Offset = obj.Offset
+  tr.Scale  = obj.Scale
   return tr
 }
 
@@ -182,39 +313,52 @@ func (obj TransformFull) SelectAll() Transform {
 /* -------------------------------------------------------------------------- */
 
 type Transform struct {
-  Mu    []float64
-  Sigma []float64
+  Offset []float64
+  Scale  []float64
 }
 
 /* -------------------------------------------------------------------------- */
 
-func NewTransform(n int) Transform {
+func NewTransform(n int, with_offset, with_scale bool) Transform {
   if n < 0 {
     panic("internal error")
   }
+  if !with_offset && !with_scale {
+    panic("internal error")
+  }
   t := Transform{}
-  t.Mu    = make([]float64, n+1)
-  t.Sigma = make([]float64, n+1)
-  t.Mu   [0] = 0.0
-  t.Sigma[0] = 1.0
+  if with_offset {
+    t.Offset    = make([]float64, n+1)
+    t.Offset[0] = 0.0
+  }
+  if with_scale  {
+    t.Scale     = make([]float64, n+1)
+    t.Scale[0]  = 1.0
+  }
   return t
 }
 
 func (obj Transform) Clone() Transform {
   t := Transform{}
-  t.Mu    = make([]float64, len(obj.Mu))
-  t.Sigma = make([]float64, len(obj.Sigma))
-  copy(t.Mu   , obj.Mu)
-  copy(t.Sigma, obj.Sigma)
+  t.Offset = make([]float64, len(obj.Offset))
+  t.Scale  = make([]float64, len(obj.Scale ))
+  copy(t.Offset, obj.Offset)
+  copy(t.Scale , obj.Scale )
   return t
 }
 
 func (obj Transform) Nil() bool {
-  return len(obj.Mu) == 0
+  return len(obj.Offset) == 0 && len(obj.Scale) == 0
 }
 
 func (obj Transform) Dim() int {
-  return len(obj.Mu)
+  n := len(obj.Offset)
+  m := len(obj.Scale )
+  if n != 0 {
+    return n
+  } else {
+    return m
+  }
 }
 
 func (t1 Transform) Insert(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClassList) error {
@@ -236,20 +380,24 @@ func (t1 Transform) Insert(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
     kmer2 := k2[feature[1]].KmerClassId
     // insert only if feature is present in target transform
     if i, ok := m[[2]KmerClassId{kmer1, kmer2}]; ok {
-      if t1.Mu[i+1] == 0.0 {
-        t1.Mu[i+1] = t2.Mu[j+1]
-      } else
-      if t2.Mu[j+1] != 0.0 {
-        if math.Abs(t1.Mu[i+1] - t2.Mu[j+1]) > 1e-12 {
-          return fmt.Errorf("joining transforms failed: transforms are incompatible")
+      if len(t2.Offset) > 0 {
+        if t1.Offset[i+1] == 0.0 {
+          t1.Offset[i+1] = t2.Offset[j+1]
+        } else
+        if t2.Offset[j+1] != 0.0 {
+          if math.Abs(t1.Offset[i+1] - t2.Offset[j+1]) > 1e-12 {
+            return fmt.Errorf("joining transforms failed: transforms are incompatible")
+          }
         }
       }
-      if t1.Sigma[i+1] == 0.0 {
-        t1.Sigma[i+1] = t2.Sigma[j+1]
-      } else
-      if t2.Sigma[j+1] != 0.0 {
-        if math.Abs(t1.Sigma[i+1] - t2.Sigma[j+1]) > 1e-12 {
-          return fmt.Errorf("joining transforms failed: transforms are incompatible")
+      if len(t2.Scale) > 0 {
+        if t1.Scale[i+1] == 0.0 {
+          t1.Scale[i+1] = t2.Scale[j+1]
+        } else
+        if t2.Scale[j+1] != 0.0 {
+          if math.Abs(t1.Scale[i+1] - t2.Scale[j+1]) > 1e-12 {
+            return fmt.Errorf("joining transforms failed: transforms are incompatible")
+          }
         }
       }
     }
@@ -272,19 +420,19 @@ func (t1 Transform) InsertScores(t2 Transform, f1, f2 FeatureIndices, i1, i2 []i
   for j, feature := range f2 {
     // insert only if feature is present in target transform
     if i, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
-      if t1.Mu[i+1] == 0.0 {
-        t1.Mu[i+1] = t2.Mu[j+1]
+      if t1.Offset[i+1] == 0.0 {
+        t1.Offset[i+1] = t2.Offset[j+1]
       } else
-      if t2.Mu[j+1] != 0.0 {
-        if math.Abs(t1.Mu[i+1] - t2.Mu[j+1]) > 1e-12 {
+      if t2.Offset[j+1] != 0.0 {
+        if math.Abs(t1.Offset[i+1] - t2.Offset[j+1]) > 1e-12 {
           return fmt.Errorf("joining transforms failed: transforms are incompatible")
         }
       }
-      if t1.Sigma[i+1] == 0.0 {
-        t1.Sigma[i+1] = t2.Sigma[j+1]
+      if t1.Scale[i+1] == 0.0 {
+        t1.Scale[i+1] = t2.Scale[j+1]
       } else
-      if t2.Sigma[j+1] != 0.0 {
-        if math.Abs(t1.Sigma[i+1] - t2.Sigma[j+1]) > 1e-12 {
+      if t2.Scale[j+1] != 0.0 {
+        if math.Abs(t1.Scale[i+1] - t2.Scale[j+1]) > 1e-12 {
           return fmt.Errorf("joining transforms failed: transforms are incompatible")
         }
       }
@@ -310,34 +458,34 @@ func (t1 Transform) Equals(t2 Transform, f1, f2 FeatureIndices, k1, k2 KmerClass
       return true
     }
   }
-  // compare mu
+  // compare offset
   m := make(map[[2]KmerClassId]float64)
   for i, feature := range f1 {
     kmer1 := k1[feature[0]].KmerClassId
     kmer2 := k1[feature[1]].KmerClassId
-    m[[2]KmerClassId{kmer1, kmer2}] = t1.Mu[i+1]
+    m[[2]KmerClassId{kmer1, kmer2}] = t1.Offset[i+1]
   }
   for i, feature := range f2 {
     kmer1 := k2[feature[0]].KmerClassId
     kmer2 := k2[feature[1]].KmerClassId
     if v, ok := m[[2]KmerClassId{kmer1, kmer2}]; ok {
-      if math.Abs(v - t2.Mu[i+1]) > 1e-12 {
+      if math.Abs(v - t2.Offset[i+1]) > 1e-12 {
         return false
       }
     }
   }
-  // compare sigma
+  // compare scale
   m = make(map[[2]KmerClassId]float64)
   for i, feature := range f1 {
     kmer1 := k1[feature[0]].KmerClassId
     kmer2 := k1[feature[1]].KmerClassId
-    m[[2]KmerClassId{kmer1, kmer2}] = t1.Sigma[i+1]
+    m[[2]KmerClassId{kmer1, kmer2}] = t1.Scale[i+1]
   }
   for i, feature := range f2 {
     kmer1 := k2[feature[0]].KmerClassId
     kmer2 := k2[feature[1]].KmerClassId
     if v, ok := m[[2]KmerClassId{kmer1, kmer2}]; ok {
-      if math.Abs(v - t2.Sigma[i+1]) > 1e-12 {
+      if math.Abs(v - t2.Scale[i+1]) > 1e-12 {
         return false
       }
     }
@@ -362,26 +510,26 @@ func (t1 Transform) EqualsScores(t2 Transform, f1, f2 FeatureIndices, i1, i2 []i
       return true
     }
   }
-  // compare mu
+  // compare offset
   m := make(map[[2]int]float64)
   for i, feature := range f1 {
-    m[[2]int{i1[feature[0]], i1[feature[1]]}] = t1.Mu[i+1]
+    m[[2]int{i1[feature[0]], i1[feature[1]]}] = t1.Offset[i+1]
   }
   for i, feature := range f2 {
     if v, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
-      if math.Abs(v - t2.Mu[i+1]) > 1e-12 {
+      if math.Abs(v - t2.Offset[i+1]) > 1e-12 {
         return false
       }
     }
   }
-  // compare sigma
+  // compare scale
   m = make(map[[2]int]float64)
   for i, feature := range f1 {
-    m[[2]int{i1[feature[0]], i1[feature[1]]}] = t1.Sigma[i+1]
+    m[[2]int{i1[feature[0]], i1[feature[1]]}] = t1.Scale[i+1]
   }
   for i, feature := range f2 {
     if v, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
-      if math.Abs(v - t2.Sigma[i+1]) > 1e-12 {
+      if math.Abs(v - t2.Scale[i+1]) > 1e-12 {
         return false
       }
     }
@@ -393,10 +541,10 @@ func (obj Transform) Apply(config Config, data []ConstVector) {
   if len(data) == 0 {
     return
   }
-  if len(obj.Mu) != len(obj.Sigma) {
+  if len(obj.Offset) != len(obj.Scale) {
     panic("internal error")
   }
-  if len(obj.Mu) == 0 {
+  if len(obj.Offset) == 0 {
     return
   }
   PrintStderr(config, 1, "Normalizing data... ")
@@ -408,15 +556,33 @@ func (obj Transform) Apply(config Config, data []ConstVector) {
     }
     indices := data[i].(SparseConstFloat64Vector).GetSparseIndices()
     values  := data[i].(SparseConstFloat64Vector).GetSparseValues ()
-    result  := make([]float64, m)
-    for k, j := 0, 0; k < m; k++ {
-      if j < len(values) && indices[j] == k {
-        result[k] = (values[j] - obj.Mu[k])/obj.Sigma[k]; j++
-      } else {
-        result[k] = (      0.0 - obj.Mu[k])/obj.Sigma[k]
+    if len(obj.Offset) > 0 && len(obj.Scale) > 0 {
+      result := make([]float64, m)
+      for k, j := 0, 0; k < m; k++ {
+        if j < len(values) && indices[j] == k {
+          result[k] = (values[j] - obj.Offset[k])*obj.Scale[k]; j++
+        } else {
+          result[k] = (      0.0 - obj.Offset[k])*obj.Scale[k]
+        }
       }
+      data[i] = AsSparseConstFloat64Vector(NewDenseFloat64Vector(result))
+    } else
+    if len(obj.Offset) > 0 {
+      result := make([]float64, m)
+      for k, j := 0, 0; k < m; k++ {
+        if j < len(values) && indices[j] == k {
+          result[k] = (values[j] - obj.Offset[k]); j++
+        } else {
+          result[k] = (      0.0 - obj.Offset[k])
+        }
+      }
+      data[i] = AsSparseConstFloat64Vector(NewDenseFloat64Vector(result))
+    } else {
+      for j1, j2 := range indices {
+        values[j1] = values[j1]*obj.Scale[j2]
+      }
+      data[i] = UnsafeSparseConstFloat64Vector(indices, values, m)
     }
-    data[i] = AsSparseConstFloat64Vector(NewDenseFloat64Vector(result))
   }
   PrintStderr(config, 1, "done\n")
 }
@@ -425,14 +591,14 @@ func (obj Transform) Apply(config Config, data []ConstVector) {
 
 func (obj *Transform) ImportConfig(config ConfigDistribution, t ScalarType) error {
 
-  mu   , ok := config.GetNamedParametersAsFloats("Mu"   ); if !ok {
+  offset, ok := config.GetNamedParametersAsFloats("Offset"); if !ok {
     return fmt.Errorf("invalid config file")
   }
-  sigma, ok := config.GetNamedParametersAsFloats("Sigma"); if !ok {
+  scale , ok := config.GetNamedParametersAsFloats("Scale" ); if !ok {
     return fmt.Errorf("invalid config file")
   }
-  obj.Mu    = mu
-  obj.Sigma = sigma
+  obj.Offset = offset
+  obj.Scale  = scale
   return nil
 }
 

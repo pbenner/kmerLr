@@ -117,9 +117,9 @@ func coefficients_(config Config, classifier *KmerLr, i_ int, filename_fg, filen
   }
 
   // insert coefficients into the map
-  if rescale && len(classifier.Transform.Sigma) > 0 {
+  if rescale && len(classifier.Transform.Scale) > 0 {
     for i, v := range classifier.Theta[1:] {
-      coefficients.a[i] = v*classifier.Transform.Sigma[i+1]
+      coefficients.a[i] = v/classifier.Transform.Scale[i+1]
       coefficients.b[i] = i
     }
   } else {

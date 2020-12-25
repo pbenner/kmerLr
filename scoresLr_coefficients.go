@@ -67,9 +67,9 @@ func coefficients_scores_(config Config, classifier *ScoresLr, i_ int, rescale b
   names        := classifier.Names
 
   // insert coefficients into the map
-  if rescale && len(classifier.Transform.Sigma) > 0 {
+  if rescale && len(classifier.Transform.Scale) > 0 {
     for i, v := range classifier.Theta[1:] {
-      coefficients.a[i] = v*classifier.Transform.Sigma[i+1]
+      coefficients.a[i] = v/classifier.Transform.Scale[i+1]
       coefficients.b[i] = i
     }
   } else {

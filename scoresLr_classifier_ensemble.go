@@ -321,7 +321,7 @@ func (obj *ScoresLrEnsemble) AddScoresLr(classifier *ScoresLr) error {
   // create new transform
   transform := Transform{}
   if !classifier.Transform.Nil() {
-    transform = NewTransform(len(features))
+    transform = NewTransform(len(features), len(classifier.Transform.Offset) > 0, len(classifier.Transform.Scale) > 0)
     if !obj.Transform.Nil() {
       if err := transform.InsertScores(obj.Transform, features, obj.Features, index, obj.Index); err != nil {
         return err
