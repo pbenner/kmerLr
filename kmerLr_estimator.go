@@ -116,6 +116,7 @@ func (obj *KmerLrEstimator) estimate_debug_gradient(config Config, data KmerData
     r.Add(r, s)
   }
   r.Neg(r)
+  r.Div(r, ConstFloat64(float64(len(data.Data))))
   fmt.Printf("gradient (autodiff): %v\n\n", GetGradient(Float64Type, r))
 }
 
