@@ -41,7 +41,7 @@ func (obj *TransformFull) Fit(config Config, data []ConstVector, cooccurrence bo
   switch strings.ToLower(config.DataTransform) {
   case "":
   case "none":
-  case "standardize":
+  case "standardizer":
     PrintStderr(config, 1, "WARNING: Standardizing data will result in dense data and slow down computations!")
     obj.FitStandardizer(config, data, cooccurrence)
   case "variance-scaler":
