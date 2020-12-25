@@ -542,10 +542,7 @@ func (obj Transform) Apply(config Config, data []ConstVector) {
   if len(data) == 0 {
     return
   }
-  if len(obj.Offset) != len(obj.Scale) {
-    panic("internal error")
-  }
-  if len(obj.Offset) == 0 {
+  if len(obj.Offset) == 0 && len(obj.Scale) == 0 {
     return
   }
   PrintStderr(config, 1, "Normalizing data... ")
