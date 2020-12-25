@@ -109,7 +109,7 @@ func predict_window(config Config, filename_json, filename_in, filename_out stri
         config := config; config.Pool = pool
         counts := scan_sequence(config, counters[pool.GetThreadId()], classifier.Binarize, []byte(sequence[j:j+window_size]))
         counts.SetKmers(classifier.Kmers)
-        data   := convert_counts(config, counts, classifier.Features)
+        data   := convert_counts(config, counts, classifier.Features, false)
         predictions[i][j] = classifier.Predict(config, []ConstVector{data})[0]
         return nil
       })
@@ -125,7 +125,7 @@ func predict_window(config Config, filename_json, filename_in, filename_out stri
 func predict_(config Config, filename_json, filename_in string) []float64 {
   classifier  := ImportKmerLrEnsemble(config, filename_json)
   counter     := classifier.GetKmerCounter()
-  data        := compile_test_data(config, counter, classifier.Kmers, classifier.Features, classifier.Binarize, filename_in)
+  data        := compile_test_data(config, counter, classifier.Kmers, classifier.Features, false, classifier.Binarize, filename_in)
   classifier.Transform.Apply(config, data.Data)
   predictions := classifier.Predict(config, data.Data)
 

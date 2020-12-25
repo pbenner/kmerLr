@@ -136,7 +136,7 @@ func (obj genomicKmerLr) Predict(config Config, subseq []byte, j int) float64 {
   for i, _ := range obj.classifiers {
     counts := scan_sequence(config, obj.counters[i][j], obj.classifiers[i].Binarize, subseq)
     counts.SetKmers(obj.classifiers[i].Kmers)
-    data   := convert_counts(config, counts, obj.classifiers[i].Features)
+    data   := convert_counts(config, counts, obj.classifiers[i].Features, false)
     r      += obj.classifiers[i].Predict(config, []ConstVector{data})[0]
   }
   return r

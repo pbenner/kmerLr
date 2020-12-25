@@ -37,9 +37,9 @@ func count_features(config Config, classifier *KmerLrEnsemble, filename_fg, file
   }
   var data KmerDataSet
   if filename_bg == "" {
-    data = compile_test_data(config, kmersCounter, nil, nil, classifier.Binarize, filename_fg)
+    data = compile_test_data(config, kmersCounter, nil, nil, true, classifier.Binarize, filename_fg)
   } else {
-    data = compile_training_data(config, kmersCounter, nil, nil, classifier.Binarize, filename_fg, filename_bg)
+    data = compile_training_data(config, kmersCounter, nil, nil, true, classifier.Binarize, filename_fg, filename_bg)
   }
   fmt.Println(len(data.Kmers))
 }

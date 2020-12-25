@@ -81,7 +81,7 @@ func learn(config Config, classifier *KmerLrEnsemble, filename_json, filename_fg
   kmersCounter, err := NewKmerCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data := compile_training_data(config, kmersCounter, nil, nil, classifier.Binarize, filename_fg, filename_bg)
+  data := compile_training_data(config, kmersCounter, nil, nil, true, classifier.Binarize, filename_fg, filename_bg)
   kmersCounter = nil
 
   if len(data.Data) == 0 {

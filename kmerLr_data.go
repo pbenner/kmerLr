@@ -121,11 +121,11 @@ func compute_class_weights(c []bool) [2]float64 {
 
 /* -------------------------------------------------------------------------- */
 
-func convert_counts(config Config, counts KmerCounts, features FeatureIndices) ConstVector {
+func convert_counts(config Config, counts KmerCounts, features FeatureIndices, generate_features bool) ConstVector {
   n := 0
   i := []int    {0  }
   v := []float64{1.0}
-  if len(features) == 0 {
+  if len(features) == 0 && generate_features {
     n = counts.Len()+1
     // copy counts to (i, v)
     for it := counts.Iterate(); it.Ok(); it.Next() {
@@ -161,13 +161,13 @@ func convert_counts(config Config, counts KmerCounts, features FeatureIndices) C
   return UnsafeSparseConstFloat64Vector(i, v, n)
 }
 
-func convert_counts_list(config Config, countsList *KmerCountsList, features FeatureIndices) []ConstVector {
+func convert_counts_list(config Config, countsList *KmerCountsList, features FeatureIndices, generate_features bool) []ConstVector {
   r := make([]ConstVector, countsList.Len())
   PrintStderr(config, 1, "Converting kmer counts... ")
   if err := config.Pool.RangeJob(0, countsList.Len(), func(i int, pool threadpool.ThreadPool, erf func() error) error {
     config := config; config.Pool = pool
 
-    r[i] = convert_counts(config, countsList.At(i), features)
+    r[i] = convert_counts(config, countsList.At(i), features, generate_features)
     // free memory
     countsList.Counts[i] = nil
     return nil
@@ -230,7 +230,7 @@ func reduce_samples(config Config, fg, bg []string) ([]string, []string) {
 
 /* -------------------------------------------------------------------------- */
 
-func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, binarize bool, filename_fg, filename_bg string) KmerDataSet {
+func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, generate_features bool, binarize bool, filename_fg, filename_bg string) KmerDataSet {
   fg := import_fasta(config, filename_fg)
   bg := import_fasta(config, filename_bg)
   fg, bg  = reduce_samples(config, fg, bg)
@@ -246,24 +246,24 @@ func compile_training_data(config Config, kmersCounter *KmerCounter, kmers KmerC
   }
   counts_list_fg := counts_list.Slice(      0, len(fg))
   counts_list_bg := counts_list.Slice(len(fg), len(fg)+len(bg))
-  r_fg := convert_counts_list(config, &counts_list_fg, features)
-  r_bg := convert_counts_list(config, &counts_list_bg, features)
+  r_fg := convert_counts_list(config, &counts_list_fg, features, generate_features)
+  r_bg := convert_counts_list(config, &counts_list_bg, features, generate_features)
   return KmerDataSet{append(r_fg, r_bg...), labels, counts_list.Kmers}
 }
 
-func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, binarize bool, filename string) KmerDataSet {
+func compile_test_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, generate_features bool, binarize bool, filename string) KmerDataSet {
   sequences   := import_fasta(config, filename)
   counts      := scan_sequences(config, kmersCounter, binarize, sequences)
   counts_list := NewKmerCountsList(counts...)
   // set counts_list.Kmers to the set of kmers on which the
   // classifier was trained on
   counts_list.SetKmers(kmers)
-  return KmerDataSet{convert_counts_list(config, &counts_list, features), nil, counts_list.Kmers}
+  return KmerDataSet{convert_counts_list(config, &counts_list, features, generate_features), nil, counts_list.Kmers}
 }
 
 /* -------------------------------------------------------------------------- */
 
-func compile_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, binarize bool, filenames []string) []KmerDataSet {
+func compile_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList, features FeatureIndices, generate_features bool, binarize bool, filenames []string) []KmerDataSet {
   r := make([]KmerDataSet, len(filenames))
   c := make([]KmerCounts , 0)
   k := make([]int        , len(filenames)+1)
@@ -278,7 +278,7 @@ func compile_data(config Config, kmersCounter *KmerCounter, kmers KmerClassList,
   }
   for i, _ := range filenames {
     tmp := counts_list.Slice(k[i], k[i+1])
-    r[i] = KmerDataSet{convert_counts_list(config, &tmp, features), nil, counts_list.Kmers}
+    r[i] = KmerDataSet{convert_counts_list(config, &tmp, features, generate_features), nil, counts_list.Kmers}
   }
   return r
 }

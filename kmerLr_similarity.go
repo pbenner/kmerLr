@@ -98,7 +98,7 @@ func similarity(config Config, filenameModel, filenameFasta, filenameOut string,
       }
     }
   }
-  data := compile_test_data(config, counter, nil, nil, classifier.Binarize, filenameFasta)
+  data := compile_test_data(config, counter, nil, nil, false, classifier.Binarize, filenameFasta)
   classifier.Transform.Apply(config, data.Data)
 
   // allocate result

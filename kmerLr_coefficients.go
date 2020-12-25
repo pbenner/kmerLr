@@ -113,7 +113,7 @@ func coefficients_(config Config, classifier *KmerLr, i_ int, filename_fg, filen
   data := KmerDataSet{}
   if filename_fg != "" && filename_bg != "" {
     counter := classifier.GetKmerCounter()
-    data     = compile_training_data(config, counter, classifier.Kmers, classifier.Features, classifier.Binarize, filename_fg, filename_bg)
+    data     = compile_training_data(config, counter, classifier.Kmers, classifier.Features, false, classifier.Binarize, filename_fg, filename_bg)
   }
 
   // insert coefficients into the map

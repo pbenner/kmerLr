@@ -38,7 +38,7 @@ func export(config Config, classifier *KmerLrEnsemble, filename_json string, fil
   kmersCounter, err := NewKmerCounter(classifier.M, classifier.N, classifier.Complement, classifier.Reverse, classifier.Revcomp, classifier.MaxAmbiguous, classifier.Alphabet); if err != nil {
     log.Fatal(err)
   }
-  data := compile_data(config, kmersCounter, nil, nil, classifier.Binarize, filename_seq)
+  data := compile_data(config, kmersCounter, nil, nil, true, classifier.Binarize, filename_seq)
   kmersCounter = nil
 
   for i, _ := range data {
