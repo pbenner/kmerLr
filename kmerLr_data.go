@@ -22,6 +22,7 @@ import   "fmt"
 import   "log"
 import   "io"
 import   "bufio"
+import   "bytes"
 import   "os"
 
 import . "github.com/pbenner/autodiff"
@@ -34,6 +35,65 @@ type KmerDataSet struct {
   Data   []ConstVector
   Labels []bool
   Kmers    KmerClassList
+}
+
+func (obj KmerDataSet) String() string {
+  var buffer bytes.Buffer
+
+  w := bufio.NewWriter(&buffer)
+  l := make([]int, len(obj.Kmers))
+  m := 12
+  if len(l) > 0 {
+    // compute kmer string lengths
+    for j := 0; j < len(l); j++ {
+      l[j] = len(obj.Kmers[j].String())
+      if l[j] < m {
+        l[j] = m
+      }
+    }
+    // print header
+    for j := 0; j < len(l); j++ {
+      f := fmt.Sprintf("%%%ds ", l[j])
+      fmt.Fprintf(w, f, obj.Kmers[j])
+    }
+    if len(obj.Labels) != 0 {
+      fmt.Fprintf(w, "labels")
+    }
+    fmt.Fprintf(w, "\n")
+    // print data
+    for i := 0; i < len(obj.Data); i++ {
+      for j := 0; j < len(l); j++ {
+        f := fmt.Sprintf("%%%de ", l[j])
+        fmt.Fprintf(w, f, obj.Data[i].Float64At(j+1))
+      }
+      if len(obj.Labels) != 0 {
+        if obj.Labels[i] {
+          fmt.Fprintf(w, "1")
+        } else {
+          fmt.Fprintf(w, "0")
+        }
+      }
+      fmt.Fprintf(w, "\n")
+    }
+  } else {
+    // print data
+    for i := 0; i < len(obj.Data); i++ {
+      for j := 0; j < obj.Data[i].Dim()-1; j++ {
+        fmt.Fprintf(w, "%12e ", obj.Data[i].Float64At(j+1))
+      }
+      if len(obj.Labels) != 0 {
+        if obj.Labels[i] {
+          fmt.Fprintf(w, "1")
+        } else {
+          fmt.Fprintf(w, "0")
+        }
+      }
+      fmt.Fprintf(w, "\n")
+    }
+  }
+  w.Flush()
+
+  return buffer.String()
 }
 
 /* -------------------------------------------------------------------------- */
