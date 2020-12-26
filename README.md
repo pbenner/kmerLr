@@ -112,4 +112,4 @@ plot(p)
 
 ## Objective function
 
-<img src="https://latex.codecogs.com/gif.download?%5Comega%28%5Ctheta%29%20%3D%20-%5Cfrac%7B1%7D%7Bn%7D%5Csum_%7Bi%3D1%7D%5En%20%5Cleft%5C%7By_i%20%5Clog%5Csigma%28x_i%5Ctheta%29%20+%20%281-y_i%29%5Clog%28%5Csigma%281-x_i%5Ctheta%29%29%5Cright%5C%7D%20+%20%5Clambda%20%5Cleft%20%5CVert%20%5Ctheta%20%5Cright%5CVert_1"/>
+<a href="https://www.codecogs.com/eqnedit.php?latex=\omega(\theta)&space;=&space;-\frac{1}{n}\sum_{i=1}^n&space;\left\{y_i&space;\log\sigma(x_i\theta)&space;&plus;&space;(1-y_i)\log(\sigma(1-x_i\theta))\right\}&space;&plus;&space;\lambda&space;\left&space;\Vert&space;\theta&space;\right\Vert_1" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\omega(\theta)&space;=&space;-\frac{1}{n}\sum_{i=1}^n&space;\left\{y_i&space;\log\sigma(x_i\theta)&space;&plus;&space;(1-y_i)\log(\sigma(1-x_i\theta))\right\}&space;&plus;&space;\lambda&space;\left&space;\Vert&space;\theta&space;\right\Vert_1" title="\omega(\theta) = -\frac{1}{n}\sum_{i=1}^n \left\{y_i \log\sigma(x_i\theta) + (1-y_i)\log(\sigma(1-x_i\theta))\right\} + \lambda \left \Vert \theta \right\Vert_1" /></a>
