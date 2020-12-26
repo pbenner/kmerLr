@@ -38,13 +38,13 @@ func TestScores1(test *testing.T) {
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
   }
-  if math.Abs(classifier.Theta[0] - -0.0128697267684826) > 1e-5 {
+  if math.Abs(classifier.Theta[0] - 0.842178566751775) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[1] - -0.5831540735146012) > 1e-5 {
+  if math.Abs(classifier.Theta[1] - -0.05466291047449) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[2] - -0.0162323018324944) > 1e-5 {
+  if math.Abs(classifier.Theta[2] - -0.03026279836545) > 1e-5 {
     test.Error("test failed")
   }
   if len(classifier.Features) != 2 {
@@ -56,7 +56,7 @@ func TestScores1(test *testing.T) {
   if f := classifier.Features[1]; classifier.Index[f[0]] != 6 || classifier.Index[f[1]] != 6 {
     test.Error("test failed")
   }
-  if v := loss_scores_(config, "scoresLr_test_2.json", "scoresLr_test_fg.table", "scoresLr_test_bg.table")[0]; math.Abs(v - 10.460285) > 1e-4 {
+  if v := loss_scores_(config, "scoresLr_test_2.json", "scoresLr_test_fg.table", "scoresLr_test_bg.table")[0]; math.Abs(v - 0.813659729805629) > 1e-4 {
     test.Error("test failed")
   }
   os.Remove("scoresLr_test_2.json")
@@ -64,7 +64,6 @@ func TestScores1(test *testing.T) {
 
 func TestScores2(test *testing.T) {
   config := Config{}
-  config.Lambda  = 5.385329e+00
   config.Verbose = 0
   config.Seed    = 1
 
@@ -75,26 +74,26 @@ func TestScores2(test *testing.T) {
   if len(classifier.Theta) != 2 {
     test.Error("test failed"); return
   }
-  if math.Abs(classifier.Theta[0] - 0.0012955950713445) > 1e-5 {
+  if math.Abs(classifier.Theta[0] - -3.6698336905701286e-06) > 1e-5 {
     test.Error("test failed")
   }
-  if math.Abs(classifier.Theta[1] - 0.3061875981152939) > 1e-5 {
+  if math.Abs(classifier.Theta[1] -  0.000247759511599005) > 1e-5 {
     test.Error("test failed")
   }
   if len(classifier.Features) != 1 {
     test.Error("test failed"); return
   }
-  if f := classifier.Features[0]; classifier.Index[f[0]] != 1 || classifier.Index[f[1]] != 6 {
+  if f := classifier.Features[0]; classifier.Index[f[0]] != 1 || classifier.Index[f[1]] != 2 {
     test.Error("test failed")
   }
-  if v := loss_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table")[0]; math.Abs(v - 10.908436) > 1e-4 {
+  if v := loss_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table")[0]; math.Abs(v - 0.6699931965725273) > 1e-4 {
     test.Error("test failed")
   }
   w := []float64{
-    -0.5011064780552764, -0.6533044636477008,
-    -0.5835738451008732, -0.5605051285196739,
-    -0.6493924282943727, -0.3973526712989099,
-    -0.6475465431214809, -0.6459506599831043 }
+    -0.6662065007234194, -0.6477490377012717,
+    -0.6539634473226117, -0.6063887787494636,
+    -0.5995933447812485, -0.4461679042826637,
+    -0.6290620668667339, -0.6750691863398406 }
   if v := predict_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {
@@ -105,10 +104,10 @@ func TestScores2(test *testing.T) {
     }
   }
   w = []float64{
-    -0.8519410031310346, -0.8207994198830724,
-    -0.8434386878822429, -0.8312512961539217,
-    -0.8772406302236876, -0.8418253451559609,
-    -0.8999710423257699, -0.66041447963172 }
+    -0.664436851779278, -0.6884446417698201,
+    -0.648046764432194, -0.6861810564115558,
+    -0.679086111385735, -0.6738126996571452,
+    -0.688649950605459, -0.5832453150753549 }
   if v := predict_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_bg.table"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {
