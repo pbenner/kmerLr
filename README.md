@@ -109,3 +109,7 @@ p <- prediction(t$prediction, t$labels)
 p <- performance(p, "tpr", "fpr")
 plot(p)
 ```
+
+## Objective function
+
+<img src="https://latex.codecogs.com/gif.download?%5Comega%28%5Ctheta%29%20%3D%20-%5Cfrac%7B1%7D%7Bn%7D%5Csum_%7Bi%3D1%7D%5En%20%5Cleft%5C%7By_i%20%5Clog%5Csigma%28x_i%5Ctheta%29%20+%20%281-y_i%29%5Clog%28%5Csigma%281-x_i%5Ctheta%29%29%5Cright%5C%7D%20+%20%5Clambda%20%5Cleft%20%5CVert%20%5Ctheta%20%5Cright%5CVert_1"/>
