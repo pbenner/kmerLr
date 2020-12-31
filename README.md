@@ -42,6 +42,8 @@ Importing distribution from `test.json'... done
      2  -3.026280e-02 7
 ```
 
+## Regularization Paths
+
 Estimation of regularization paths:
 ```bash
 $ ./kmerLr -v --type=scoresLr learn --lambda-auto=2,5 --save-path test_{fg,bg}.table test
@@ -75,6 +77,8 @@ plot.path <- function(filename, col=brewer.pal(n = 8, name = "RdBu")) {
 
 plot.path ("test.path")
 ```
+
+## Cross-Validation
 
 Use a logistic regression model with two features in a 5-fold cross-validation:
 ```bash
