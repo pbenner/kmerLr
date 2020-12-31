@@ -157,3 +157,43 @@ func TestScores3(test *testing.T) {
   }
   os.Remove(filename_out)
 }
+
+func TestScores4(test *testing.T) {
+  config := Config{}
+  config.Lambda  = 4.647556e+00
+  config.Seed    = 1
+  config.Verbose = 0
+
+  // train kmerLr
+  main_learn(config, []string{"learn", "--lambda-auto=3", "2", "6", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "scoresLr_test_1"})
+
+  // export kmers data
+  main_export(config, []string{"export", "2", "6", "kmerLr_test_fg.fa,kmerLr_test_bg.fa", "scoresLr_test_2_fg.table,scoresLr_test_2_bg.table"})
+  // train scoresLr
+  main_learn_scores(config, []string{"learn", "--lambda-auto=3", "--header", "scoresLr_test_2_fg.table", "scoresLr_test_2_bg.table", "scoresLr_test_2"})
+
+  classifier1 := ImportKmerLrEnsemble  (config, "scoresLr_test_1_3.json").GetComponent(0)
+  classifier2 := ImportScoresLrEnsemble(config, "scoresLr_test_2_3.json").GetComponent(0)
+
+  if len(classifier1.Theta) != len(classifier2.Theta) {
+    test.Error("test failed")
+    goto exit
+  }
+  for j := 0; j < len(classifier1.Theta); j++ {
+    if math.Abs(classifier1.Theta[j] - classifier2.Theta[j]) > 1e-10 {
+      test.Error("test failed")
+      goto exit
+    }
+  }
+  for j := 0; j < len(classifier1.Kmers); j++ {
+    if classifier1.Kmers[j].String() != classifier2.Names[j] {
+      test.Error("test failed")
+      goto exit
+    }
+  }
+exit:
+  os.Remove("scoresLr_test_1_3.json")
+  os.Remove("scoresLr_test_2_3.json")
+  os.Remove("scoresLr_test_2_fg.table")
+  os.Remove("scoresLr_test_2_bg.table")
+}
