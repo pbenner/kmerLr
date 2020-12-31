@@ -60,6 +60,14 @@ func (obj KmerLrEstimatorEnsemble) GetTrace() Trace {
   return trace
 }
 
+func (obj KmerLrEstimatorEnsemble) GetPath() KmerRegularizationPath {
+  path := KmerRegularizationPath{}
+  for i, estimator := range obj.Estimators {
+    path.AppendPath(i, estimator.path)
+  }
+  return path
+}
+
 /* -------------------------------------------------------------------------- */
 
 func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train KmerDataSet, transform TransformFull) []*KmerLrEnsemble {

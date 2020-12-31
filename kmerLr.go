@@ -47,6 +47,8 @@ type Config struct {
   Seed            int64
   SaveTrace       bool
   TraceFilename   string
+  SavePath        bool
+  PathFilename    string
   EvalLoss        bool
   MaxEpochs       int
   MaxIterations   int

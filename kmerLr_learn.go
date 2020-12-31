@@ -40,14 +40,24 @@ func learn_parameters(config Config, classifier *KmerLrEnsemble, data_train, dat
 
   filename_json  := ""
   filename_trace := ""
+  filename_path  := ""
   if config.TraceFilename == "" {
     filename_trace = fmt.Sprintf("%s.trace", basename_out)
   } else {
     filename_trace = config.TraceFilename
   }
+  if config.PathFilename == "" {
+    filename_path = fmt.Sprintf("%s.path", basename_out)
+  } else {
+    filename_path = config.PathFilename
+  }
   // export trace
   if config.SaveTrace {
     SaveTrace(config, filename_trace, estimator.GetTrace())
+  }
+  // export path
+  if config.SavePath {
+    SaveKmerPath(config, filename_path, estimator.GetPath())
   }
   for i, classifier := range classifiers {
     if icv == -1 {
@@ -126,7 +136,9 @@ func main_learn(config Config, args []string) {
   optEpsilonLambda   := options. StringLong("epsilon-lambda",     0 ,       "0e-0", "optimization tolerance level for lambda parameter")
   optEpsilonLoss     := options. StringLong("epsilon-loss",       0 ,       "1e-8", "optimization tolerance level for loss function")
   optSaveTrace       := options.   BoolLong("save-trace",         0 ,               "save trace to file")
-  optTraceFilename   := options. StringLong("trace-filename",     0 ,          "", "specify alternative filename for trace")
+  optTraceFilename   := options. StringLong("trace-filename",     0  ,          "", "specify alternative filename for trace")
+  optSavePath        := options.   BoolLong("save-path",          0 ,               "save regularization path to file")
+  optPathFilename    := options. StringLong("path-filename",      0 ,           "", "specify alternative filename for regularization path")
   optEvalLoss        := options.   BoolLong("eval-loss",          0 ,               "evaluate loss function after each epoch")
   optDataTransform   := options. StringLong("data-transform",     0 ,          "",  "transform data before training classifier [none (default), standardizer (preferred for dense data), variance-scaler (preferred for sparse data), max-abs-scaler, mean-scaler]")
   optKFoldCV         := options.    IntLong("k-fold-cv",          0 ,            1, "perform k-fold cross-validation")
@@ -295,6 +307,8 @@ func main_learn(config Config, args []string) {
   config.MaxSamples      = *optMaxSamples
   config.SaveTrace       = *optSaveTrace
   config.TraceFilename   = *optTraceFilename
+  config.SavePath        = *optSavePath
+  config.PathFilename    = *optPathFilename
   config.DataTransform   = *optDataTransform
   switch strings.ToLower(config.DataTransform) {
   case "":

@@ -36,6 +36,7 @@ type KmerLrEstimator struct {
   EpsilonLoss  float64
   reduced_data KmerDataSet
   trace        Trace
+  path         KmerRegularizationPath
 }
 
 /* -------------------------------------------------------------------------- */
@@ -142,6 +143,9 @@ func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform 
     r.KmerLrFeatures = obj.KmerLrFeatures
     r.Cooccurrence   = cooccurrence
     r.Transform      = transform
+    if config.SavePath {
+      obj.path.Append(-1, obj.L1Reg/float64(len(data.Data)), r.KmerLrFeatures.Kmers, r.Theta)
+    }
     return r
   }
 }
