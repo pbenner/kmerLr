@@ -141,7 +141,6 @@ Exporting cross-validation results to `test_2.table'... done
 Plot cross-validation result:
 ```R
 library(ROCR)
-library(RColorBrewer)
 
 plot.trace <- function(filename) {
     t <- read.table(filename, header=T)
