@@ -80,6 +80,15 @@ func SaveKmerPath(config Config, filename string, path KmerRegularizationPath) {
   PrintStderr(config, 1, "done\n")
 }
 
+func SaveScoresPath(config Config, filename string, path ScoresRegularizationPath) {
+  PrintStderr(config, 1, "Exporting regularization path to `%s'... ", filename)
+  if err := path.Export(filename); err != nil {
+    PrintStderr(config, 1, "failed\n")
+    log.Fatal(err)
+  }
+  PrintStderr(config, 1, "done\n")
+}
+
 /* -------------------------------------------------------------------------- */
 
 func SaveModel(config Config, filename string, classifier ConfigurableDistribution) {

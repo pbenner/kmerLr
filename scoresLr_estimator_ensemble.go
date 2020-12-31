@@ -60,6 +60,14 @@ func (obj ScoresLrEstimatorEnsemble) GetTrace() Trace {
   return trace
 }
 
+func (obj ScoresLrEstimatorEnsemble) GetPath() ScoresRegularizationPath {
+  path := ScoresRegularizationPath{}
+  for i, estimator := range obj.Estimators {
+    path.AppendPath(i, estimator.path)
+  }
+  return path
+}
+
 /* -------------------------------------------------------------------------- */
 
 func (obj ScoresLrEstimatorEnsemble) estimate_ensemble(config Config, data_train ScoresDataSet, transform TransformFull) []*ScoresLrEnsemble {

@@ -36,6 +36,7 @@ type ScoresLrEstimator struct {
   EpsilonLoss  float64
   reduced_data ScoresDataSet
   trace        Trace
+  path         ScoresRegularizationPath
 }
 
 /* -------------------------------------------------------------------------- */
@@ -118,6 +119,9 @@ func (obj *ScoresLrEstimator) estimate(config Config, data ScoresDataSet, transf
     r.ScoresLrFeatures = obj.ScoresLrFeatures
     r.Cooccurrence     = cooccurrence
     r.Transform        = transform
+    if config.SavePath {
+      obj.path.Append(-1, obj.L1Reg/float64(len(data.Data)), r.ScoresLrFeatures.Index, r.Theta)
+    }
     return r
   }
 }
