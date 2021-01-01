@@ -75,7 +75,7 @@ plot.path <- function(filename, col=brewer.pal(n = 8, name = "RdBu")) {
     abline(v=x, lty=2, col="lightgray")
 }
 
-plot.path ("test.path")
+plot.path("test.path")
 ```
 
 ## Cross-Validation
