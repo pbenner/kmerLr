@@ -24,6 +24,7 @@ import   "os"
 import   "strconv"
 import   "strings"
 
+import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/gonetics"
 
 import   "github.com/pborman/getopt"
@@ -40,7 +41,18 @@ func export(config Config, classifier *KmerLrEnsemble, filename_json string, fil
   }
   data := compile_data(config, kmersCounter, nil, nil, true, classifier.Binarize, filename_seq)
   kmersCounter = nil
-
+  // transform data
+  if config.DataTransform != "" {
+    data_full := []ConstVector{}
+    for _, d := range data {
+      data_full = append(data_full, d.Data...)
+    }
+    transform := TransformFull{}
+    transform.Fit(config, data_full, false)
+    for _, d := range data {
+      transform.SelectAll().Apply(config, d.Data)
+    }
+  }
   for i, _ := range data {
     export_kmers(config, filename_out[i], data[i])
   }
@@ -58,6 +70,7 @@ func main_export(config Config, args []string) {
   optMaxAmbiguous    := options. StringLong("max-ambiguous",    0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
   optReverse         := options.   BoolLong("reverse",          0 ,               "consider reverse sequences")
   optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
+  optDataTransform   := options. StringLong("data-transform",     0 ,          "",  "transform data before training classifier [none (default), standardizer (preferred for dense data), variance-scaler (preferred for sparse data), max-abs-scaler, mean-scaler]")
   // other options
   optHelp            := options.   BoolLong("help",            'h',               "print help")
 
@@ -129,6 +142,18 @@ func main_export(config Config, args []string) {
   if *optHelp {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
+  }
+  config.DataTransform = *optDataTransform
+  switch strings.ToLower(config.DataTransform) {
+  case "":
+  case "none":
+  case "standardizer":
+  case "variance-scaler":
+  case "max-abs-scaler":
+  case "mean-scaler":
+  default:
+    log.Fatal("invalid data transform")
+    panic("internal error")
   }
   filenames_1 := strings.Split(filename_seq, ",")
   filenames_2 := strings.Split(filename_out, ",")

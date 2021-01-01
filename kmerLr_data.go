@@ -148,15 +148,28 @@ func export_kmers(config Config, filename string, data KmerDataSet) {
     }
   }
   fmt.Fprintf(writer, "\n")
-  for i := 0; i < len(data.Data); i++ {
-    for j := 1; j < data.Data[i].Dim(); j++ {
-      if j == 1 {
-        fmt.Fprintf(writer,  "%d", data.Data[i].IntAt(j))
-      } else {
-        fmt.Fprintf(writer, ",%d", data.Data[i].IntAt(j))
+  if config.DataTransform != "" {
+    for i := 0; i < len(data.Data); i++ {
+      for j := 1; j < data.Data[i].Dim(); j++ {
+        if j == 1 {
+          fmt.Fprintf(writer,  "%e", data.Data[i].Float64At(j))
+        } else {
+          fmt.Fprintf(writer, ",%e", data.Data[i].Float64At(j))
+        }
       }
+      fmt.Fprintf(writer, "\n")
     }
-    fmt.Fprintf(writer, "\n")
+  } else {
+    for i := 0; i < len(data.Data); i++ {
+      for j := 1; j < data.Data[i].Dim(); j++ {
+        if j == 1 {
+          fmt.Fprintf(writer,  "%d", data.Data[i].IntAt(j))
+        } else {
+          fmt.Fprintf(writer, ",%d", data.Data[i].IntAt(j))
+        }
+      }
+      fmt.Fprintf(writer, "\n")
+    }
   }
 }
 
