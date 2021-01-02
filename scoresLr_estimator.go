@@ -121,7 +121,7 @@ func (obj *ScoresLrEstimator) estimate(config Config, data ScoresDataSet, transf
     r.Cooccurrence     = cooccurrence
     r.Transform        = transform
     if config.SavePath {
-      obj.path.Append(-1, obj.L1Reg/float64(len(data.Data)), r.ScoresLrFeatures.Index, r.Theta)
+      obj.path.Append(-1, obj.L1Reg/float64(len(data.Data)), r.ScoresLrFeatures.Index, r.Theta[1:])
     }
     return r
   }

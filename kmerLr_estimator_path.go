@@ -87,10 +87,10 @@ func (obj *KmerRegularizationPath) Append(estimator int, lambda float64, kmers K
       continue
     }
     v += math.Abs(theta[j])
-    if k, ok := obj.Index[kmers[j-1].KmerClassId]; !ok {
+    if k, ok := obj.Index[kmers[j].KmerClassId]; !ok {
       k = len(obj.Index)
-      obj.Index[kmers[j-1].KmerClassId] = k
-      obj.Kmers = append(obj.Kmers, kmers[j-1])
+      obj.Index[kmers[j].KmerClassId] = k
+      obj.Kmers = append(obj.Kmers, kmers[j])
       t = append(t, theta[j])
     } else {
       t[k] = theta[j]

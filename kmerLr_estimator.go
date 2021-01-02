@@ -145,7 +145,7 @@ func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform 
     r.Cooccurrence   = cooccurrence
     r.Transform      = transform
     if config.SavePath {
-      obj.path.Append(-1, obj.L1Reg/float64(len(data.Data)), r.KmerLrFeatures.Kmers, r.Theta)
+      obj.path.Append(-1, obj.L1Reg/float64(len(data.Data)), r.KmerLrFeatures.Kmers, r.Theta[1:])
     }
     return r
   }

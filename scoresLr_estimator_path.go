@@ -80,15 +80,15 @@ func (obj *ScoresRegularizationPath) Append(estimator int, lambda float64, idx [
   }
   v := 0.0
   t := make([]float64, len(obj.Index))
-  for j := 1; j < len(theta); j++ {
+  for j := 0; j < len(theta); j++ {
     if theta[j] == 0.0 {
       continue
     }
     v += math.Abs(theta[j])
-    if k, ok := obj.Index[idx[j-1]]; !ok {
+    if k, ok := obj.Index[idx[j]]; !ok {
       k = len(obj.Index)
-      obj.Index[idx[j-1]] = k
-      obj.Idx = append(obj.Idx, idx[j-1])
+      obj.Index[idx[j]] = k
+      obj.Idx = append(obj.Idx, idx[j])
       t = append(t, theta[j])
     } else {
       t[k] = theta[j]
