@@ -20,6 +20,7 @@ package main
 
 import   "fmt"
 import   "log"
+import   "math"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -229,7 +230,7 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
 }
 
 func (obj *KmerLrEstimator) Estimate(config Config, data KmerDataSet, transform TransformFull) []*KmerLr {
-  if config.Lambda != 0.0 {
+  if !math.IsNaN(config.Lambda) {
     classifiers   := make([]*KmerLr, 1)
     classifiers[0] = obj.estimate_fixed(config, data, transform, obj.Cooccurrence)
     return classifiers

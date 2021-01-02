@@ -54,9 +54,9 @@ func (obj ScoresRegularizationPath) Export(filename string) error {
 
   // print values
   for i := 0; i < obj.Length(); i++ {
-  if len(obj.Estimator) > 0 {
-    fmt.Fprintf(w, "%9d ", obj.Estimator[i])
-  }
+    if len(obj.Estimator) > 0 {
+      fmt.Fprintf(w, "%9d ", obj.Estimator[i])
+    }
     fmt.Fprintf(w, "%13e %13e", obj.Lambda[i], obj.Norm[i])
     for j := 0; j < len(obj.Theta[i]); j++ {
       if j == 0 {

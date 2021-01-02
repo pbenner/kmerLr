@@ -20,6 +20,7 @@ package main
 
 //import   "fmt"
 import   "log"
+import   "math"
 
 import . "github.com/pbenner/autodiff"
 import . "github.com/pbenner/autodiff/statistics"
@@ -200,7 +201,7 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
 }
 
 func (obj *ScoresLrEstimator) Estimate(config Config, data ScoresDataSet, transform TransformFull) []*ScoresLr {
-  if config.Lambda != 0.0 {
+  if !math.IsNaN(config.Lambda) {
     classifiers   := make([]*ScoresLr, 1)
     classifiers[0] = obj.estimate_fixed(config, data, transform, obj.Cooccurrence)
     return classifiers

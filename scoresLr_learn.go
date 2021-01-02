@@ -20,6 +20,7 @@ package main
 
 import   "fmt"
 import   "log"
+import   "math"
 import   "os"
 import   "sort"
 import   "strconv"
@@ -107,7 +108,7 @@ func learn_scores(config Config, classifier *ScoresLrEnsemble, filename_json, fi
 func main_learn_scores(config Config, args []string) {
   options := getopt.New()
 
-  optLambda          := options. StringLong("lambda",             0 ,        "0.0", "set fixed regularization strength")
+  optLambda          := options. StringLong("lambda",             0 ,        "NaN", "set fixed regularization strength")
   optLambdaAuto      := options. StringLong("lambda-auto",        0 ,          "0", "comma separated list of integers specifying the number of features to select; for each value a separate classifier is estimated")
   optMaxFeatures     := options.    IntLong("max-features",       0 ,            0, "maximum number of features when a fixed lambda is set")
   optBalance         := options.   BoolLong("balance",            0 ,               "set class weights so that the data set is balanced")
@@ -222,7 +223,7 @@ func main_learn_scores(config Config, args []string) {
     }
     sort.Ints(config.LambdaAuto)
   }
-  if config.Lambda != 0.0 && (len(config.LambdaAuto) != 1 || config.LambdaAuto[0] != 0) {
+  if !math.IsNaN(config.Lambda) && (len(config.LambdaAuto) != 1 || config.LambdaAuto[0] != 0) {
     log.Fatal("options --lambda and --lambda-auto are incompatible")
   }
   if *optKFoldCV < 1 {
