@@ -82,7 +82,7 @@ func (obj *KmerRegularizationPath) Append(estimator int, lambda float64, kmers K
   }
   v := 0.0
   t := make([]float64, len(obj.Index))
-  for j := 1; j < len(theta); j++ {
+  for j := 0; j < len(theta); j++ {
     if theta[j] == 0.0 {
       continue
     }
