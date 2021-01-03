@@ -70,7 +70,7 @@ func main_export(config Config, args []string) {
   optMaxAmbiguous    := options. StringLong("max-ambiguous",    0 ,         "-1", "maxum number of ambiguous positions (either a scalar to set a global maximum or a comma separated list of length MAX-K-MER-LENGTH-MIN-K-MER-LENGTH+1)")
   optReverse         := options.   BoolLong("reverse",          0 ,               "consider reverse sequences")
   optRevcomp         := options.   BoolLong("revcomp",          0 ,               "consider reverse complement sequences")
-  optDataTransform   := options. StringLong("data-transform",     0 ,          "",  "transform data before training classifier [none (default), standardizer (preferred for dense data), variance-scaler (preferred for sparse data), max-abs-scaler, mean-scaler]")
+  optDataTransform   := options. StringLong("data-transform",   0 ,          "",  "transform data before training classifier [none (default), standardizer (preferred for dense data), variance-scaler (preferred for sparse data), max-abs-scaler, mean-scaler]")
   // other options
   optHelp            := options.   BoolLong("help",            'h',               "print help")
 
