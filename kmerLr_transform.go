@@ -424,20 +424,24 @@ func (t1 Transform) InsertScores(t2 Transform, f1, f2 FeatureIndices, i1, i2 []i
   for j, feature := range f2 {
     // insert only if feature is present in target transform
     if i, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
-      if t1.Offset[i+1] == 0.0 {
-        t1.Offset[i+1] = t2.Offset[j+1]
-      } else
-      if t2.Offset[j+1] != 0.0 {
-        if math.Abs(t1.Offset[i+1] - t2.Offset[j+1]) > 1e-12 {
-          return fmt.Errorf("joining transforms failed: transforms are incompatible")
+      if len(t2.Offset) > 0 {
+        if t1.Offset[i+1] == 0.0 {
+          t1.Offset[i+1] = t2.Offset[j+1]
+        } else
+        if t2.Offset[j+1] != 0.0 {
+          if math.Abs(t1.Offset[i+1] - t2.Offset[j+1]) > 1e-12 {
+            return fmt.Errorf("joining transforms failed: transforms are incompatible")
+          }
         }
       }
-      if t1.Scale[i+1] == 0.0 {
-        t1.Scale[i+1] = t2.Scale[j+1]
-      } else
-      if t2.Scale[j+1] != 0.0 {
-        if math.Abs(t1.Scale[i+1] - t2.Scale[j+1]) > 1e-12 {
-          return fmt.Errorf("joining transforms failed: transforms are incompatible")
+      if len(t2.Scale) > 0 {
+        if t1.Scale[i+1] == 0.0 {
+          t1.Scale[i+1] = t2.Scale[j+1]
+        } else
+        if t2.Scale[j+1] != 0.0 {
+          if math.Abs(t1.Scale[i+1] - t2.Scale[j+1]) > 1e-12 {
+            return fmt.Errorf("joining transforms failed: transforms are incompatible")
+          }
         }
       }
     }
