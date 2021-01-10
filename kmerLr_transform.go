@@ -519,26 +519,62 @@ func (t1 Transform) EqualsScores(t2 Transform, f1, f2 FeatureIndices, i1, i2 []i
     }
   }
   // compare offset
-  m := make(map[[2]int]float64)
-  for i, feature := range f1 {
-    m[[2]int{i1[feature[0]], i1[feature[1]]}] = t1.Offset[i+1]
-  }
-  for i, feature := range f2 {
-    if v, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
-      if math.Abs(v - t2.Offset[i+1]) > 1e-12 {
-        return false
+  if len(t1.Offset) > 0 || len(t2.Offset) > 0 {
+    m := make(map[[2]int]float64)
+    if len(t1.Offset) > 0 {
+      for i, feature := range f1 {
+        m[[2]int{i1[feature[0]], i1[feature[1]]}] = t1.Offset[i+1]
+      }
+    } else {
+      for _, feature := range f1 {
+        m[[2]int{i1[feature[0]], i1[feature[1]]}] = 0.0
+      }
+    }
+    if len(t2.Offset) > 0 {
+      for i, feature := range f2 {
+        if v, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
+          if math.Abs(v - t2.Offset[i+1]) > 1e-12 {
+            return false
+          }
+        }
+      }
+    } else {
+      for _, feature := range f2 {
+        if v, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
+          if math.Abs(v - 0.0) > 1e-12 {
+            return false
+          }
+        }
       }
     }
   }
-  // compare scale
-  m = make(map[[2]int]float64)
-  for i, feature := range f1 {
-    m[[2]int{i1[feature[0]], i1[feature[1]]}] = t1.Scale[i+1]
-  }
-  for i, feature := range f2 {
-    if v, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
-      if math.Abs(v - t2.Scale[i+1]) > 1e-12 {
-        return false
+  if len(t1.Scale) > 0 || len(t2.Scale) > 0 {
+    // compare scale
+    m := make(map[[2]int]float64)
+    if len(t1.Scale) > 0 {
+      for i, feature := range f1 {
+        m[[2]int{i1[feature[0]], i1[feature[1]]}] = t1.Scale[i+1]
+      }
+    } else {
+      for _, feature := range f1 {
+        m[[2]int{i1[feature[0]], i1[feature[1]]}] = 0.0
+      }
+    }
+    if len(t2.Scale) > 0 {
+      for i, feature := range f2 {
+        if v, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
+          if math.Abs(v - t2.Scale[i+1]) > 1e-12 {
+            return false
+          }
+        }
+      }
+    } else {
+      for _, feature := range f2 {
+        if v, ok := m[[2]int{i2[feature[0]], i2[feature[1]]}]; ok {
+          if math.Abs(v - 0.0) > 1e-12 {
+            return false
+          }
+        }
       }
     }
   }
