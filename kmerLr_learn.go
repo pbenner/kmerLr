@@ -43,12 +43,20 @@ func learn_parameters(config Config, classifier *KmerLrEnsemble, data_train, dat
   filename_trace := ""
   filename_path  := ""
   if config.TraceFilename == "" {
-    filename_trace = fmt.Sprintf("%s.trace", basename_out)
+    if icv == -1 {
+      filename_trace = fmt.Sprintf("%s.trace", basename_out)
+    } else {
+      filename_trace = fmt.Sprintf("%s_%d.trace", basename_out, icv)
+    }
   } else {
     filename_trace = config.TraceFilename
   }
   if config.PathFilename == "" {
-    filename_path = fmt.Sprintf("%s.path", basename_out)
+    if icv == -1 {
+      filename_path = fmt.Sprintf("%s.path", basename_out)
+    } else {
+      filename_path = fmt.Sprintf("%s_%d.path", basename_out, icv)
+    }
   } else {
     filename_path = config.PathFilename
   }
