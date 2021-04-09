@@ -33,10 +33,10 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_scores_parameters(config Config, classifier *ScoresLrEnsemble, data_train, data_test ScoresDataSet, icv int, basename_out string) ([]*ScoresLrEnsemble, [][]float64) {
+func learn_scores_parameters(config Config, classifier *ScoresLrEnsemble, data_train, data_val, data_test ScoresDataSet, icv int, basename_out string) ([]*ScoresLrEnsemble, [][]float64) {
   estimator := NewScoresLrEnsembleEstimator(config, classifier, icv)
 
-  classifiers, predictions := estimator.Estimate(config, data_train, data_test)
+  classifiers, predictions := estimator.Estimate(config, data_train, data_val, data_test)
 
   filename_json  := ""
   filename_trace := ""
@@ -80,14 +80,18 @@ func learn_scores_parameters(config Config, classifier *ScoresLrEnsemble, data_t
 }
 
 func learn_scores_cv(config Config, classifier *ScoresLrEnsemble, data ScoresDataSet, basename_out string) {
-  learnAndTestClassifiers := func(i int, data_train, data_test ScoresDataSet) [][]float64 {
-    _, predictions := learn_scores_parameters(config, classifier, data_train, data_test, i, basename_out)
+  learnAndTestClassifiers := func(i int, data_train, data_val, data_test ScoresDataSet) [][]float64 {
+    _, predictions := learn_scores_parameters(config, classifier, data_train, data_val, data_test, i, basename_out)
     return predictions
   }
   cvrs := scoresCrossvalidation(config, data, learnAndTestClassifiers)
 
-  for i, cvr := range cvrs {
-    SaveCrossvalidation(config, fmt.Sprintf("%s_%d.table", basename_out, config.LambdaAuto[i]), cvr)
+  if len(cvrs) == 1 {
+    SaveCrossvalidation(config, fmt.Sprintf("%s.table", basename_out), cvrs[0])
+  } else {
+    for i, cvr := range cvrs {
+      SaveCrossvalidation(config, fmt.Sprintf("%s_%d.table", basename_out, config.LambdaAuto[i]), cvr)
+    }
   }
 }
 
@@ -104,11 +108,7 @@ func learn_scores(config Config, classifier *ScoresLrEnsemble, filename_json, fi
   for i, _ := range data.Data {
     data.Data[i].(SparseConstFloat64Vector).CreateIndex()
   }
-  if config.KFoldCV <= 1 {
-    learn_scores_parameters(config, classifier, data, ScoresDataSet{}, -1, basename_out)
-  } else {
-    learn_scores_cv(config, classifier, data, basename_out)
-  }
+  learn_scores_cv(config, classifier, data, basename_out)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -138,6 +138,7 @@ func main_learn_scores(config Config, args []string) {
   optEvalLoss        := options.   BoolLong("eval-loss",          0 ,               "evaluate loss function after each epoch")
   optDataTransform   := options. StringLong("data-transform",     0 ,          "",  "transform data before training classifier [none (default), standardizer (preferred for dense data), variance-scaler (preferred for sparse data), max-abs-scaler, mean-scaler]")
   optKFoldCV         := options.    IntLong("k-fold-cv",          0 ,            1, "perform k-fold cross-validation")
+  optValidationSize  := options. StringLong("validation-size",    0 ,        "0.0", "fraction of training data that should be used for validation [0.0 (default)]")
   optScaleStepSize   := options. StringLong("scale-step-size",    0 ,        "1.0", "scale standard step-size")
   optAdaptStepSize   := options.   BoolLong("adaptive-step-size", 0 ,               "adaptive step size during optimization")
   optThreadsCV       := options.    IntLong("threads-cv",         0 ,            1, "number of threads for cross-validation")
@@ -237,6 +238,11 @@ func main_learn_scores(config Config, args []string) {
   if *optKFoldCV < 1 {
     options.PrintUsage(os.Stdout)
     os.Exit(1)
+  }
+  if s, err := strconv.ParseFloat(*optValidationSize, 64); err != nil {
+    log.Fatal(err)
+  } else {
+    config.ValidationSize = s
   }
   if *optEnsembleSize < 1 {
     options.PrintUsage(os.Stdout)

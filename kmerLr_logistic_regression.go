@@ -234,7 +234,7 @@ func (obj logisticRegression) Gradient(g []float64, data []ConstVector, labels [
       }
     }
   }
-  if obj.Lambda != 0.0 {
+  if !math.IsNaN(obj.Lambda) && obj.Lambda != 0.0 {
     for j := 1; j < len(obj.Theta); j++ {
       if obj.Theta[j] < 0 {
         g[j] -= obj.Lambda
@@ -263,7 +263,7 @@ func (obj logisticRegression) Loss(data []ConstVector, c []bool) float64 {
     }
   }
   r = r/float64(len(data))
-  if obj.Lambda != 0.0 {
+  if !math.IsNaN(obj.Lambda) && obj.Lambda != 0.0 {
     for j := 1; j < m; j++ {
       r += obj.Lambda*math.Abs(obj.Theta[j])
     }

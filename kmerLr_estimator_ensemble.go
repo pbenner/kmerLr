@@ -19,6 +19,7 @@ package main
 /* -------------------------------------------------------------------------- */
 
 //import   "fmt"
+import   "math"
 
 import . "github.com/pbenner/autodiff/statistics"
 import   "github.com/pbenner/threadpool"
@@ -71,8 +72,8 @@ func (obj KmerLrEstimatorEnsemble) GetPath() KmerRegularizationPath {
 /* -------------------------------------------------------------------------- */
 
 func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train KmerDataSet, transform TransformFull) []*KmerLrEnsemble {
-  groups := getCvGroups(len(data_train.Data), config.EnsembleSize, config.Seed)
-  result := make([]*KmerLrEnsemble, len(config.LambdaAuto))
+  groups, _ := getCvGroups(len(data_train.Data), config.EnsembleSize, config.ValidationSize, config.Seed)
+  result    := make([]*KmerLrEnsemble, len(config.LambdaAuto))
   for i := 0; i < len(result); i++ {
     result[i] = NewKmerLrEnsemble(obj.Summary)
   }
@@ -80,8 +81,8 @@ func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train K
   config.Pool.RangeJob(0, config.EnsembleSize, func(k int, pool threadpool.ThreadPool, erf func() error) error {
     config := config; config.Pool = pool
 
-    _, data_train_k := filterCvGroup(data_train, groups, k)
-    classifiers[k] = obj.Estimators[k].Estimate(config, data_train_k, transform)
+    _, _, data_k := filterCvGroup(data_train, groups, nil, k)
+    classifiers[k] = obj.Estimators[k].Estimate(config, data_k, transform)
     return nil
   })
   for k := 0; k < len(classifiers); k++ {
@@ -94,7 +95,7 @@ func (obj KmerLrEstimatorEnsemble) estimate_ensemble(config Config, data_train K
   return result
 }
 
-func (obj KmerLrEstimatorEnsemble) Estimate(config Config, data_train, data_test KmerDataSet) ([]*KmerLrEnsemble, [][]float64) {
+func (obj KmerLrEstimatorEnsemble) Estimate(config Config, data_train, data_val, data_test KmerDataSet) ([]*KmerLrEnsemble, [][]float64) {
   if obj.Estimators[0].Cooccurrence && config.Copreselection != 0 {
     transform := TransformFull{}
     // estimate transform on full data set so that all estimated
@@ -115,10 +116,27 @@ func (obj KmerLrEstimatorEnsemble) Estimate(config Config, data_train, data_test
   transform := TransformFull{}
   transform.Fit(config, append(data_train.Data, data_test.Data...), obj.Estimators[0].Cooccurrence)
   classifiers := obj.estimate_ensemble(config, data_train, transform)
-  predictions := make([][]float64, len(config.LambdaAuto))
+  // if validation data is available, select best classifier...
+  if len(data_val.Data) > 0 {
+    i_best := 0
+    v_best := math.Inf(1)
+    for i, _ := range classifiers {
+      d := classifiers[i].SelectData(config, data_val)
+      v := classifiers[i].LossAvrg(config, d, data_val.Labels)
+      if v < v_best {
+        i_best = i
+        v_best = v
+      }
+      PrintStderr(config, 1, "> Classifier %d has loss %v...\n", i, v)
+    }
+    PrintStderr(config, 1, "> Selecting classifier %d\n", i_best)
+    classifiers = []*KmerLrEnsemble{classifiers[i_best]}
+  }
+  // evaluate classifier(s) on test data
+  predictions := make([][]float64, len(classifiers))
   for i, _ := range classifiers {
-    data_test     := classifiers[i].SelectData(config, data_test)
-    predictions[i] = classifiers[i].Predict   (config, data_test)
+    data_test_    := classifiers[i].SelectData(config, data_test)
+    predictions[i] = classifiers[i].Predict   (config, data_test_)
   }
   return classifiers, predictions
 }

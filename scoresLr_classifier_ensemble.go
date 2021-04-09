@@ -122,6 +122,15 @@ func (obj *ScoresLrEnsemble) Loss(config Config, data []ConstVector, c []bool) [
   return r
 }
 
+func (obj *ScoresLrEnsemble) LossAvrg(config Config, data []ConstVector, c []bool) float64 {
+  r := 0.0
+  l := obj.Loss(config, data, c)
+  for _, v := range l {
+    r += v
+  }
+  return r/float64(len(l))
+}
+
 func (obj *ScoresLrEnsemble) Predict(config Config, data []ConstVector) []float64 {
   lr := logisticRegression{}
   lr.Lambda = config.Lambda
