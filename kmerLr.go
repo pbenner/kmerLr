@@ -47,9 +47,7 @@ type Config struct {
   StepSizeFactor  float64
   Seed            int64
   SaveTrace       bool
-  TraceFilename   string
   SavePath        bool
-  PathFilename    string
   EvalLoss        bool
   MaxEpochs       int
   MaxIterations   int
