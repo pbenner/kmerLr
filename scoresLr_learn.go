@@ -63,7 +63,7 @@ func learn_scores_parameters(config Config, classifier *ScoresLrEnsemble, data_t
   }
   if len(classifiers) == 1 {
     // export models
-    SaveModel(config, filename_json+".json", classifier)
+    SaveModel(config, filename_json+".json", classifiers[0])
   } else {
     for i, classifier := range classifiers {
       // export models
