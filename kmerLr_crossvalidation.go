@@ -53,7 +53,6 @@ func shuffleInts(vals1, vals2 []int, seed int64) {
 
 func getCvGroups(n, fold int, val_ratio float64, seed int64) ([]int, []int) {
   if n < fold {
-    panic("")
     log.Fatalf("not enough training samples (%d) for %d-fold cross-validation", n, fold)
   }
   if val_ratio > 0.0 && n < 2*fold {
@@ -61,13 +60,27 @@ func getCvGroups(n, fold int, val_ratio float64, seed int64) ([]int, []int) {
   }
   groups     := make([]int, n)
   validation := make([]int, n)
-  for i := 0; i < n; i += fold {
-    for j := 0; j < fold && i+j < n; j++ {
-      groups[i+j] = j
+  if fold <= 1 {
+    // treat special case with no cross-validation, i.e. since the group id
+    // marks the test set, we have to set it to -1 so that we do not get
+    // empty training sets
+    for i := 0; i < n; i++ {
+      groups[i] = -1
       if float64(i) < val_ratio*float64(n) && i+fold < n {
-        validation[i+j] = 1
+        validation[i] = 1
       } else {
-        validation[i+j] = 0
+        validation[i] = 0
+      }
+    }
+  } else {
+    for i := 0; i < n; i += fold {
+      for j := 0; j < fold && i+j < n; j++ {
+        groups[i+j] = j
+        if float64(i) < val_ratio*float64(n) && i+fold < n {
+          validation[i+j] = 1
+        } else {
+          validation[i+j] = 0
+        }
       }
     }
   }
@@ -143,9 +156,9 @@ func crossvalidation(config Config, data KmerDataSet,
       i_ = -1
     }
 
-    data_train, data_val, data_test := filterCvGroup(data, groups, validation, i_)
+    data_train, data_val, data_test := filterCvGroup(data, groups, validation, i)
 
-    r_predictions[i] = learnAndTestClassifiers(i, data_train, data_val, data_test)
+    r_predictions[i] = learnAndTestClassifiers(i_, data_train, data_val, data_test)
     r_labels     [i] = data_test.Labels
     return nil
   })

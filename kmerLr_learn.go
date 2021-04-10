@@ -39,43 +39,37 @@ func learn_parameters(config Config, classifier *KmerLrEnsemble, data_train, dat
 
   classifiers, predictions := estimator.Estimate(config, data_train, data_val, data_test)
 
-  filename_json  := ""
-  filename_trace := ""
-  filename_path  := ""
-  if config.TraceFilename == "" {
-    if icv == -1 {
-      filename_trace = fmt.Sprintf("%s.trace", basename_out)
-    } else {
-      filename_trace = fmt.Sprintf("%s_%d.trace", basename_out, icv)
-    }
-  } else {
+  filename_json  := basename_out
+  filename_trace := basename_out
+  filename_path  := basename_out
+
+  if icv != -1 {
+    filename_json  = fmt.Sprintf("%s_cv%d", filename_json , icv+1)
+    filename_trace = fmt.Sprintf("%s_cv%d", filename_trace, icv+1)
+    filename_path  = fmt.Sprintf("%s_cv%d", filename_path , icv+1)
+  }
+  if config.TraceFilename != "" {
     filename_trace = config.TraceFilename
   }
-  if config.PathFilename == "" {
-    if icv == -1 {
-      filename_path = fmt.Sprintf("%s.path", basename_out)
-    } else {
-      filename_path = fmt.Sprintf("%s_%d.path", basename_out, icv)
-    }
-  } else {
+  if config.PathFilename != "" {
     filename_path = config.PathFilename
   }
   // export trace
   if config.SaveTrace {
-    SaveTrace(config, filename_trace, estimator.GetTrace())
+    SaveTrace(config, filename_trace+".trace", estimator.GetTrace())
   }
   // export path
   if config.SavePath {
-    SaveKmerPath(config, filename_path, estimator.GetPath())
+    SaveKmerPath(config, filename_path+".path", estimator.GetPath())
   }
-  for i, classifier := range classifiers {
-    if icv == -1 {
-      filename_json = fmt.Sprintf("%s_%d.json" , basename_out, config.LambdaAuto[i])
-    } else {
-      filename_json = fmt.Sprintf("%s_%d_%d.json" , basename_out, config.LambdaAuto[i], icv)
-    }
+  if len(classifiers) == 1 {
     // export models
-    SaveModel(config, filename_json, classifier)
+    SaveModel(config, filename_json+".json", classifier)
+  } else {
+    for i, classifier := range classifiers {
+      // export models
+      SaveModel(config, fmt.Sprintf("%s_%d.json", filename_json, config.LambdaAuto[i]), classifier)
+    }
   }
   return classifiers, predictions
 }

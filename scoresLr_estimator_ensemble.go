@@ -81,7 +81,7 @@ func (obj ScoresLrEstimatorEnsemble) estimate_ensemble(config Config, data_train
   config.Pool.RangeJob(0, config.EnsembleSize, func(k int, pool threadpool.ThreadPool, erf func() error) error {
     config := config; config.Pool = pool
 
-    _, _, data_k := scoresFilterCvGroup(data_train, groups, nil, k)
+    data_k, _, _ := scoresFilterCvGroup(data_train, groups, nil, k)
     classifiers[k] = obj.Estimators[k].Estimate(config, data_k, transform)
     return nil
   })

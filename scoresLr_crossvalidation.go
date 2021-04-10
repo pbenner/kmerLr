@@ -67,9 +67,9 @@ func scoresCrossvalidation(config Config, data ScoresDataSet,
       i_ = -1
     }
 
-    data_train, data_val, data_test := scoresFilterCvGroup(data, groups, validation, i_)
+    data_train, data_val, data_test := scoresFilterCvGroup(data, groups, validation, i)
 
-    r_predictions[i] = learnAndTestClassifiers(i, data_train, data_val, data_test)
+    r_predictions[i] = learnAndTestClassifiers(i_, data_train, data_val, data_test)
     r_labels     [i] = data_test.Labels
     return nil
   })
