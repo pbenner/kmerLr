@@ -183,7 +183,7 @@ func TestKmers5(test *testing.T) {
   if f := classifier.Features[1]; f[0] != 1 || f[1] != 1 {
     test.Error("test failed")
   }
-  if v := loss_(config, "kmerLr_test.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")[0]; math.Abs(v - 1.107745182633717) > 1e-4 {
+  if v := loss_(config, "kmerLr_test.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa"); math.Abs(v - 1.107745182633717) > 1e-4 {
     test.Error("test failed")
   }
   os.Remove("kmerLr_test.json")
@@ -221,7 +221,7 @@ func TestKmers6(test *testing.T) {
       test.Error("test failed")
     }
   }
-  if v := loss_(config, "kmerLr_test_co.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa")[0]; math.Abs(v - 0.644417014007959) > 1e-4 {
+  if v := loss_(config, "kmerLr_test_co.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa"); math.Abs(v - 0.644417014007959) > 1e-4 {
     test.Error("test failed")
   }
   w := []float64{

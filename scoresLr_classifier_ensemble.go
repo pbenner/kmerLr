@@ -104,7 +104,7 @@ func (obj *ScoresLrEnsemble) Summarize(config Config, x []float64) float64 {
   return r
 }
 
-func (obj *ScoresLrEnsemble) Loss(config Config, data []ConstVector, c []bool) []float64 {
+func (obj *ScoresLrEnsemble) Loss(config Config, data []ConstVector, c []bool) float64 {
   lr := logisticRegression{}
   lr.Lambda = config.Lambda
   lr.Pool   = config.PoolLR
@@ -115,20 +115,11 @@ func (obj *ScoresLrEnsemble) Loss(config Config, data []ConstVector, c []bool) [
     lr.ClassWeights[1] = 1.0
   }
   r := make([]float64, len(obj.Theta))
-  for i, _ := range obj.Theta {
-    lr.Theta = obj.Theta[i]
-    r[i] = lr.Loss(data, c)
+  for j, _ := range obj.Theta {
+    lr.Theta = obj.Theta[j]
+    r[j] = lr.Loss(data, c)
   }
-  return r
-}
-
-func (obj *ScoresLrEnsemble) LossAvrg(config Config, data []ConstVector, c []bool) float64 {
-  r := 0.0
-  l := obj.Loss(config, data, c)
-  for _, v := range l {
-    r += v
-  }
-  return r/float64(len(l))
+  return obj.Summarize(config, r)
 }
 
 func (obj *ScoresLrEnsemble) Predict(config Config, data []ConstVector) []float64 {
@@ -138,7 +129,7 @@ func (obj *ScoresLrEnsemble) Predict(config Config, data []ConstVector) []float6
   r := make([]float64, len(data))
   t := make([]float64, len(obj.Theta))
   for i, _ := range data {
-    for j := 0; j < len(obj.Theta); j++ {
+    for j, _ := range obj.Theta {
       lr.Theta = obj.Theta[j]
       t[j] = lr.LogPdf(data[i].(SparseConstFloat64Vector))
     }

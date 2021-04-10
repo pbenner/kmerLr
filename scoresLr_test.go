@@ -56,7 +56,7 @@ func TestScores1(test *testing.T) {
   if f := classifier.Features[1]; classifier.Index[f[0]] != 6 || classifier.Index[f[1]] != 6 {
     test.Error("test failed")
   }
-  if v := loss_scores_(config, "scoresLr_test.json", "scoresLr_test_fg.table", "scoresLr_test_bg.table")[0]; math.Abs(v - 0.813659729805629) > 1e-4 {
+  if v := loss_scores_(config, "scoresLr_test.json", "scoresLr_test_fg.table", "scoresLr_test_bg.table"); math.Abs(v - 0.813659729805629) > 1e-4 {
     test.Error("test failed")
   }
   os.Remove("scoresLr_test.json")
@@ -86,7 +86,7 @@ func TestScores2(test *testing.T) {
   if f := classifier.Features[0]; classifier.Index[f[0]] != 1 || classifier.Index[f[1]] != 2 {
     test.Error("test failed")
   }
-  if v := loss_scores_(config, "scoresLr_test_co.json", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table")[0]; math.Abs(v - 0.6699931965725273) > 1e-4 {
+  if v := loss_scores_(config, "scoresLr_test_co.json", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table"); math.Abs(v - 0.6699931965725273) > 1e-4 {
     test.Error("test failed")
   }
   w := []float64{

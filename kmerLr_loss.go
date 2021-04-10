@@ -29,7 +29,7 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func saveLoss(filename string, loss []float64) {
+func saveLoss(filename string, loss float64) {
   var writer io.Writer
   if filename == "" {
     writer = os.Stdout
@@ -45,15 +45,12 @@ func saveLoss(filename string, loss []float64) {
 
     writer = w
   }
-  fmt.Fprintf(writer, "%15s\n", "loss")
-  for i := 0; i < len(loss); i++ {
-    fmt.Fprintf(writer, "%15e\n", loss[i])
-  }
+  fmt.Fprintf(writer, "%15e\n", loss)
 }
 
 /* -------------------------------------------------------------------------- */
 
-func loss_(config Config, filename_json, filename_fg, filename_bg string) []float64 {
+func loss_(config Config, filename_json, filename_fg, filename_bg string) float64 {
   classifier := ImportKmerLrEnsemble(config, filename_json)
   counter    := classifier.GetKmerCounter()
   data       := compile_training_data(config, counter, classifier.Kmers, classifier.Features, false, classifier.Binarize, filename_fg, filename_bg)

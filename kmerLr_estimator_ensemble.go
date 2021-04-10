@@ -122,7 +122,7 @@ func (obj KmerLrEstimatorEnsemble) Estimate(config Config, data_train, data_val,
     v_best := math.Inf(1)
     for i, _ := range classifiers {
       d := classifiers[i].SelectData(config, data_val)
-      v := classifiers[i].LossAvrg(config, d, data_val.Labels)
+      v := classifiers[i].Loss(config, d, data_val.Labels)
       if v < v_best {
         i_best = i
         v_best = v
