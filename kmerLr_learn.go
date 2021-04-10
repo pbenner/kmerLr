@@ -289,6 +289,10 @@ func main_learn(config Config, args []string) {
   if s, err := strconv.ParseFloat(*optValidationSize, 64); err != nil {
     log.Fatal(err)
   } else {
+    if s < 0.0 || s > 1.0 {
+      options.PrintUsage(os.Stdout)
+      os.Exit(1)
+    }
     config.ValidationSize = s
   }
   if *optEnsembleSize < 1 {
