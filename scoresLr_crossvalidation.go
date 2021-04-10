@@ -75,7 +75,7 @@ func scoresCrossvalidation(config Config, data ScoresDataSet,
   })
   // join results
   result := []CVResult{}
-  for i := 0; i < config.KFoldCV; i++ {
+  for i := 0; config.KFoldCV > 1 && i < config.KFoldCV; i++ {
     if len(result) == 0 {
       result = make([]CVResult, len(r_predictions[i]))
     }

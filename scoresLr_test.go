@@ -33,7 +33,7 @@ func TestScores1(test *testing.T) {
 
   main_learn_scores(config, []string{"learn", "--lambda-auto=2", "scoresLr_test_fg.table", "scoresLr_test_bg.table", "scoresLr_test"})
 
-  classifier := ImportScoresLrEnsemble(config, "scoresLr_test_2.json").GetComponent(0)
+  classifier := ImportScoresLrEnsemble(config, "scoresLr_test.json").GetComponent(0)
 
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
@@ -56,10 +56,10 @@ func TestScores1(test *testing.T) {
   if f := classifier.Features[1]; classifier.Index[f[0]] != 6 || classifier.Index[f[1]] != 6 {
     test.Error("test failed")
   }
-  if v := loss_scores_(config, "scoresLr_test_2.json", "scoresLr_test_fg.table", "scoresLr_test_bg.table")[0]; math.Abs(v - 0.813659729805629) > 1e-4 {
+  if v := loss_scores_(config, "scoresLr_test.json", "scoresLr_test_fg.table", "scoresLr_test_bg.table")[0]; math.Abs(v - 0.813659729805629) > 1e-4 {
     test.Error("test failed")
   }
-  os.Remove("scoresLr_test_2.json")
+  os.Remove("scoresLr_test.json")
 }
 
 func TestScores2(test *testing.T) {
@@ -69,7 +69,7 @@ func TestScores2(test *testing.T) {
 
   main_learn_scores(config, []string{"learn", "--lambda-auto=1", "--co-occurrence", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table", "scoresLr_test_co"})
 
-  classifier := ImportScoresLrEnsemble(config, "scoresLr_test_co_1.json").GetComponent(0)
+  classifier := ImportScoresLrEnsemble(config, "scoresLr_test_co.json").GetComponent(0)
 
   if len(classifier.Theta) != 2 {
     test.Error("test failed"); return
@@ -86,7 +86,7 @@ func TestScores2(test *testing.T) {
   if f := classifier.Features[0]; classifier.Index[f[0]] != 1 || classifier.Index[f[1]] != 2 {
     test.Error("test failed")
   }
-  if v := loss_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table")[0]; math.Abs(v - 0.6699931965725273) > 1e-4 {
+  if v := loss_scores_(config, "scoresLr_test_co.json", "scoresLr_test_co_fg.table", "scoresLr_test_co_bg.table")[0]; math.Abs(v - 0.6699931965725273) > 1e-4 {
     test.Error("test failed")
   }
   w := []float64{
@@ -94,7 +94,7 @@ func TestScores2(test *testing.T) {
     -0.6539634473226117, -0.6063887787494636,
     -0.5995933447812485, -0.4461679042826637,
     -0.6290620668667339, -0.6750691863398406 }
-  if v := predict_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_fg.table"); len(v) != len(w) {
+  if v := predict_scores_(config, "scoresLr_test_co.json", "scoresLr_test_co_fg.table"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {
     for i := 0; i < len(w); i++ {
@@ -108,7 +108,7 @@ func TestScores2(test *testing.T) {
     -0.648046764432194, -0.6861810564115558,
     -0.679086111385735, -0.6738126996571452,
     -0.688649950605459, -0.5832453150753549 }
-  if v := predict_scores_(config, "scoresLr_test_co_1.json", "scoresLr_test_co_bg.table"); len(v) != len(w) {
+  if v := predict_scores_(config, "scoresLr_test_co.json", "scoresLr_test_co_bg.table"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {
     for i := 0; i < len(w); i++ {
@@ -117,7 +117,7 @@ func TestScores2(test *testing.T) {
       }
     }
   }
-  os.Remove("scoresLr_test_co_1.json")
+  os.Remove("scoresLr_test_co.json")
 }
 
 func TestScores3(test *testing.T) {
@@ -127,7 +127,7 @@ func TestScores3(test *testing.T) {
 
   filename_fg  := "scoresLr_test_co_fg.table"
   filename_bg  := "scoresLr_test_co_bg.table"
-  filename_out := "scoresLr_test_co_3.json"
+  filename_out := "scoresLr_test_co.json"
 
   main_learn_scores(config, []string{"learn", "--lambda-auto=3", "--co-occurrence", "--co-preselection=5", filename_fg, filename_bg, "scoresLr_test_co"})
 
@@ -168,12 +168,12 @@ func TestScores4(test *testing.T) {
   main_learn(config, []string{"learn", "--lambda-auto=3", "2", "6", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "scoresLr_test_1"})
 
   // export kmers data
-  main_export(config, []string{"export", "2", "6", "kmerLr_test_fg.fa,kmerLr_test_bg.fa", "scoresLr_test_2_fg.table,scoresLr_test_2_bg.table"})
+  main_export(config, []string{"export", "2", "6", "kmerLr_test_fg.fa,kmerLr_test_bg.fa", "scoresLr_test_export_fg.table,scoresLr_test_export_bg.table"})
   // train scoresLr
-  main_learn_scores(config, []string{"learn", "--lambda-auto=3", "--header", "scoresLr_test_2_fg.table", "scoresLr_test_2_bg.table", "scoresLr_test_2"})
+  main_learn_scores(config, []string{"learn", "--lambda-auto=3", "--header", "scoresLr_test_export_fg.table", "scoresLr_test_export_bg.table", "scoresLr_test_2"})
 
-  classifier1 := ImportKmerLrEnsemble  (config, "scoresLr_test_1_3.json").GetComponent(0)
-  classifier2 := ImportScoresLrEnsemble(config, "scoresLr_test_2_3.json").GetComponent(0)
+  classifier1 := ImportKmerLrEnsemble  (config, "scoresLr_test_1.json").GetComponent(0)
+  classifier2 := ImportScoresLrEnsemble(config, "scoresLr_test_2.json").GetComponent(0)
 
   if len(classifier1.Theta) != len(classifier2.Theta) {
     test.Error("test failed")
@@ -192,8 +192,8 @@ func TestScores4(test *testing.T) {
     }
   }
 exit:
-  os.Remove("scoresLr_test_1_3.json")
-  os.Remove("scoresLr_test_2_3.json")
-  os.Remove("scoresLr_test_2_fg.table")
-  os.Remove("scoresLr_test_2_bg.table")
+  os.Remove("scoresLr_test_1.json")
+  os.Remove("scoresLr_test_2.json")
+  os.Remove("scoresLr_test_export_fg.table")
+  os.Remove("scoresLr_test_export_bg.table")
 }

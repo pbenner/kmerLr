@@ -160,7 +160,7 @@ func TestKmers5(test *testing.T) {
 
   main_learn(config, []string{"learn", "--lambda-auto=2", "--epsilon=0", "--epsilon-loss=1e-10", "--revcomp", "--data-transform=standardizer", "2", "6", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa", "kmerLr_test"})
 
-  classifier := ImportKmerLrEnsemble(config, "kmerLr_test_2.json").GetComponent(0)
+  classifier := ImportKmerLrEnsemble(config, "kmerLr_test.json").GetComponent(0)
 
   if len(classifier.Theta) != 3 {
     test.Error("test failed"); return
@@ -183,10 +183,10 @@ func TestKmers5(test *testing.T) {
   if f := classifier.Features[1]; f[0] != 1 || f[1] != 1 {
     test.Error("test failed")
   }
-  if v := loss_(config, "kmerLr_test_2.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")[0]; math.Abs(v - 1.107745182633717) > 1e-4 {
+  if v := loss_(config, "kmerLr_test.json", "kmerLr_test_fg.fa", "kmerLr_test_bg.fa")[0]; math.Abs(v - 1.107745182633717) > 1e-4 {
     test.Error("test failed")
   }
-  os.Remove("kmerLr_test_2.json")
+  os.Remove("kmerLr_test.json")
 }
 
 func TestKmers6(test *testing.T) {
@@ -196,7 +196,7 @@ func TestKmers6(test *testing.T) {
 
   main_learn(config, []string{"learn", "--lambda-auto=2", "--epsilon-loss=1e-8", "--binarize", "--revcomp", "--co-occurrence", "2", "6", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa", "kmerLr_test_co"})
 
-  classifier := ImportKmerLrEnsemble(config, "kmerLr_test_co_2.json").GetComponent(0)
+  classifier := ImportKmerLrEnsemble(config, "kmerLr_test_co.json").GetComponent(0)
 
   theta := []float64{
     -0.1000970529629098,
@@ -221,7 +221,7 @@ func TestKmers6(test *testing.T) {
       test.Error("test failed")
     }
   }
-  if v := loss_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa")[0]; math.Abs(v - 0.644417014007959) > 1e-4 {
+  if v := loss_(config, "kmerLr_test_co.json", "kmerLr_test_co_fg.fa", "kmerLr_test_co_bg.fa")[0]; math.Abs(v - 0.644417014007959) > 1e-4 {
     test.Error("test failed")
   }
   w := []float64{
@@ -235,7 +235,7 @@ func TestKmers6(test *testing.T) {
     -0.6444834689451768,
     -0.6444834689451768,
     -0.6444834689451768 }
-  if v := predict_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_fg.fa"); len(v) != len(w) {
+  if v := predict_(config, "kmerLr_test_co.json", "kmerLr_test_co_fg.fa"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {
     for i := 0; i < len(w); i++ {
@@ -255,7 +255,7 @@ func TestKmers6(test *testing.T) {
     -0.744447612033651,
     -0.744447612033651,
     -0.744447612033651 }
-  if v := predict_(config, "kmerLr_test_co_2.json", "kmerLr_test_co_bg.fa"); len(v) != len(w) {
+  if v := predict_(config, "kmerLr_test_co.json", "kmerLr_test_co_bg.fa"); len(v) != len(w) {
     test.Error("test failed"); return
   } else {
     for i := 0; i < len(w); i++ {
@@ -264,5 +264,5 @@ func TestKmers6(test *testing.T) {
       }
     }
   }
-  os.Remove("kmerLr_test_co_2.json")
+  os.Remove("kmerLr_test_co.json")
 }
