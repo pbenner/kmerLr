@@ -1,3 +1,7 @@
+## Installation
+
+Pre-compiled binaries are available [here](https://github.com/pbenner/kmerLr-binary).
+
 ## KmerLr Example
 
 Foreground and background data must be stored in seperate files where the rows are the samples and the columns the features:
