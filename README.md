@@ -2,6 +2,10 @@
 
 Pre-compiled binaries are available [here](https://github.com/pbenner/kmerLr-binary).
 
+## Documentation
+
+Benner, Philipp. *Computing Leapfrog Regularization Paths with Applications to Large-Scale K-mer Logistic Regression.* Journal of Computational Biology (2021).
+
 ## KmerLr Example
 
 Foreground and background data must be stored in seperate files where the rows are the samples and the columns the features:
