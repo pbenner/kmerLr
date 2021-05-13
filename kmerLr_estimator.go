@@ -124,16 +124,37 @@ func (obj *KmerLrEstimator) estimate_debug_gradient(config Config, data KmerData
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *KmerLrEstimator) reestimate(config Config, transform Transform, cooccurrence bool) *KmerLr {
+  // reestimate parameters without penalty
+  estimator      := obj.LogisticRegression.Clone()
+  estimator.L1Reg = 0.0
+  if err := estimator.Estimate(nil, config.PoolSaga); err != nil {
+    log.Fatal(err)
+  }
+  if r_, err := estimator.GetEstimate(); err != nil {
+    log.Fatal(err)
+    return nil
+  } else {
+    r := &KmerLr{}
+    r.Theta          = r_.(*vectorDistribution.LogisticRegression).Theta.(DenseFloat64Vector)
+    r.KmerLrFeatures = obj.KmerLrFeatures
+    r.Cooccurrence   = cooccurrence
+    r.Transform      = transform
+    return r
+  }
+}
+
 func (obj *KmerLrEstimator) estimate(config Config, data KmerDataSet, transform Transform, cooccurrence bool, debug bool) *KmerLr {
   transform.Apply(config, data.Data)
   if debug {
     obj.estimate_debug_gradient(config, data)
-  }
-  if err := obj.LogisticRegression.SetSparseData(data.Data, data.Labels, len(data.Data)); err != nil {
-    log.Fatal(err)
-  }
-  if err := obj.LogisticRegression.Estimate(nil, config.PoolSaga); err != nil {
-    log.Fatal(err)
+  } else {
+    if err := obj.LogisticRegression.SetSparseData(data.Data, data.Labels, len(data.Data)); err != nil {
+      log.Fatal(err)
+    }
+    if err := obj.LogisticRegression.Estimate(nil, config.PoolSaga); err != nil {
+      log.Fatal(err)
+    }
   }
   if r_, err := obj.LogisticRegression.GetEstimate(); err != nil {
     log.Fatal(err)
@@ -224,6 +245,10 @@ func (obj *KmerLrEstimator) estimate_loop(config Config, data KmerDataSet, trans
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
     r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence, debug)
+  }
+  if config.PenaltyFree && r != nil {
+    PrintStderr(config, 1, "Re-estimating parameters without penalty...\n")
+    r = obj.reestimate(config, r.Transform, cooccurrence)
   }
   obj.reduced_data = KmerDataSet{}
   return r

@@ -139,6 +139,7 @@ func main_learn(config Config, args []string) {
   optKFoldCV         := options.    IntLong("k-fold-cv",          0 ,            1, "perform k-fold cross-validation")
   optValidationSize  := options. StringLong("validation-size",    0 ,        "0.0", "fraction of training data that should be used for validation [0.0 (default)]")
   optScaleStepSize   := options. StringLong("scale-step-size",    0 ,        "1.0", "scale standard step-size")
+  optPenaltyFree     := options.   BoolLong("penalty-free",       0 ,               "re-estimate parameters without penalty after feature selection")
   optAdaptStepSize   := options.   BoolLong("adaptive-step-size", 0 ,               "adaptive step size during optimization")
   optThreadsCV       := options.    IntLong("threads-cv",         0 ,            1, "number of threads for cross-validation")
   optThreadsSaga     := options.    IntLong("threads-saga",       0 ,            1, "number of threads for SAGA algorithm")
@@ -310,6 +311,7 @@ func main_learn(config Config, args []string) {
   config.MaxEpochs       = *optMaxEpochs
   config.MaxIterations   = *optMaxIterations
   config.MaxSamples      = *optMaxSamples
+  config.PenaltyFree     = *optPenaltyFree
   config.SaveTrace       = *optSaveTrace
   config.SavePath        = *optSavePath
   config.DataTransform   = *optDataTransform
