@@ -84,7 +84,7 @@ func main() {
 
   optType    := options. StringLong("type",     0 ,  "kmerLr", "classifier type [kmerLr, scoresLr]")
   optThreads := options.    IntLong("threads",  0 ,         1, "number of threads")
-  optSeed    := options.    IntLong("seed",     0 ,         1, "seed for the random number generateor")
+  optSeed    := options.    IntLong("seed",     0 ,         1, "seed for the random number generator")
   optHelp    := options.   BoolLong("help",    'h',            "print help")
   optVerbose := options.CounterLong("verbose", 'v',            "verbose level [-v or -vv]")
   optVersion := options.   BoolLong("version",  0 ,            "print version")
