@@ -59,6 +59,10 @@ func combine(config Config, summary, stability, filename_out string, filename_in
       log.Fatal(err)
     }
   }
+  // stability analysis
+  if stability != "" {
+    stability_analysis(config, r, stability)
+  }
   switch strings.ToLower(summary) {
   case "mean":
     r = r.Mean()
@@ -71,10 +75,6 @@ func combine(config Config, summary, stability, filename_out string, filename_in
   }
   // export model
   SaveModel(config, filename_out, r)
-  // stability analysis
-  if stability != "" {
-    stability_analysis(config, r, stability)
-  }
 }
 
 /* -------------------------------------------------------------------------- */
