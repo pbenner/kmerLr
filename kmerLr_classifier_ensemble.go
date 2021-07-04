@@ -176,7 +176,7 @@ func (obj *KmerLrEnsemble) Mean() *KmerLrEnsemble {
   t := &KmerLr{}
   t.KmerLrFeatures = obj.KmerLrFeatures
   t.Transform      = obj.Transform
-  t.Theta = make([]float64, len(obj.Theta[0]))
+  t.Theta          = make([]float64, len(obj.Theta[0]))
   for j := 0; j < len(obj.Theta[0]); j++ {
     for i := 0; i < len(obj.Theta); i++ {
       t.Theta[j] += obj.Theta[i][j]
@@ -195,7 +195,7 @@ func (obj *KmerLrEnsemble) Min() *KmerLrEnsemble {
   t := &KmerLr{}
   t.KmerLrFeatures = obj.KmerLrFeatures
   t.Transform      = obj.Transform
-  t.Theta = make([]float64, len(obj.Theta[0]))
+  t.Theta          = make([]float64, len(obj.Theta[0]))
   for j := 0; j < len(obj.Theta[0]); j++ {
     t.Theta[j] += obj.Theta[0][j]
     for i := 1; i < len(obj.Theta); i++ {
@@ -216,7 +216,7 @@ func (obj *KmerLrEnsemble) Max() *KmerLrEnsemble {
   t := &KmerLr{}
   t.KmerLrFeatures = obj.KmerLrFeatures
   t.Transform      = obj.Transform
-  t.Theta = make([]float64, len(obj.Theta[0]))
+  t.Theta          = make([]float64, len(obj.Theta[0]))
   for j := 0; j < len(obj.Theta[0]); j++ {
     t.Theta[j] += obj.Theta[0][j]
     for i := 1; i < len(obj.Theta); i++ {
@@ -228,6 +228,24 @@ func (obj *KmerLrEnsemble) Max() *KmerLrEnsemble {
   r := &KmerLrEnsemble{}
   r.AddKmerLr(t)
   return r
+}
+
+func (obj *KmerLrEnsemble) Stability() ([]float64, []float64) {
+  if len(obj.Theta) == 0 {
+    return nil, nil
+  }
+  x := make([]float64, len(obj.Theta[0])-1)
+  y := make([]float64, len(obj.Theta[0])-1)
+  for j := 1; j < len(obj.Theta[0]); j++ {
+    for i := 0; i < len(obj.Theta); i++ {
+      if obj.Theta[i][j] != 0.0 {
+        x[j-1] += 1.0
+        y[j-1] += math.Abs(obj.Theta[i][j])
+      }
+    }
+    y[j-1] = y[j-1] / x[j-1]
+  }
+  return x, y
 }
 
 /* -------------------------------------------------------------------------- */
