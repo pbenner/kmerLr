@@ -42,7 +42,7 @@ func stability_analysis(config Config, kmerLr *KmerLrEnsemble, filename string) 
 
   fmt.Fprintf(w, "stability mean\n")
   for i := 0; i < len(x); i++ {
-    fmt.Fprintf(w, "%v %v", x[i], y[i])
+    fmt.Fprintf(w, "%v %v\n", x[i], y[i])
   }
 }
 
