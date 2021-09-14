@@ -150,6 +150,8 @@ func main() {
     }
   case "scoresLr":
     switch command {
+    case "expand":
+      main_expand_scores(config, options.Args())
     case "learn":
       main_learn_scores(config, options.Args())
     case "loss":
