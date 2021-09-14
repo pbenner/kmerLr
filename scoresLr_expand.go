@@ -46,7 +46,7 @@ func main_expand_scores(config Config, args []string) {
   }
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
-  if len(options.Args()) != 2 && len(options.Args()) != 3 {
+  if len(options.Args()) != 2 {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
