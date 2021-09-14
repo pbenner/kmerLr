@@ -60,7 +60,7 @@ func _divrev(a, b float64) float64 {
 
 /* -------------------------------------------------------------------------- */
 
-func expand_scores(config Config, filename_in, filename_out string) {
+func expand_scores(config Config, filename_in, filename_out string, d int) {
   
 }
 
@@ -69,7 +69,8 @@ func expand_scores(config Config, filename_in, filename_out string) {
 func main_expand_scores(config Config, args []string) {
   options := getopt.New()
 
-  optHelp   := options.BoolLong("help",   'h', "print help")
+  optDepth  := options. IntLong("depth",   0 , 2, "recursion depth")
+  optHelp   := options.BoolLong("help",   'h',    "print help")
 
   options.SetParameters("<SCORES.table> [RESULT.table]")
   options.Parse(args)
@@ -77,6 +78,10 @@ func main_expand_scores(config Config, args []string) {
   // parse options
   //////////////////////////////////////////////////////////////////////////////
   if *optHelp {
+    options.PrintUsage(os.Stdout)
+    os.Exit(0)
+  }
+  if *optDepth < 0 {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
@@ -91,5 +96,5 @@ func main_expand_scores(config Config, args []string) {
   if len(options.Args()) == 3 {
     filename_out = options.Args()[2]
   }
-  expand_scores(config, filename_in, filename_out)
+  expand_scores(config, filename_in, filename_out, *optDepth)
 }
