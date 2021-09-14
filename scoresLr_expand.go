@@ -19,13 +19,49 @@ package main
 /* -------------------------------------------------------------------------- */
 
 //import   "fmt"
+import   "math"
 import   "os"
 
 import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
+func _exp(a float64) float64 {
+  return math.Exp(a)
+}
+
+func _log(a float64) float64 {
+  return math.Log(a)
+}
+
+func _add(a, b float64) float64 {
+  return a + b
+}
+
+func _sub(a, b float64) float64 {
+  return a - b
+}
+
+func _subrev(a, b float64) float64 {
+  return b - a
+}
+
+func _mul(a, b float64) float64 {
+  return a * b
+}
+
+func _div(a, b float64) float64 {
+  return a / b
+}
+
+func _divrev(a, b float64) float64 {
+  return b / a
+}
+
+/* -------------------------------------------------------------------------- */
+
 func expand_scores(config Config, filename_in, filename_out string) {
+  
 }
 
 /* -------------------------------------------------------------------------- */
