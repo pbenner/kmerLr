@@ -18,7 +18,8 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
+import   "bufio"
 import   "log"
 import   "os"
 import   "strings"
@@ -27,7 +28,27 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func combine(config Config, summary, filename_out string, filename_ins ...string) {
+func stability_analysis(config Config, kmerLr *KmerLrEnsemble, filename string) {
+  x, y := kmerLr.Stability()
+
+  f, err := os.Create(filename)
+  if err != nil {
+    panic(err)
+  }
+  defer f.Close()
+
+  w := bufio.NewWriter(f)
+  defer w.Flush()
+
+  fmt.Fprintf(w, "stability mean\n")
+  for i := 0; i < len(x); i++ {
+    fmt.Fprintf(w, "%v %v\n", x[i], y[i])
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+
+func combine(config Config, summary, stability, filename_out string, filename_ins ...string) {
   classifiers := make([]*KmerLrEnsemble, len(filename_ins))
   for i, filename_in := range filename_ins {
     classifiers[i] = ImportKmerLrEnsemble(config, filename_in)
@@ -37,6 +58,10 @@ func combine(config Config, summary, filename_out string, filename_ins ...string
     if err := r.AddKmerLrEnsemble(classifier); err != nil {
       log.Fatal(err)
     }
+  }
+  // stability analysis
+  if stability != "" {
+    stability_analysis(config, r, stability)
   }
   switch strings.ToLower(summary) {
   case "mean":
@@ -57,8 +82,9 @@ func combine(config Config, summary, filename_out string, filename_ins ...string
 func main_combine(config Config, args []string) {
   options := getopt.New()
 
-  optSummary := options. StringLong("summary",    0 , "mean", "summary [mean (default), max, min]")
-  optHelp    := options.   BoolLong("help",      'h',         "print help")
+  optSummary   := options.StringLong("summary",    0 , "mean", "summary [mean (default), max, min]")
+  optStability := options.StringLong("stability",  0 ,     "", "export kmer stability analysis")
+  optHelp      := options.  BoolLong("help",      'h',         "print help")
 
   options.SetParameters("<RESULT.json> <MODEL1.json> [<MODEL2.json>...]")
   options.Parse(args)
@@ -78,5 +104,5 @@ func main_combine(config Config, args []string) {
   filename_out := options.Args()[0]
   filename_ins := options.Args()[1:len(options.Args())]
 
-  combine(config, *optSummary, filename_out, filename_ins...)
+  combine(config, *optSummary, *optStability, filename_out, filename_ins...)
 }

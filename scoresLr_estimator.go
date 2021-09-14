@@ -103,6 +103,26 @@ func (obj *ScoresLrEstimator) n_params(config Config, data []ConstVector, lambda
 
 /* -------------------------------------------------------------------------- */
 
+func (obj *ScoresLrEstimator) reestimate(config Config, transform Transform, cooccurrence bool) *ScoresLr {
+  // reestimate parameters without penalty
+  estimator      := obj.LogisticRegression.Clone()
+  estimator.L1Reg = 0.0
+  if err := estimator.Estimate(nil, config.PoolSaga); err != nil {
+    log.Fatal(err)
+  }
+  if r_, err := estimator.GetEstimate(); err != nil {
+    log.Fatal(err)
+    return nil
+  } else {
+    r := &ScoresLr{}
+    r.Theta            = r_.(*vectorDistribution.LogisticRegression).Theta.(DenseFloat64Vector)
+    r.ScoresLrFeatures = obj.ScoresLrFeatures
+    r.Cooccurrence     = cooccurrence
+    r.Transform        = transform
+    return r
+  }
+}
+
 func (obj *ScoresLrEstimator) estimate(config Config, data ScoresDataSet, transform Transform, cooccurrence bool) *ScoresLr {
   transform.Apply(config, data.Data)
   if err := obj.LogisticRegression.SetSparseData(data.Data, data.Labels, len(data.Data)); err != nil {
@@ -195,6 +215,10 @@ func (obj *ScoresLrEstimator) estimate_loop(config Config, data ScoresDataSet, t
 
     PrintStderr(config, 1, "Estimating parameters with lambda=%e...\n", lambda)
     r = obj.estimate(config, obj.reduced_data, selection.Transform(), cooccurrence)
+  }
+  if config.PenaltyFree && r != nil {
+    PrintStderr(config, 1, "Re-estimating parameters without penalty...\n")
+    r = obj.reestimate(config, r.Transform, cooccurrence)
   }
   obj.reduced_data = ScoresDataSet{}
   return r

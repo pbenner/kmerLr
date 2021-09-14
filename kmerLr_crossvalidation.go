@@ -84,8 +84,9 @@ func getCvGroups(n, fold int, val_ratio float64, seed int64) ([]int, []int) {
       }
     }
   }
-  shuffleInts(groups, validation, seed)
-
+  if seed != -1 {
+    shuffleInts(groups, validation, seed)
+  }
   return groups, validation
 }
 
