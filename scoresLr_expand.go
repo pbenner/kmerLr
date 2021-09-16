@@ -53,6 +53,16 @@ var _log OperationUnary = OperationUnary{
   Name : func(a string ) string  { return fmt.Sprintf("log(%s)", a) },
   Final: true }
 
+var _square OperationUnary = OperationUnary{
+  Func : func(a float64) float64 { return a*a },
+  Name : func(a string ) string  { return fmt.Sprintf("(a^2)", a) },
+  Final: true }
+
+var _sqrt OperationUnary = OperationUnary{
+  Func : func(a float64) float64 { return math.Sqrt(a) },
+  Name : func(a string ) string  { return fmt.Sprintf("sqrt(a)", a) },
+  Final: true }
+
 var _add OperationBinary = OperationBinary{
   Func : func(a, b float64) float64 { return a+b },
   Name : func(a, b string ) string  { return fmt.Sprintf("(%s+%s)", a, b) },
@@ -89,6 +99,8 @@ func expand_scores(config Config, filename_in, filename_out string, d int) {
   op_unary := []OperationUnary{}
   op_unary  = append(op_unary, _exp)
   op_unary  = append(op_unary, _log)
+  op_unary  = append(op_unary, _square)
+  op_unary  = append(op_unary, _sqrt)
   op_binary := []OperationBinary{}
   op_binary  = append(op_binary, _add)
   op_binary  = append(op_binary, _sub)
