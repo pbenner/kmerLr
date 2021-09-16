@@ -18,7 +18,7 @@ package main
 
 /* -------------------------------------------------------------------------- */
 
-//import   "fmt"
+import   "fmt"
 import   "math"
 import   "os"
 
@@ -31,13 +31,13 @@ type f_binary func(float64, float64) float64
 
 type OperationUnary struct {
   Func   f_unary
-  Name   string
+  Name   func(string) string
   Final  bool
 }
 
 type OperationBinary struct {
   Func   f_binary
-  Name   string
+  Name   func(string, string) string
   Final  bool
 }
 
@@ -46,42 +46,42 @@ type OperationBinary struct {
 
 var _exp OperationUnary = OperationUnary{
   Func : func(a float64) float64 { return math.Exp(a) },
-  Name : "exp",
+  Name : func(a string ) string  { return fmt.Sprintf("exp(%s)", a) },
   Final: true }
 
 var _log OperationUnary = OperationUnary{
   Func : func(a float64) float64 { return math.Log(a) },
-  Name : "log",
+  Name : func(a string ) string  { return fmt.Sprintf("log(%s)", a) },
   Final: true }
 
 var _add OperationBinary = OperationBinary{
   Func : func(a, b float64) float64 { return a+b },
-  Name : "add",
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s+%s)", a, b) },
   Final: false }
 
 var _sub OperationBinary = OperationBinary{
   Func : func(a, b float64) float64 { return a-b },
-  Name : "sub",
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s-%s)", a, b) },
   Final: false }
 
 var _subrev OperationBinary = OperationBinary{
   Func : func(a, b float64) float64 { return b-a },
-  Name : "subrev",
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s-%s)", b, a) },
   Final: false }
 
 var _mul OperationBinary = OperationBinary{
   Func : func(a, b float64) float64 { return a*b },
-  Name : "mul",
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s*%s)", a, b) },
   Final: true }
 
 var _div OperationBinary = OperationBinary{
   Func : func(a, b float64) float64 { return a/b },
-  Name : "div",
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s/%s)", a, b) },
   Final: true }
 
 var _divrev OperationBinary = OperationBinary{
   Func : func(a, b float64) float64 { return b/a },
-  Name : "div",
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s/%s)", b, a) },
   Final: true }
 
 /* -------------------------------------------------------------------------- */
