@@ -43,7 +43,6 @@ type OperationBinary struct {
 
 /* -------------------------------------------------------------------------- */
 
-
 var _exp OperationUnary = OperationUnary{
   Func : func(a float64) float64 { return math.Exp(a) },
   Name : func(a string ) string  { return fmt.Sprintf("exp(%s)", a) },
