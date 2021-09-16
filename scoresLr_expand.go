@@ -26,42 +26,77 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func _exp(a float64) float64 {
-  return math.Exp(a)
+type f_unary  func(float64         ) float64
+type f_binary func(float64, float64) float64
+
+type OperationUnary struct {
+  Func   f_unary
+  Name   string
+  Final  bool
 }
 
-func _log(a float64) float64 {
-  return math.Log(a)
-}
-
-func _add(a, b float64) float64 {
-  return a + b
-}
-
-func _sub(a, b float64) float64 {
-  return a - b
-}
-
-func _subrev(a, b float64) float64 {
-  return b - a
-}
-
-func _mul(a, b float64) float64 {
-  return a * b
-}
-
-func _div(a, b float64) float64 {
-  return a / b
-}
-
-func _divrev(a, b float64) float64 {
-  return b / a
+type OperationBinary struct {
+  Func   f_binary
+  Name   string
+  Final  bool
 }
 
 /* -------------------------------------------------------------------------- */
 
+
+var _exp OperationUnary = OperationUnary{
+  Func : func(a float64) float64 { return math.Exp(a) },
+  Name : "exp",
+  Final: true }
+
+var _log OperationUnary = OperationUnary{
+  Func : func(a float64) float64 { return math.Log(a) },
+  Name : "log",
+  Final: true }
+
+var _add OperationBinary = OperationBinary{
+  Func : func(a, b float64) float64 { return a+b },
+  Name : "add",
+  Final: false }
+
+var _sub OperationBinary = OperationBinary{
+  Func : func(a, b float64) float64 { return a-b },
+  Name : "sub",
+  Final: false }
+
+var _subrev OperationBinary = OperationBinary{
+  Func : func(a, b float64) float64 { return b-a },
+  Name : "subrev",
+  Final: false }
+
+var _mul OperationBinary = OperationBinary{
+  Func : func(a, b float64) float64 { return a*b },
+  Name : "mul",
+  Final: true }
+
+var _div OperationBinary = OperationBinary{
+  Func : func(a, b float64) float64 { return a/b },
+  Name : "div",
+  Final: true }
+
+var _divrev OperationBinary = OperationBinary{
+  Func : func(a, b float64) float64 { return b/a },
+  Name : "div",
+  Final: true }
+
+/* -------------------------------------------------------------------------- */
+
 func expand_scores(config Config, filename_in, filename_out string, d int) {
-  
+  op_unary := []OperationUnary{}
+  op_unary  = append(op_unary, _exp)
+  op_unary  = append(op_unary, _log)
+  op_binary := []OperationBinary{}
+  op_binary  = append(op_binary, _add)
+  op_binary  = append(op_binary, _sub)
+  op_binary  = append(op_binary, _subrev)
+  op_binary  = append(op_binary, _mul)
+  op_binary  = append(op_binary, _div)
+  op_binary  = append(op_binary, _divrev)
 }
 
 /* -------------------------------------------------------------------------- */
