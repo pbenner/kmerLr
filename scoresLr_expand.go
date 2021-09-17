@@ -149,9 +149,17 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
   from := 1
   to   := scores_merged[0].Dim()
   for d_ := 0; d_ < d; d++ {
+    // apply unary operations
     for _, op := range op_unary {
       names = apply_unary(config, scores_merged, names, op, from, to)
     }
+    // apply binary operations
+    // for _, op := range op_binary {
+    //   names = apply_binary(config, scores_merged, names, op, from, to)
+    // }
+    // update range
+    from = to
+    to   = scores_merged[0].Dim()
   }
 }
 
