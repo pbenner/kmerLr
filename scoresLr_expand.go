@@ -98,27 +98,25 @@ var _divrev OperationBinary = OperationBinary{
 
 /* -------------------------------------------------------------------------- */
 
-func apply_unary(config Config, scores []DenseFloat64Vector, names []string, op OperationUnary, from, to int) []string {
-  n      := len(scores)
+func apply_unary(config Config, columns [][]float64, names []string, op OperationUnary, from, to int) ([][]float64, []string) {
+  n      := len(columns[0])
   column := make([]float64, n)
   for j := from; j < to; j++ {
     for i := 0; i < n; i++ {
-      column[i] = op.Func(scores[i].Float64At(j))
+      column[i] = op.Func(columns[j][i])
       // check if operation is valid
       if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
         break
       }
       // append new column
-      for i := 0; i < n; i++ {
-        scores[i] = append(scores[i], column[i])
-      }
+      columns = append(columns, column)
       // generate new column name
       if len(names) > 0 {
         names = append(names, op.Name(names[j]))
       }
     }
   }
-  return names
+  return columns, names
 }
 
 /* -------------------------------------------------------------------------- */
@@ -145,17 +143,26 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
       scores_merged = append(scores_merged, AsDenseFloat64Vector(scores[i][j]))
     }
   }
-  if len(scores_merged) == 0 {
+  // transpose data
+  scores_columns := [][]float64{}
+  for j := 1; j < len(scores_merged[0]); j++ {
+    t := make([]float64, len(scores_merged[0]))
+    for i := 0; i < len(scores_merged); i++ {
+      t[i] = scores_merged[i].Float64At(j)
+    }
+    scores_columns = append(scores_columns, t)
+  }
+  if len(scores_columns) == 0 {
     log.Fatal("No data given. Exiting.")
     return
   }
 
-  from := 1
-  to   := scores_merged[0].Dim()
+  from := 0
+  to   := len(scores_columns)
   for d_ := 0; d_ < d; d++ {
     // apply unary operations
     for _, op := range op_unary {
-      names = apply_unary(config, scores_merged, names, op, from, to)
+      scores_columns, names = apply_unary(config, scores_columns, names, op, from, to)
     }
     // apply binary operations
     // for _, op := range op_binary {
