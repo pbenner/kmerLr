@@ -120,6 +120,29 @@ func apply_unary(config Config, columns [][]float64, names []string, op Operatio
   return columns, names
 }
 
+func apply_binary(config Config, columns [][]float64, names []string, op OperationBinary, from, to int) ([][]float64, []string) {
+  n      := len(columns[0])
+  column := make([]float64, n)
+  for j1 := from; j1 < to; j1++ {
+    for j2 := j1+1; j2 < to; j2++ {
+      for i := 0; i < n; i++ {
+        column[i] = op.Func(columns[j1][i], columns[j2][i])
+        // check if operation is valid
+        if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
+          break
+        }
+      }
+      // append new column
+      columns = append(columns, column)
+      // generate new column name
+      if len(names) > 0 {
+        names = append(names, op.Name(names[j1], names[j2]))
+      }
+    }
+  }
+  return columns, names
+}
+
 /* -------------------------------------------------------------------------- */
 
 func expand_import(config Config, filenames_in []string) ([][]float64, []int, []string) {
@@ -213,9 +236,9 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
       scores_columns, names = apply_unary(config, scores_columns, names, op, from, to)
     }
     // apply binary operations
-    // for _, op := range op_binary {
-    //   names = apply_binary(config, scores_columns, names, op, from, to)
-    // }
+    for _, op := range op_binary {
+      scores_columns, names = apply_binary(config, scores_columns, names, op, from, to)
+    }
     // update range
     from = to
     to   = len(scores_columns)
