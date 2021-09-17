@@ -138,7 +138,7 @@ func expand_import(config Config, filenames_in []string) ([][]float64, []int, []
   for j := 1; j < len(scores_merged[0]); j++ {
     t := make([]float64, len(scores_merged[0]))
     for i := 0; i < len(scores_merged); i++ {
-      t[i] = scores_merged[i].Float64At(j)
+      t[j] = scores_merged[i].Float64At(j)
     }
     scores_columns = append(scores_columns, t)
   }
@@ -206,7 +206,7 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
   
   from := 0
   to   := len(scores_columns)
-  for d_ := 0; d_ < d; d++ {
+  for d_ := 0; d_ < d; d_++ {
     // apply unary operations
     for _, op := range op_unary {
       scores_columns, names = apply_unary(config, scores_columns, names, op, from, to)
@@ -249,8 +249,8 @@ func main_expand_scores(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  filenames_in := strings.Split(options.Args()[1], ",")
-  basename_out := options.Args()[2]
+  filenames_in := strings.Split(options.Args()[0], ",")
+  basename_out := options.Args()[1]
 
   expand_scores(config, filenames_in, basename_out, *optDepth)
 }
