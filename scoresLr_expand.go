@@ -59,12 +59,12 @@ var _log OperationUnary = OperationUnary{
 
 var _square OperationUnary = OperationUnary{
   Func : func(a float64) float64 { return a*a },
-  Name : func(a string ) string  { return fmt.Sprintf("(a^2)", a) },
+  Name : func(a string ) string  { return fmt.Sprintf("(%s^2)", a) },
   Final: true }
 
 var _sqrt OperationUnary = OperationUnary{
   Func : func(a float64) float64 { return math.Sqrt(a) },
-  Name : func(a string ) string  { return fmt.Sprintf("sqrt(a)", a) },
+  Name : func(a string ) string  { return fmt.Sprintf("sqrt(%s)", a) },
   Final: true }
 
 var _add OperationBinary = OperationBinary{
@@ -167,7 +167,7 @@ func expand_export(config Config, scores_columns [][]float64, scores_lengths []i
         if j == 0 {
           fmt.Fprintf(w,  "%s", name)
         } else {
-          fmt.Fprintf(w, " %s", name)
+          fmt.Fprintf(w, ",%s", name)
         }
       }
       fmt.Fprintf(w, "\n")
@@ -178,7 +178,7 @@ func expand_export(config Config, scores_columns [][]float64, scores_lengths []i
         if j == 0 {
           fmt.Fprintf(w,  "%e", scores_columns[j][i])
         } else {
-          fmt.Fprintf(w, " %e", scores_columns[j][i])
+          fmt.Fprintf(w, ",%e", scores_columns[j][i])
         }        
       }
     }
@@ -228,6 +228,7 @@ func main_expand_scores(config Config, args []string) {
   options := getopt.New()
 
   optDepth  := options. IntLong("depth",   0 , 1, "recursion depth")
+  optHeader := options.BoolLong("header",  0 ,    "input files contain a header with feature names")
   optHelp   := options.BoolLong("help",   'h',    "print help")
 
   options.SetParameters("<SCORES1.table,SCORES2.table,...> <BASENAME_OUT>")
@@ -243,6 +244,7 @@ func main_expand_scores(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
+  config.Header = *optHeader
   // parse arguments
   //////////////////////////////////////////////////////////////////////////////
   if len(options.Args()) != 2 {
