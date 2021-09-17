@@ -109,12 +109,12 @@ func apply_unary(config Config, columns [][]float64, names []string, op Operatio
       if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
         break
       }
-      // append new column
-      columns = append(columns, column)
-      // generate new column name
-      if len(names) > 0 {
-        names = append(names, op.Name(names[j]))
-      }
+    }
+    // append new column
+    columns = append(columns, column)
+    // generate new column name
+    if len(names) > 0 {
+      names = append(names, op.Name(names[j]))
     }
   }
   return columns, names
@@ -172,15 +172,16 @@ func expand_export(config Config, scores_columns [][]float64, scores_lengths []i
       }
       fmt.Fprintf(w, "\n")
     }
-
+    // print data
     for i := offset; i < offset+scores_lengths[i_]; i++ {
       for j := 0; j < len(scores_columns); j++ {
         if j == 0 {
           fmt.Fprintf(w,  "%e", scores_columns[j][i])
         } else {
           fmt.Fprintf(w, ",%e", scores_columns[j][i])
-        }        
+        }
       }
+      fmt.Fprintf(w, "\n")
     }
     offset += scores_lengths[i_]
   }
