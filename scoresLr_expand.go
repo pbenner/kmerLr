@@ -136,9 +136,9 @@ func expand_import(config Config, filenames_in []string) ([][]float64, []int, []
   // transpose data
   scores_columns := [][]float64{}
   for j := 1; j < len(scores_merged[0]); j++ {
-    t := make([]float64, len(scores_merged[0]))
+    t := make([]float64, len(scores_merged))
     for i := 0; i < len(scores_merged); i++ {
-      t[j] = scores_merged[i].Float64At(j)
+      t[i] = scores_merged[i].Float64At(j)
     }
     scores_columns = append(scores_columns, t)
   }
@@ -170,8 +170,8 @@ func expand_export(config Config, scores_columns [][]float64, scores_lengths []i
           fmt.Fprintf(w, " %s", name)
         }
       }
+      fmt.Fprintf(w, "\n")
     }
-    fmt.Fprintf(w, "\n")
 
     for i := offset; i < offset+scores_lengths[i_]; i++ {
       for j := 0; j < len(scores_columns); j++ {
