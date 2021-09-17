@@ -261,3 +261,14 @@ func compile_test_data_scores(config Config, index []int, names []string, featur
   scores, index, names, _ := import_scores(config, filename, index, names, features, generate_features, -1)
   return ScoresDataSet{scores, nil, index, names}
 }
+
+/* -------------------------------------------------------------------------- */
+
+func compile_data_scores(config Config, index []int, names []string, features FeatureIndices, generate_features bool, filenames ...string) ([][]ConstVector, []string) {
+  dim := -1
+  r := make([][]ConstVector, len(filenames))
+  for i, filename := range filenames {
+    r[i], index, names, dim = import_scores(config, filename, index, names, features, generate_features, dim)
+  }
+  return r, names
+}

@@ -19,9 +19,12 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
+import   "log"
 import   "math"
 import   "os"
+import   "strings"
 
+import . "github.com/pbenner/autodiff"
 import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
@@ -95,7 +98,30 @@ var _divrev OperationBinary = OperationBinary{
 
 /* -------------------------------------------------------------------------- */
 
-func expand_scores(config Config, filename_in, filename_out string, d int) {
+func apply_unary(config Config, scores []ConstVector, names []string, op OperationUnary, from, to int) []string {
+  n      := len(scores)
+  column := make([]float64, n)
+  for j := from; j < to; j++ {
+    for i := 0; i < n; i++ {
+      column[i] = op.Func(scores[i].Float64At(j))
+      // check if operation is valid
+      if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
+        break
+      }
+      // append new column
+      
+      // generate new column name
+      if len(names) > 0 {
+        names = append(names, op.Name(names[j]))
+      }
+    }
+  }
+  return names
+}
+
+/* -------------------------------------------------------------------------- */
+
+func expand_scores(config Config, filenames_in []string, basename_out string, d int) {
   op_unary := []OperationUnary{}
   op_unary  = append(op_unary, _exp)
   op_unary  = append(op_unary, _log)
@@ -108,6 +134,25 @@ func expand_scores(config Config, filename_in, filename_out string, d int) {
   op_binary  = append(op_binary, _mul)
   op_binary  = append(op_binary, _div)
   op_binary  = append(op_binary, _divrev)
+
+  scores, names := compile_data_scores(config, nil, nil, nil, true, filenames_in...)
+  // merge scores for easier looping
+  scores_merged := []ConstVector{}
+  for i := 0; i < len(scores); i++ {
+    scores_merged = append(scores_merged, scores[i]...)
+  }
+  if len(scores_merged) == 0 {
+    log.Fatal("No data given. Exiting.")
+    return
+  }
+
+  from := 1
+  to   := scores_merged[0].Dim()
+  for d_ := 0; d_ < d; d++ {
+    for _, op := range op_unary {
+      names = apply_unary(config, scores_merged, names, op, from, to)
+    }
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -118,7 +163,7 @@ func main_expand_scores(config Config, args []string) {
   optDepth  := options. IntLong("depth",   0 , 2, "recursion depth")
   optHelp   := options.BoolLong("help",   'h',    "print help")
 
-  options.SetParameters("<SCORES.table> [RESULT.table]")
+  options.SetParameters("<SCORES1.table,SCORES2.table,...> <BASENAME_OUT>")
   options.Parse(args)
 
   // parse options
@@ -137,10 +182,8 @@ func main_expand_scores(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  filename_in   := options.Args()[1]
-  filename_out  := ""
-  if len(options.Args()) == 3 {
-    filename_out = options.Args()[2]
-  }
-  expand_scores(config, filename_in, filename_out, *optDepth)
+  filenames_in := strings.Split(options.Args()[1], ",")
+  basename_out := options.Args()[2]
+
+  expand_scores(config, filenames_in, basename_out, *optDepth)
 }
