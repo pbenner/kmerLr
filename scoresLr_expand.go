@@ -98,7 +98,7 @@ var _divrev OperationBinary = OperationBinary{
 
 /* -------------------------------------------------------------------------- */
 
-func apply_unary(config Config, scores []ConstVector, names []string, op OperationUnary, from, to int) []string {
+func apply_unary(config Config, scores []DenseFloat64Vector, names []string, op OperationUnary, from, to int) []string {
   n      := len(scores)
   column := make([]float64, n)
   for j := from; j < to; j++ {
@@ -109,7 +109,9 @@ func apply_unary(config Config, scores []ConstVector, names []string, op Operati
         break
       }
       // append new column
-      
+      for i := 0; i < n; i++ {
+        scores[i] = append(scores[i], column[i])
+      }
       // generate new column name
       if len(names) > 0 {
         names = append(names, op.Name(names[j]))
@@ -137,9 +139,11 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
 
   scores, names := compile_data_scores(config, nil, nil, nil, true, filenames_in...)
   // merge scores for easier looping
-  scores_merged := []ConstVector{}
+  scores_merged := []DenseFloat64Vector{}
   for i := 0; i < len(scores); i++ {
-    scores_merged = append(scores_merged, scores[i]...)
+    for j := 0; j < len(scores[i]); j++ {
+      scores_merged = append(scores_merged, AsDenseFloat64Vector(scores[i][j]))
+    }
   }
   if len(scores_merged) == 0 {
     log.Fatal("No data given. Exiting.")
