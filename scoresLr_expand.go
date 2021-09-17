@@ -121,11 +121,13 @@ func apply_unary(config Config, columns [][]float64, names []string, op Operatio
 
 /* -------------------------------------------------------------------------- */
 
-func expand_import(config Config, filenames_in []string) ([][]float64, []string) {
+func expand_import(config Config, filenames_in []string) ([][]float64, []int, []string) {
   scores, names := compile_data_scores(config, nil, nil, nil, true, filenames_in...)
   // merge scores for easier looping
-  scores_merged := []DenseFloat64Vector{}
+  scores_merged  := []DenseFloat64Vector{}
+  scores_lengths := []int{}
   for i := 0; i < len(scores); i++ {
+    scores_lengths = append(scores_lengths, len(scores[i]))
     for j := 0; j < len(scores[i]); j++ {
       scores_merged = append(scores_merged, AsDenseFloat64Vector(scores[i][j]))
     }
@@ -143,7 +145,7 @@ func expand_import(config Config, filenames_in []string) ([][]float64, []string)
     log.Fatal("No data given. Exiting.")
     panic("internal error")
   }
-  return scores_columns, names
+  return scores_columns, scores_lengths, names
 }
 
 /* -------------------------------------------------------------------------- */
@@ -162,7 +164,7 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
   op_binary  = append(op_binary, _div)
   op_binary  = append(op_binary, _divrev)
 
-  scores_columns, names := expand_import(config, filenames_in)
+  scores_columns, _, names := expand_import(config, filenames_in)
   
   from := 0
   to   := len(scores_columns)
