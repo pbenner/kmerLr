@@ -121,20 +121,7 @@ func apply_unary(config Config, columns [][]float64, names []string, op Operatio
 
 /* -------------------------------------------------------------------------- */
 
-func expand_scores(config Config, filenames_in []string, basename_out string, d int) {
-  op_unary := []OperationUnary{}
-  op_unary  = append(op_unary, _exp)
-  op_unary  = append(op_unary, _log)
-  op_unary  = append(op_unary, _square)
-  op_unary  = append(op_unary, _sqrt)
-  op_binary := []OperationBinary{}
-  op_binary  = append(op_binary, _add)
-  op_binary  = append(op_binary, _sub)
-  op_binary  = append(op_binary, _subrev)
-  op_binary  = append(op_binary, _mul)
-  op_binary  = append(op_binary, _div)
-  op_binary  = append(op_binary, _divrev)
-
+func expand_import(config Config, filenames_in []string) ([][]float64, []string) {
   scores, names := compile_data_scores(config, nil, nil, nil, true, filenames_in...)
   // merge scores for easier looping
   scores_merged := []DenseFloat64Vector{}
@@ -154,9 +141,29 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
   }
   if len(scores_columns) == 0 {
     log.Fatal("No data given. Exiting.")
-    return
+    panic("internal error")
   }
+  return scores_columns, names
+}
 
+/* -------------------------------------------------------------------------- */
+
+func expand_scores(config Config, filenames_in []string, basename_out string, d int) {
+  op_unary := []OperationUnary{}
+  op_unary  = append(op_unary, _exp)
+  op_unary  = append(op_unary, _log)
+  op_unary  = append(op_unary, _square)
+  op_unary  = append(op_unary, _sqrt)
+  op_binary := []OperationBinary{}
+  op_binary  = append(op_binary, _add)
+  op_binary  = append(op_binary, _sub)
+  op_binary  = append(op_binary, _subrev)
+  op_binary  = append(op_binary, _mul)
+  op_binary  = append(op_binary, _div)
+  op_binary  = append(op_binary, _divrev)
+
+  scores_columns, names := expand_import(config, filenames_in)
+  
   from := 0
   to   := len(scores_columns)
   for d_ := 0; d_ < d; d++ {
@@ -166,11 +173,11 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
     }
     // apply binary operations
     // for _, op := range op_binary {
-    //   names = apply_binary(config, scores_merged, names, op, from, to)
+    //   names = apply_binary(config, scores_columns, names, op, from, to)
     // }
     // update range
     from = to
-    to   = scores_merged[0].Dim()
+    to   = len(scores_columns)
   }
 }
 
