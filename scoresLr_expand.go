@@ -19,6 +19,7 @@ package main
 /* -------------------------------------------------------------------------- */
 
 import   "fmt"
+import   "bufio"
 import   "log"
 import   "math"
 import   "os"
@@ -148,6 +149,43 @@ func expand_import(config Config, filenames_in []string) ([][]float64, []int, []
   return scores_columns, scores_lengths, names
 }
 
+func expand_export(config Config, scores_columns [][]float64, scores_lengths []int, names []string, basename_out string) {
+  offset := 0
+  for i_ := 0; i_ < len(scores_lengths); i_++ {
+    f, err := os.Create(fmt.Sprintf("%s_%d.table", basename_out, i_))
+    if err != nil {
+      panic(err)
+    }
+    defer f.Close()
+
+    w := bufio.NewWriter(f)
+    defer w.Flush()
+
+    // print header
+    if len(names) > 0 {
+      for j, name := range names {
+        if j == 0 {
+          fmt.Fprintf(w,  "%s", name)
+        } else {
+          fmt.Fprintf(w, " %s", name)
+        }
+      }
+    }
+    fmt.Fprintf(w, "\n")
+
+    for i := offset; i < offset+scores_lengths[i_]; i++ {
+      for j := 0; j < len(scores_columns); j++ {
+        if j == 0 {
+          fmt.Fprintf(w,  "%e", scores_columns[j][i])
+        } else {
+          fmt.Fprintf(w, " %e", scores_columns[j][i])
+        }        
+      }
+    }
+    offset += scores_lengths[i_]
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 
 func expand_scores(config Config, filenames_in []string, basename_out string, d int) {
@@ -164,7 +202,7 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
   op_binary  = append(op_binary, _div)
   op_binary  = append(op_binary, _divrev)
 
-  scores_columns, _, names := expand_import(config, filenames_in)
+  scores_columns, scores_lengths, names := expand_import(config, filenames_in)
   
   from := 0
   to   := len(scores_columns)
@@ -181,6 +219,7 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
     from = to
     to   = len(scores_columns)
   }
+  expand_export(config, scores_columns, scores_lengths, names, basename_out)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -188,7 +227,7 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
 func main_expand_scores(config Config, args []string) {
   options := getopt.New()
 
-  optDepth  := options. IntLong("depth",   0 , 2, "recursion depth")
+  optDepth  := options. IntLong("depth",   0 , 1, "recursion depth")
   optHelp   := options.BoolLong("help",   'h',    "print help")
 
   options.SetParameters("<SCORES1.table,SCORES2.table,...> <BASENAME_OUT>")
