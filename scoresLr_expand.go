@@ -100,9 +100,9 @@ var _divrev OperationBinary = OperationBinary{
 /* -------------------------------------------------------------------------- */
 
 func apply_unary(config Config, columns [][]float64, names []string, op OperationUnary, from, to int) ([][]float64, []string) {
-  n      := len(columns[0])
-  column := make([]float64, n)
+  n := len(columns[0])
   for j := from; j < to; j++ {
+    column := make([]float64, n)
     for i := 0; i < n; i++ {
       column[i] = op.Func(columns[j][i])
       // check if operation is valid
@@ -121,10 +121,10 @@ func apply_unary(config Config, columns [][]float64, names []string, op Operatio
 }
 
 func apply_binary(config Config, columns [][]float64, names []string, op OperationBinary, from, to int) ([][]float64, []string) {
-  n      := len(columns[0])
-  column := make([]float64, n)
+  n := len(columns[0])
   for j1 := from; j1 < to; j1++ {
     for j2 := j1+1; j2 < to; j2++ {
+      column := make([]float64, n)
       for i := 0; i < n; i++ {
         column[i] = op.Func(columns[j1][i], columns[j2][i])
         // check if operation is valid
