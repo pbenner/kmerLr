@@ -33,16 +33,64 @@ import   "github.com/pborman/getopt"
 type f_unary  func(float64         ) float64
 type f_binary func(float64, float64) float64
 
+/* -------------------------------------------------------------------------- */
+
 type OperationUnary struct {
   Func   f_unary
   Name   func(string) string
   Final  bool
 }
 
+func (op OperationUnary) Apply(columns [][]float64, names []string, from, to int) ([][]float64, []string) {
+  n := len(columns[0])
+  for j := from; j < to; j++ {
+    column := make([]float64, n)
+    for i := 0; i < n; i++ {
+      column[i] = op.Func(columns[j][i])
+      // check if operation is valid
+      if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
+        break
+      }
+    }
+    // append new column
+    columns = append(columns, column)
+    // generate new column name
+    if len(names) > 0 {
+      names = append(names, op.Name(names[j]))
+    }
+  }
+  return columns, names
+}
+
+/* -------------------------------------------------------------------------- */
+
 type OperationBinary struct {
   Func   f_binary
   Name   func(string, string) string
   Final  bool
+}
+
+func (op OperationBinary) Apply(columns [][]float64, names []string, from, to int) ([][]float64, []string) {
+  n := len(columns[0])
+  for j1 := from; j1 < to; j1++ {
+    for j2 := j1+1; j2 < to; j2++ {
+      column := make([]float64, n)
+      for i := 0; i < n; i++ {
+        column[i] = op.Func(columns[j1][i], columns[j2][i])
+        // check if operation is valid
+        if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
+          break
+        }
+      }
+      // append new column
+      columns = append(columns, column)
+      // generate new column name
+      if len(names) > 0 {
+        names = append(names, op.Name(names[j1], names[j2]))
+      }
+    }
+  }
+  return columns, names
 }
 
 /* -------------------------------------------------------------------------- */
@@ -96,52 +144,6 @@ var _divrev OperationBinary = OperationBinary{
   Func : func(a, b float64) float64 { return b/a },
   Name : func(a, b string ) string  { return fmt.Sprintf("(%s/%s)", b, a) },
   Final: true }
-
-/* -------------------------------------------------------------------------- */
-
-func apply_unary(config Config, columns [][]float64, names []string, op OperationUnary, from, to int) ([][]float64, []string) {
-  n := len(columns[0])
-  for j := from; j < to; j++ {
-    column := make([]float64, n)
-    for i := 0; i < n; i++ {
-      column[i] = op.Func(columns[j][i])
-      // check if operation is valid
-      if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
-        break
-      }
-    }
-    // append new column
-    columns = append(columns, column)
-    // generate new column name
-    if len(names) > 0 {
-      names = append(names, op.Name(names[j]))
-    }
-  }
-  return columns, names
-}
-
-func apply_binary(config Config, columns [][]float64, names []string, op OperationBinary, from, to int) ([][]float64, []string) {
-  n := len(columns[0])
-  for j1 := from; j1 < to; j1++ {
-    for j2 := j1+1; j2 < to; j2++ {
-      column := make([]float64, n)
-      for i := 0; i < n; i++ {
-        column[i] = op.Func(columns[j1][i], columns[j2][i])
-        // check if operation is valid
-        if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
-          break
-        }
-      }
-      // append new column
-      columns = append(columns, column)
-      // generate new column name
-      if len(names) > 0 {
-        names = append(names, op.Name(names[j1], names[j2]))
-      }
-    }
-  }
-  return columns, names
-}
 
 /* -------------------------------------------------------------------------- */
 
@@ -233,11 +235,11 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
   for d_ := 0; d_ < d; d_++ {
     // apply unary operations
     for _, op := range op_unary {
-      scores_columns, names = apply_unary(config, scores_columns, names, op, from, to)
+      scores_columns, names = op.Apply(scores_columns, names, from, to)
     }
     // apply binary operations
     for _, op := range op_binary {
-      scores_columns, names = apply_binary(config, scores_columns, names, op, from, to)
+      scores_columns, names = op.Apply(scores_columns, names, from, to)
     }
     // update range
     from = to
