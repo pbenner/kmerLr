@@ -36,7 +36,7 @@ type OperationUnary struct {
   Final  bool
 }
 
-func (op OperationUnary) Apply(columns [][]float64, names []string, from, to int) ([][]float64, []string) {
+func (op OperationUnary) Apply(columns, columns_incomplete [][]float64, names []string, from, to int) ([][]float64, [][]float64, []string) {
   n := len(columns[0])
   for j := from; j < to; j++ {
     column := make([]float64, n)
@@ -54,7 +54,7 @@ func (op OperationUnary) Apply(columns [][]float64, names []string, from, to int
       names = append(names, op.Name(names[j]))
     }
   }
-  return columns, names
+  return columns, columns_incomplete, names
 }
 
 /* -------------------------------------------------------------------------- */
@@ -65,7 +65,7 @@ type OperationBinary struct {
   Final  bool
 }
 
-func (op OperationBinary) Apply(columns [][]float64, names []string, from, to int) ([][]float64, []string) {
+func (op OperationBinary) Apply(columns, columns_incomplete [][]float64, names []string, from, to int) ([][]float64, [][]float64, []string) {
   n := len(columns[0])
   for j1 := from; j1 < to; j1++ {
     for j2 := j1+1; j2 < to; j2++ {
@@ -85,7 +85,7 @@ func (op OperationBinary) Apply(columns [][]float64, names []string, from, to in
       }
     }
   }
-  return columns, names
+  return columns, columns_incomplete, names
 }
 
 /* -------------------------------------------------------------------------- */
@@ -146,32 +146,32 @@ func expand_import(config Config, filenames_in []string) ([][]float64, []int, []
   scores, names := compile_data_scores(config, nil, nil, nil, true, filenames_in...)
   // merge scores for easier looping
   scores_merged  := []DenseFloat64Vector{}
-  scores_lengths := []int{}
+  lengths := []int{}
   for i := 0; i < len(scores); i++ {
-    scores_lengths = append(scores_lengths, len(scores[i]))
+    lengths = append(lengths, len(scores[i]))
     for j := 0; j < len(scores[i]); j++ {
       scores_merged = append(scores_merged, AsDenseFloat64Vector(scores[i][j]))
     }
   }
   // transpose data
-  scores_columns := [][]float64{}
+  columns := [][]float64{}
   for j := 1; j < len(scores_merged[0]); j++ {
     t := make([]float64, len(scores_merged))
     for i := 0; i < len(scores_merged); i++ {
       t[i] = scores_merged[i].Float64At(j)
     }
-    scores_columns = append(scores_columns, t)
+    columns = append(columns, t)
   }
-  if len(scores_columns) == 0 {
+  if len(columns) == 0 {
     log.Fatal("No data given. Exiting.")
     panic("internal error")
   }
-  return scores_columns, scores_lengths, names
+  return columns, lengths, names
 }
 
-func expand_export(config Config, scores_columns [][]float64, scores_lengths []int, names []string, basename_out string) {
+func expand_export(config Config, columns [][]float64, lengths []int, names []string, basename_out string) {
   offset := 0
-  for i_ := 0; i_ < len(scores_lengths); i_++ {
+  for i_ := 0; i_ < len(lengths); i_++ {
     f, err := os.Create(fmt.Sprintf("%s_%d.table", basename_out, i_))
     if err != nil {
       panic(err)
@@ -193,17 +193,17 @@ func expand_export(config Config, scores_columns [][]float64, scores_lengths []i
       fmt.Fprintf(w, "\n")
     }
     // print data
-    for i := offset; i < offset+scores_lengths[i_]; i++ {
-      for j := 0; j < len(scores_columns); j++ {
+    for i := offset; i < offset+lengths[i_]; i++ {
+      for j := 0; j < len(columns); j++ {
         if j == 0 {
-          fmt.Fprintf(w,  "%e", scores_columns[j][i])
+          fmt.Fprintf(w,  "%e", columns[j][i])
         } else {
-          fmt.Fprintf(w, ",%e", scores_columns[j][i])
+          fmt.Fprintf(w, ",%e", columns[j][i])
         }
       }
       fmt.Fprintf(w, "\n")
     }
-    offset += scores_lengths[i_]
+    offset += lengths[i_]
   }
 }
 
@@ -223,24 +223,25 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
   op_binary  = append(op_binary, _div)
   op_binary  = append(op_binary, _divrev)
 
-  scores_columns, scores_lengths, names := expand_import(config, filenames_in)
+  columns, lengths, names := expand_import(config, filenames_in)
+  columns_incomplete      := [][]float64{}
   
   from := 0
-  to   := len(scores_columns)
+  to   := len(columns)
   for d_ := 0; d_ < d; d_++ {
     // apply unary operations
     for _, op := range op_unary {
-      scores_columns, names = op.Apply(scores_columns, names, from, to)
+      columns, columns_incomplete, names = op.Apply(columns, columns_incomplete, names, from, to)
     }
     // apply binary operations
     for _, op := range op_binary {
-      scores_columns, names = op.Apply(scores_columns, names, from, to)
+      columns, columns_incomplete, names = op.Apply(columns, columns_incomplete, names, from, to)
     }
     // update range
     from = to
-    to   = len(scores_columns)
+    to   = len(columns)
   }
-  expand_export(config, scores_columns, scores_lengths, names, basename_out)
+  expand_export(config, columns, lengths, names, basename_out)
 }
 
 /* -------------------------------------------------------------------------- */
