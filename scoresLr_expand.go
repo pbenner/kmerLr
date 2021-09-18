@@ -30,14 +30,9 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-type f_unary  func(float64         ) float64
-type f_binary func(float64, float64) float64
-
-/* -------------------------------------------------------------------------- */
-
 type OperationUnary struct {
-  Func   f_unary
-  Name   func(string) string
+  Func   func(float64) float64
+  Name   func(string ) string
   Final  bool
 }
 
@@ -65,8 +60,8 @@ func (op OperationUnary) Apply(columns [][]float64, names []string, from, to int
 /* -------------------------------------------------------------------------- */
 
 type OperationBinary struct {
-  Func   f_binary
-  Name   func(string, string) string
+  Func   func(float64, float64) float64
+  Name   func(string , string ) string
   Final  bool
 }
 
