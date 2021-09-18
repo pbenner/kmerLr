@@ -30,10 +30,33 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
+type Operation struct {
+  Final bool
+}
+
+func (op Operation) Append(columns, incomplete_columns [][]float64, names, incomplete_names []string, column []float64, name string) ([][]float64, [][]float64, []string, []string) {
+  if column != nil {
+    if op.Final {
+      columns = append(columns, column)
+      if len(names) > 0 {
+        names = append(names, name)
+      }
+    } else {
+      incomplete_columns = append(incomplete_columns, column)
+      if len(names) > 0 {
+        incomplete_names = append(incomplete_names, name)
+      }
+    }
+  }
+  return columns, incomplete_columns, names, incomplete_names
+}
+
+/* -------------------------------------------------------------------------- */
+
 type OperationUnary struct {
-  Func   func(float64) float64
-  Name   func(string ) string
-  Final  bool
+  Operation
+  Func func(float64) float64
+  Name func(string ) string
 }
 
 func (op OperationUnary) apply(column_in []float64, name_in string) ([]float64, string) {
@@ -64,19 +87,7 @@ func (op OperationUnary) Apply(columns, incomplete_columns [][]float64, names, i
   // apply to complete
   for j := 0; j < len(tmp_columns); j++ {
     column, name := op.apply(tmp_columns[j], tmp_names[j])
-    if column != nil {
-      if op.Final {
-        columns = append(columns, column)
-        if len(names) > 0 {
-          names = append(names, name)
-        }
-      } else {
-        incomplete_columns = append(incomplete_columns, column)
-        if len(names) > 0 {
-          incomplete_names = append(incomplete_names, name)
-        }
-      }
-    }
+    columns, incomplete_columns, names, incomplete_names = op.Append(columns, incomplete_columns, names, incomplete_names, column, name)
   }
   return columns, incomplete_columns, names, incomplete_names
 }
@@ -84,9 +95,9 @@ func (op OperationUnary) Apply(columns, incomplete_columns [][]float64, names, i
 /* -------------------------------------------------------------------------- */
 
 type OperationBinary struct {
+  Operation
   Func   func(float64, float64) float64
   Name   func(string , string ) string
-  Final  bool
 }
 
 func (op OperationBinary) apply(column_a, column_b []float64, name_a, name_b string) ([]float64, string) {
@@ -118,19 +129,7 @@ func (op OperationBinary) Apply(columns, incomplete_columns [][]float64, names, 
   for j1 := 0; j1 < len(tmp_columns); j1++ {
     for j2 := j1+1; j2 < len(tmp_columns); j2++ {
       column, name := op.apply(tmp_columns[j1], tmp_columns[j2], tmp_names[j1], tmp_names[j2])
-      if column != nil {
-        if op.Final {
-          columns = append(columns, column)
-          if len(names) > 0 {
-            names = append(names, name)
-          }
-        } else {
-          incomplete_columns = append(incomplete_columns, column)
-          if len(names) > 0 {
-            incomplete_names = append(incomplete_names, name)
-          }
-        }
-      }
+      columns, incomplete_columns, names, incomplete_names = op.Append(columns, incomplete_columns, names, incomplete_names, column, name)
     }
   }
   return columns, incomplete_columns, names, incomplete_names
@@ -139,54 +138,54 @@ func (op OperationBinary) Apply(columns, incomplete_columns [][]float64, names, 
 /* -------------------------------------------------------------------------- */
 
 var _exp OperationUnary = OperationUnary{
+  Operation: Operation{true},
   Func : func(a float64) float64 { return math.Exp(a) },
-  Name : func(a string ) string  { return fmt.Sprintf("exp(%s)", a) },
-  Final: true }
+  Name : func(a string ) string  { return fmt.Sprintf("exp(%s)", a) } }
 
 var _log OperationUnary = OperationUnary{
+  Operation: Operation{true},
   Func : func(a float64) float64 { return math.Log(a) },
-  Name : func(a string ) string  { return fmt.Sprintf("log(%s)", a) },
-  Final: true }
+  Name : func(a string ) string  { return fmt.Sprintf("log(%s)", a) } }
 
 var _square OperationUnary = OperationUnary{
+  Operation: Operation{true},
   Func : func(a float64) float64 { return a*a },
-  Name : func(a string ) string  { return fmt.Sprintf("(%s^2)", a) },
-  Final: true }
+  Name : func(a string ) string  { return fmt.Sprintf("(%s^2)", a) } }
 
 var _sqrt OperationUnary = OperationUnary{
+  Operation: Operation{true},
   Func : func(a float64) float64 { return math.Sqrt(a) },
-  Name : func(a string ) string  { return fmt.Sprintf("sqrt(%s)", a) },
-  Final: true }
+  Name : func(a string ) string  { return fmt.Sprintf("sqrt(%s)", a) } }
 
 var _add OperationBinary = OperationBinary{
+  Operation: Operation{false},
   Func : func(a, b float64) float64 { return a+b },
-  Name : func(a, b string ) string  { return fmt.Sprintf("(%s+%s)", a, b) },
-  Final: false }
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s+%s)", a, b) } }
 
 var _sub OperationBinary = OperationBinary{
+  Operation: Operation{false},
   Func : func(a, b float64) float64 { return a-b },
-  Name : func(a, b string ) string  { return fmt.Sprintf("(%s-%s)", a, b) },
-  Final: false }
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s-%s)", a, b) } }
 
 var _subrev OperationBinary = OperationBinary{
+  Operation: Operation{false},
   Func : func(a, b float64) float64 { return b-a },
-  Name : func(a, b string ) string  { return fmt.Sprintf("(%s-%s)", b, a) },
-  Final: false }
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s-%s)", b, a) } }
 
 var _mul OperationBinary = OperationBinary{
+  Operation: Operation{true},
   Func : func(a, b float64) float64 { return a*b },
-  Name : func(a, b string ) string  { return fmt.Sprintf("(%s*%s)", a, b) },
-  Final: true }
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s*%s)", a, b) } }
 
 var _div OperationBinary = OperationBinary{
+  Operation: Operation{true},
   Func : func(a, b float64) float64 { return a/b },
-  Name : func(a, b string ) string  { return fmt.Sprintf("(%s/%s)", a, b) },
-  Final: true }
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s/%s)", a, b) } }
 
 var _divrev OperationBinary = OperationBinary{
+  Operation: Operation{true},
   Func : func(a, b float64) float64 { return b/a },
-  Name : func(a, b string ) string  { return fmt.Sprintf("(%s/%s)", b, a) },
-  Final: true }
+  Name : func(a, b string ) string  { return fmt.Sprintf("(%s/%s)", b, a) } }
 
 /* -------------------------------------------------------------------------- */
 
