@@ -269,19 +269,50 @@ func expand_export(config Config, columns [][]float64, lengths []int, names []st
 
 /* -------------------------------------------------------------------------- */
 
-func expand_scores(config Config, filenames_in []string, basename_out string, max_d, max_features int, allowed_operations string) {
+func expand_parse_operations(allowed_operations string) []AbstractOperation {
   operations := []AbstractOperation{}
-  operations  = append(operations, _exp)
-  operations  = append(operations, _log)
-  operations  = append(operations, _square)
-  operations  = append(operations, _sqrt)
-  operations  = append(operations, _add)
-  operations  = append(operations, _sub)
-  operations  = append(operations, _subrev)
-  operations  = append(operations, _mul)
-  operations  = append(operations, _div)
-  operations  = append(operations, _divrev)
+  if allowed_operations == "" {
+    operations = append(operations, _exp)
+    operations = append(operations, _log)
+    operations = append(operations, _square)
+    operations = append(operations, _sqrt)
+    operations = append(operations, _add)
+    operations = append(operations, _sub)
+    operations = append(operations, _subrev)
+    operations = append(operations, _mul)
+    operations = append(operations, _div)
+    operations = append(operations, _divrev)
+  } else {
+    for _, op_str := range strings.Split(allowed_operations, ",") {
+      switch op_str {
+      case "exp":
+        operations = append(operations, _exp)
+      case "log":
+        operations = append(operations, _log)
+      case "square":
+        operations = append(operations, _square)
+      case "sqrt":
+        operations = append(operations, _sqrt)
+      case "add":
+        operations = append(operations, _add)
+      case "sub":
+        operations = append(operations, _sub)
+        operations = append(operations, _subrev)
+      case "mul":
+        operations = append(operations, _mul)
+      case "div":
+        operations = append(operations, _div)
+        operations = append(operations, _divrev)
+      }
+    }
+  }
+  return operations
+}
 
+/* -------------------------------------------------------------------------- */
+
+func expand_scores(config Config, filenames_in []string, basename_out string, max_d, max_features int, allowed_operations string) {
+  operations := expand_parse_operations(allowed_operations)
   columns, lengths, names := expand_import(config, filenames_in)
   incomplete_columns := [][]float64{}
   incomplete_names   := []string{}
