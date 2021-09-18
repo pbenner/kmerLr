@@ -30,6 +30,12 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
+type AbstractOperation interface {
+  Apply(columns, incomplete_columns [][]float64, names, incomplete_names []string, from, to, max_features int) ([][]float64, [][]float64, []string, []string)
+}
+
+/* -------------------------------------------------------------------------- */
+
 type Operation struct {
   Final bool
 }
@@ -263,19 +269,18 @@ func expand_export(config Config, columns [][]float64, lengths []int, names []st
 
 /* -------------------------------------------------------------------------- */
 
-func expand_scores(config Config, filenames_in []string, basename_out string, max_d, max_features int) {
-  op_unary := []OperationUnary{}
-  op_unary  = append(op_unary, _exp)
-  op_unary  = append(op_unary, _log)
-  op_unary  = append(op_unary, _square)
-  op_unary  = append(op_unary, _sqrt)
-  op_binary := []OperationBinary{}
-  op_binary  = append(op_binary, _add)
-  op_binary  = append(op_binary, _sub)
-  op_binary  = append(op_binary, _subrev)
-  op_binary  = append(op_binary, _mul)
-  op_binary  = append(op_binary, _div)
-  op_binary  = append(op_binary, _divrev)
+func expand_scores(config Config, filenames_in []string, basename_out string, max_d, max_features int, allowed_operations string) {
+  operations := []AbstractOperation{}
+  operations  = append(operations, _exp)
+  operations  = append(operations, _log)
+  operations  = append(operations, _square)
+  operations  = append(operations, _sqrt)
+  operations  = append(operations, _add)
+  operations  = append(operations, _sub)
+  operations  = append(operations, _subrev)
+  operations  = append(operations, _mul)
+  operations  = append(operations, _div)
+  operations  = append(operations, _divrev)
 
   columns, lengths, names := expand_import(config, filenames_in)
   incomplete_columns := [][]float64{}
@@ -284,12 +289,7 @@ func expand_scores(config Config, filenames_in []string, basename_out string, ma
   from := 0
   to   := len(columns)
   for d := 0; max_d == 0 || d < max_d; d++ {
-    // apply unary operations
-    for _, op := range op_unary {
-      columns, incomplete_columns, names, incomplete_names = op.Apply(columns, incomplete_columns, names, incomplete_names, from, to, max_features)
-    }
-    // apply binary operations
-    for _, op := range op_binary {
+    for _, op := range operations {
       columns, incomplete_columns, names, incomplete_names = op.Apply(columns, incomplete_columns, names, incomplete_names, from, to, max_features)
     }
     if max_features > 0 && len(columns) >= max_features {
@@ -307,10 +307,11 @@ func expand_scores(config Config, filenames_in []string, basename_out string, ma
 func main_expand_scores(config Config, args []string) {
   options := getopt.New()
 
-  optMaxDepth    := options. IntLong("max-depth",     0 ,   0, "maximum recursion depth, zero for no maximum [default: 0]")
-  optMaxFeatures := options. IntLong("max-features",  0 , 100, "maximum number of features, zero for no maximum [default: 0]")
-  optHeader      := options.BoolLong("header",        0 ,      "input files contain a header with feature names")
-  optHelp        := options.BoolLong("help",         'h',      "print help")
+  optMaxDepth    := options.   IntLong("max-depth",     0 ,   0, "maximum recursion depth, zero for no maximum [default: 0]")
+  optMaxFeatures := options.   IntLong("max-features",  0 , 100, "maximum number of features, zero for no maximum [default: 0]")
+  optOperations  := options.StringLong("operations",    0 ,  "", "list of allowed operations")
+  optHeader      := options.  BoolLong("header",        0 ,      "input files contain a header with feature names")
+  optHelp        := options.  BoolLong("help",         'h',      "print help")
 
   options.SetParameters("<SCORES1.table,SCORES2.table,...> <BASENAME_OUT>")
   options.Parse(args)
@@ -342,5 +343,5 @@ func main_expand_scores(config Config, args []string) {
   filenames_in := strings.Split(options.Args()[0], ",")
   basename_out := options.Args()[1]
 
-  expand_scores(config, filenames_in, basename_out, *optMaxDepth, *optMaxFeatures)
+  expand_scores(config, filenames_in, basename_out, *optMaxDepth, *optMaxFeatures, *optOperations)
 }
