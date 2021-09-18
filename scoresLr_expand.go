@@ -303,6 +303,8 @@ func expand_parse_operations(allowed_operations string) []AbstractOperation {
       case "div":
         operations = append(operations, _div)
         operations = append(operations, _divrev)
+      default:
+        log.Fatalf("Invalid operation `%s'. Exiting.", op_str)
       }
     }
   }
