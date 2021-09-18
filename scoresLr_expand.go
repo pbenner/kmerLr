@@ -43,7 +43,7 @@ func (op OperationUnary) apply(column_in []float64, name_in string) ([]float64, 
     column[i] = op.Func(column_in[i])
     // check if operation is valid
     if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
-      return nil, ""
+      return nil, name
     }
   }
   if name_in != "" {
@@ -94,27 +94,40 @@ type OperationBinary struct {
   Final  bool
 }
 
-func (op OperationBinary) apply(columns [][]float64, column_a, column_b []float64, names []string, name_a, name_b string) ([][]float64, []string) {
-  n      := len(columns[0])
+func (op OperationBinary) apply(column_a, column_b []float64, name_a, name_b string) ([]float64, string) {
+  n      := len(column_a)
   column := make([]float64, n)
+  name   := ""
   for i := 0; i < n; i++ {
     column[i] = op.Func(column_a[i], column_b[i])
     // check if operation is valid
     if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
-      return columns, names
+      return nil, name
     }
   }
-  columns = append(columns, column)
-  if len(names) > 0 {
-    names = append(names, op.Name(name_a, name_b))
+  if name_a != "" {
+    name = op.Name(name_a, name_b)
   }
-  return columns, names
+  return column, name
 }
 
 func (op OperationBinary) Apply(columns, columns_incomplete [][]float64, names, names_incomplete []string, from, to int) ([][]float64, [][]float64, []string, []string) {
   for j1 := from; j1 < to; j1++ {
     for j2 := j1+1; j2 < to; j2++ {
-      columns, names = op.apply(columns, columns[j1], columns[j2], names, names[j1], names[j2])
+      column, name := op.apply(columns[j1], columns[j2], names[j1], names[j2])
+      if column != nil {
+        if op.Final {
+          columns = append(columns, column)
+          if len(names) > 0 {
+            names = append(names, name)
+          }
+        } else {
+          columns_incomplete = append(columns_incomplete, column)
+          if len(names) > 0 {
+          names_incomplete = append(names_incomplete, name)
+          }
+        }
+      }
     }
   }
   return columns, columns_incomplete, names, names_incomplete
