@@ -52,23 +52,18 @@ func (op OperationUnary) apply(column_in []float64, name_in string) ([]float64, 
   return column, name
 }
 
-func (op OperationUnary) Apply(columns, columns_incomplete [][]float64, names, names_incomplete []string, from, to int) ([][]float64, [][]float64, []string, []string) {
+func (op OperationUnary) Apply(columns, incomplete_columns [][]float64, names, incomplete_names []string, from, to int) ([][]float64, [][]float64, []string, []string) {
+  tmp_columns := columns[from:to]
+  tmp_names   :=   names[from:to]
   if op.Final {
-    // apply to incomplete
-    for j := 0; j < len(columns_incomplete); j++ {
-      column, name := op.apply(columns_incomplete[j], names_incomplete[j])
-      if column != nil {
-        columns = append(columns, column)
-        if len(names) > 0 {
-          names = append(names, name)
-        }
-      }
-    }
-    columns_incomplete = nil
+    tmp_columns = append(tmp_columns, incomplete_columns...)
+    tmp_names   = append(tmp_names  , incomplete_names  ...)
+    incomplete_columns = nil
+    incomplete_names   = nil
   }
   // apply to complete
-  for j := from; j < to; j++ {
-    column, name := op.apply(columns[j], names[j])
+  for j := 0; j < len(tmp_columns); j++ {
+    column, name := op.apply(tmp_columns[j], tmp_names[j])
     if column != nil {
       if op.Final {
         columns = append(columns, column)
@@ -76,14 +71,14 @@ func (op OperationUnary) Apply(columns, columns_incomplete [][]float64, names, n
           names = append(names, name)
         }
       } else {
-        columns_incomplete = append(columns_incomplete, column)
+        incomplete_columns = append(incomplete_columns, column)
         if len(names) > 0 {
-          names_incomplete = append(names_incomplete, name)
+          incomplete_names = append(incomplete_names, name)
         }
       }
     }
   }
-  return columns, columns_incomplete, names, names_incomplete
+  return columns, incomplete_columns, names, incomplete_names
 }
 
 /* -------------------------------------------------------------------------- */
@@ -111,10 +106,18 @@ func (op OperationBinary) apply(column_a, column_b []float64, name_a, name_b str
   return column, name
 }
 
-func (op OperationBinary) Apply(columns, columns_incomplete [][]float64, names, names_incomplete []string, from, to int) ([][]float64, [][]float64, []string, []string) {
-  for j1 := from; j1 < to; j1++ {
-    for j2 := j1+1; j2 < to; j2++ {
-      column, name := op.apply(columns[j1], columns[j2], names[j1], names[j2])
+func (op OperationBinary) Apply(columns, incomplete_columns [][]float64, names, incomplete_names []string, from, to int) ([][]float64, [][]float64, []string, []string) {
+  tmp_columns := columns[from:to]
+  tmp_names   :=   names[from:to]
+  if op.Final {
+    tmp_columns = append(tmp_columns, incomplete_columns...)
+    tmp_names   = append(tmp_names  , incomplete_names  ...)
+    incomplete_columns = nil
+    incomplete_names   = nil
+  }
+  for j1 := 0; j1 < len(tmp_columns); j1++ {
+    for j2 := j1+1; j2 < len(tmp_columns); j2++ {
+      column, name := op.apply(tmp_columns[j1], tmp_columns[j2], tmp_names[j1], tmp_names[j2])
       if column != nil {
         if op.Final {
           columns = append(columns, column)
@@ -122,15 +125,15 @@ func (op OperationBinary) Apply(columns, columns_incomplete [][]float64, names, 
             names = append(names, name)
           }
         } else {
-          columns_incomplete = append(columns_incomplete, column)
+          incomplete_columns = append(incomplete_columns, column)
           if len(names) > 0 {
-          names_incomplete = append(names_incomplete, name)
+            incomplete_names = append(incomplete_names, name)
           }
         }
       }
     }
   }
-  return columns, columns_incomplete, names, names_incomplete
+  return columns, incomplete_columns, names, incomplete_names
 }
 
 /* -------------------------------------------------------------------------- */
@@ -269,19 +272,19 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
   op_binary  = append(op_binary, _divrev)
 
   columns, lengths, names := expand_import(config, filenames_in)
-  columns_incomplete      := [][]float64{}
-    names_incomplete      := []string{}
+  incomplete_columns      := [][]float64{}
+    incomplete_names      := []string{}
 
   from := 0
   to   := len(columns)
   for d_ := 0; d_ < d; d_++ {
     // apply unary operations
     for _, op := range op_unary {
-      columns, columns_incomplete, names, names_incomplete = op.Apply(columns, columns_incomplete, names, names_incomplete, from, to)
+      columns, incomplete_columns, names, incomplete_names = op.Apply(columns, incomplete_columns, names, incomplete_names, from, to)
     }
     // apply binary operations
     for _, op := range op_binary {
-      columns, columns_incomplete, names, names_incomplete = op.Apply(columns, columns_incomplete, names, names_incomplete, from, to)
+      columns, incomplete_columns, names, incomplete_names = op.Apply(columns, incomplete_columns, names, incomplete_names, from, to)
     }
     // update range
     from = to
