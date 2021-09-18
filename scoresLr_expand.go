@@ -36,28 +36,54 @@ type OperationUnary struct {
   Final  bool
 }
 
-func (op OperationUnary) apply(columns [][]float64, column_in []float64, names []string, name_in string) ([][]float64, []string) {
-  n      := len(columns[0])
-  column := make([]float64, n)
-  for i := 0; i < n; i++ {
+func (op OperationUnary) apply(column_in []float64, name_in string) ([]float64, string) {
+  column := make([]float64, len(column_in))
+  name   := ""
+  for i := 0; i < len(column_in); i++ {
     column[i] = op.Func(column_in[i])
     // check if operation is valid
     if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
-      return columns, names
+      return nil, ""
     }
   }
-  columns = append(columns, column)
-  if len(names) > 0 {
-    names = append(names, op.Name(name_in))
+  if name_in != "" {
+    name = op.Name(name_in)
   }
-  return columns, names
+  return column, name
 }
 
-func (op OperationUnary) Apply(columns, columns_incomplete [][]float64, names []string, from, to int) ([][]float64, [][]float64, []string) {
-  for j := from; j < to; j++ {
-    columns, names = op.apply(columns, columns[j], names, names[j])
+func (op OperationUnary) Apply(columns, columns_incomplete [][]float64, names, names_incomplete []string, from, to int) ([][]float64, [][]float64, []string, []string) {
+  if op.Final {
+    // apply to incomplete
+    for j := 0; j < len(columns_incomplete); j++ {
+      column, name := op.apply(columns_incomplete[j], names_incomplete[j])
+      if column != nil {
+        columns = append(columns, column)
+        if len(names) > 0 {
+          names = append(names, name)
+        }
+      }
+    }
+    columns_incomplete = nil
   }
-  return columns, columns_incomplete, names
+  // apply to complete
+  for j := from; j < to; j++ {
+    column, name := op.apply(columns[j], names[j])
+    if column != nil {
+      if op.Final {
+        columns = append(columns, column)
+        if len(names) > 0 {
+          names = append(names, name)
+        }
+      } else {
+        columns_incomplete = append(columns_incomplete, column)
+        if len(names) > 0 {
+          names_incomplete = append(names_incomplete, name)
+        }
+      }
+    }
+  }
+  return columns, columns_incomplete, names, names_incomplete
 }
 
 /* -------------------------------------------------------------------------- */
@@ -85,13 +111,13 @@ func (op OperationBinary) apply(columns [][]float64, column_a, column_b []float6
   return columns, names
 }
 
-func (op OperationBinary) Apply(columns, columns_incomplete [][]float64, names []string, from, to int) ([][]float64, [][]float64, []string) {
+func (op OperationBinary) Apply(columns, columns_incomplete [][]float64, names, names_incomplete []string, from, to int) ([][]float64, [][]float64, []string, []string) {
   for j1 := from; j1 < to; j1++ {
     for j2 := j1+1; j2 < to; j2++ {
       columns, names = op.apply(columns, columns[j1], columns[j2], names, names[j1], names[j2])
     }
   }
-  return columns, columns_incomplete, names
+  return columns, columns_incomplete, names, names_incomplete
 }
 
 /* -------------------------------------------------------------------------- */
@@ -231,17 +257,18 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
 
   columns, lengths, names := expand_import(config, filenames_in)
   columns_incomplete      := [][]float64{}
-  
+    names_incomplete      := []string{}
+
   from := 0
   to   := len(columns)
   for d_ := 0; d_ < d; d_++ {
     // apply unary operations
     for _, op := range op_unary {
-      columns, columns_incomplete, names = op.Apply(columns, columns_incomplete, names, from, to)
+      columns, columns_incomplete, names, names_incomplete = op.Apply(columns, columns_incomplete, names, names_incomplete, from, to)
     }
     // apply binary operations
     for _, op := range op_binary {
-      columns, columns_incomplete, names = op.Apply(columns, columns_incomplete, names, from, to)
+      columns, columns_incomplete, names, names_incomplete = op.Apply(columns, columns_incomplete, names, names_incomplete, from, to)
     }
     // update range
     from = to
