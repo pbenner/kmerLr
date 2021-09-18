@@ -75,7 +75,7 @@ func (op OperationUnary) apply(column_in []float64, name_in string) ([]float64, 
   return column, name
 }
 
-func (op OperationUnary) Apply(columns, incomplete_columns [][]float64, names, incomplete_names []string, from, to int) ([][]float64, [][]float64, []string, []string) {
+func (op OperationUnary) Apply(columns, incomplete_columns [][]float64, names, incomplete_names []string, from, to, max_features int) ([][]float64, [][]float64, []string, []string) {
   tmp_columns := columns[from:to]
   tmp_names   :=   names[from:to]
   if op.Final {
@@ -86,6 +86,9 @@ func (op OperationUnary) Apply(columns, incomplete_columns [][]float64, names, i
   }
   // apply to complete
   for j := 0; j < len(tmp_columns); j++ {
+    if max_features > 0 && len(columns) >= max_features {
+      break
+    }
     column, name := op.apply(tmp_columns[j], tmp_names[j])
     columns, incomplete_columns, names, incomplete_names = op.Append(columns, incomplete_columns, names, incomplete_names, column, name)
   }
@@ -117,7 +120,7 @@ func (op OperationBinary) apply(column_a, column_b []float64, name_a, name_b str
   return column, name
 }
 
-func (op OperationBinary) Apply(columns, incomplete_columns [][]float64, names, incomplete_names []string, from, to int) ([][]float64, [][]float64, []string, []string) {
+func (op OperationBinary) Apply(columns, incomplete_columns [][]float64, names, incomplete_names []string, from, to, max_features int) ([][]float64, [][]float64, []string, []string) {
   tmp_columns := columns[from:to]
   tmp_names   :=   names[from:to]
   if op.Final {
@@ -128,10 +131,14 @@ func (op OperationBinary) Apply(columns, incomplete_columns [][]float64, names, 
   }
   for j1 := 0; j1 < len(tmp_columns); j1++ {
     for j2 := j1+1; j2 < len(tmp_columns); j2++ {
+      if max_features > 0 && len(columns) >= max_features {
+        goto ret
+      }
       column, name := op.apply(tmp_columns[j1], tmp_columns[j2], tmp_names[j1], tmp_names[j2])
       columns, incomplete_columns, names, incomplete_names = op.Append(columns, incomplete_columns, names, incomplete_names, column, name)
     }
   }
+ret:
   return columns, incomplete_columns, names, incomplete_names
 }
 
@@ -256,7 +263,7 @@ func expand_export(config Config, columns [][]float64, lengths []int, names []st
 
 /* -------------------------------------------------------------------------- */
 
-func expand_scores(config Config, filenames_in []string, basename_out string, d int) {
+func expand_scores(config Config, filenames_in []string, basename_out string, max_d, max_features int) {
   op_unary := []OperationUnary{}
   op_unary  = append(op_unary, _exp)
   op_unary  = append(op_unary, _log)
@@ -276,14 +283,17 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
 
   from := 0
   to   := len(columns)
-  for d_ := 0; d_ < d; d_++ {
+  for d := 0; max_d == 0 || d < max_d; d++ {
     // apply unary operations
     for _, op := range op_unary {
-      columns, incomplete_columns, names, incomplete_names = op.Apply(columns, incomplete_columns, names, incomplete_names, from, to)
+      columns, incomplete_columns, names, incomplete_names = op.Apply(columns, incomplete_columns, names, incomplete_names, from, to, max_features)
     }
     // apply binary operations
     for _, op := range op_binary {
-      columns, incomplete_columns, names, incomplete_names = op.Apply(columns, incomplete_columns, names, incomplete_names, from, to)
+      columns, incomplete_columns, names, incomplete_names = op.Apply(columns, incomplete_columns, names, incomplete_names, from, to, max_features)
+    }
+    if max_features > 0 && len(columns) >= max_features {
+      break
     }
     // update range
     from = to
@@ -297,9 +307,10 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
 func main_expand_scores(config Config, args []string) {
   options := getopt.New()
 
-  optDepth  := options. IntLong("depth",   0 , 1, "recursion depth")
-  optHeader := options.BoolLong("header",  0 ,    "input files contain a header with feature names")
-  optHelp   := options.BoolLong("help",   'h',    "print help")
+  optMaxDepth    := options. IntLong("max-depth",     0 ,   0, "maximum recursion depth, zero for no maximum [default: 0]")
+  optMaxFeatures := options. IntLong("max-features",  0 , 100, "maximum number of features, zero for no maximum [default: 0]")
+  optHeader      := options.BoolLong("header",        0 ,      "input files contain a header with feature names")
+  optHelp        := options.BoolLong("help",         'h',      "print help")
 
   options.SetParameters("<SCORES1.table,SCORES2.table,...> <BASENAME_OUT>")
   options.Parse(args)
@@ -310,9 +321,16 @@ func main_expand_scores(config Config, args []string) {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
   }
-  if *optDepth < 0 {
+  if *optMaxDepth < 0 {
     options.PrintUsage(os.Stdout)
     os.Exit(0)
+  }
+  if *optMaxFeatures < 0 {
+    options.PrintUsage(os.Stdout)
+    os.Exit(0)
+  }
+  if *optMaxDepth == 0 && *optMaxFeatures == 0 {
+    log.Fatal("Recursion depth or number of features must be constrained")
   }
   config.Header = *optHeader
   // parse arguments
@@ -324,5 +342,5 @@ func main_expand_scores(config Config, args []string) {
   filenames_in := strings.Split(options.Args()[0], ",")
   basename_out := options.Args()[1]
 
-  expand_scores(config, filenames_in, basename_out, *optDepth)
+  expand_scores(config, filenames_in, basename_out, *optMaxDepth, *optMaxFeatures)
 }
