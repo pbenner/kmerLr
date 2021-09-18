@@ -36,23 +36,26 @@ type OperationUnary struct {
   Final  bool
 }
 
+func (op OperationUnary) apply(columns [][]float64, column_in []float64, names []string, name_in string) ([][]float64, []string) {
+  n      := len(columns[0])
+  column := make([]float64, n)
+  for i := 0; i < n; i++ {
+    column[i] = op.Func(column_in[i])
+    // check if operation is valid
+    if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
+      return columns, names
+    }
+  }
+  columns = append(columns, column)
+  if len(names) > 0 {
+    names = append(names, op.Name(name_in))
+  }
+  return columns, names
+}
+
 func (op OperationUnary) Apply(columns, columns_incomplete [][]float64, names []string, from, to int) ([][]float64, [][]float64, []string) {
-  n := len(columns[0])
   for j := from; j < to; j++ {
-    column := make([]float64, n)
-    for i := 0; i < n; i++ {
-      column[i] = op.Func(columns[j][i])
-      // check if operation is valid
-      if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
-        break
-      }
-    }
-    // append new column
-    columns = append(columns, column)
-    // generate new column name
-    if len(names) > 0 {
-      names = append(names, op.Name(names[j]))
-    }
+    columns, names = op.apply(columns, columns[j], names, names[j])
   }
   return columns, columns_incomplete, names
 }
@@ -65,24 +68,27 @@ type OperationBinary struct {
   Final  bool
 }
 
+func (op OperationBinary) apply(columns [][]float64, column_a, column_b []float64, names []string, name_a, name_b string) ([][]float64, []string) {
+  n      := len(columns[0])
+  column := make([]float64, n)
+  for i := 0; i < n; i++ {
+    column[i] = op.Func(column_a[i], column_b[i])
+    // check if operation is valid
+    if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
+      return columns, names
+    }
+  }
+  columns = append(columns, column)
+  if len(names) > 0 {
+    names = append(names, op.Name(name_a, name_b))
+  }
+  return columns, names
+}
+
 func (op OperationBinary) Apply(columns, columns_incomplete [][]float64, names []string, from, to int) ([][]float64, [][]float64, []string) {
-  n := len(columns[0])
   for j1 := from; j1 < to; j1++ {
     for j2 := j1+1; j2 < to; j2++ {
-      column := make([]float64, n)
-      for i := 0; i < n; i++ {
-        column[i] = op.Func(columns[j1][i], columns[j2][i])
-        // check if operation is valid
-        if math.IsNaN(column[i]) || math.IsInf(column[i], 0) {
-          break
-        }
-      }
-      // append new column
-      columns = append(columns, column)
-      // generate new column name
-      if len(names) > 0 {
-        names = append(names, op.Name(names[j1], names[j2]))
-      }
+      columns, names = op.apply(columns, columns[j1], columns[j2], names, names[j1], names[j2])
     }
   }
   return columns, columns_incomplete, names
