@@ -96,8 +96,8 @@ func (op OperationUnary) Apply(columns, incomplete_columns [][]float64, names, i
 
 type OperationBinary struct {
   Operation
-  Func   func(float64, float64) float64
-  Name   func(string , string ) string
+  Func func(float64, float64) float64
+  Name func(string , string ) string
 }
 
 func (op OperationBinary) apply(column_a, column_b []float64, name_a, name_b string) ([]float64, string) {
