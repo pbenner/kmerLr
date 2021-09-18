@@ -271,8 +271,8 @@ func expand_scores(config Config, filenames_in []string, basename_out string, d 
   op_binary  = append(op_binary, _divrev)
 
   columns, lengths, names := expand_import(config, filenames_in)
-  incomplete_columns      := [][]float64{}
-    incomplete_names      := []string{}
+  incomplete_columns := [][]float64{}
+  incomplete_names   := []string{}
 
   from := 0
   to   := len(columns)
