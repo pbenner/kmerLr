@@ -30,32 +30,6 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-type Desk struct {
-  columns            [][]float64
-  names                []string
-  incomplete_columns [][]float64
-  incomplete_names     []string
-}
-
-func (obj Desk) Append(column []float64, name string, final bool) Desk {
-  if column != nil {
-    if final {
-      obj.columns = append(obj.columns, column)
-      if len(obj.names) > 0 {
-        obj.names = append(obj.names, name)
-      }
-    } else {
-      obj.incomplete_columns = append(obj.incomplete_columns, column)
-      if len(obj.names) > 0 {
-        obj.incomplete_names = append(obj.incomplete_names, name)
-      }
-    }
-  }
-  return obj
-}
-
-/* -------------------------------------------------------------------------- */
-
 type AbstractOperation interface {
   Apply(desk Desk, from, to, max_features int) Desk
 }
@@ -78,6 +52,34 @@ func (op Operation) IsIncompatible(op_a *Operation) bool {
     }
   }
   return false
+}
+
+/* -------------------------------------------------------------------------- */
+
+type Desk struct {
+  columns            [][]float64
+  names                []string
+  lastop               []*Operation
+  incomplete_columns [][]float64
+  incomplete_names     []string
+  incomplete_lastop    []*Operation
+}
+
+func (obj Desk) Append(column []float64, name string, final bool) Desk {
+  if column != nil {
+    if final {
+      obj.columns = append(obj.columns, column)
+      if len(obj.names) > 0 {
+        obj.names = append(obj.names, name)
+      }
+    } else {
+      obj.incomplete_columns = append(obj.incomplete_columns, column)
+      if len(obj.names) > 0 {
+        obj.incomplete_names = append(obj.incomplete_names, name)
+      }
+    }
+  }
+  return obj
 }
 
 /* -------------------------------------------------------------------------- */
