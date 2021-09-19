@@ -233,6 +233,11 @@ var _exp OperationUnary = OperationUnary{
   Func : func(a float64) float64 { return math.Exp(a) },
   Name : func(a string ) string  { return fmt.Sprintf("exp(%s)", a) } }
 
+var _expneg OperationUnary = OperationUnary{
+  Operation: &Operation{Final: true},
+  Func : func(a float64) float64 { return math.Exp(-a) },
+  Name : func(a string ) string  { return fmt.Sprintf("exp(-%s)", a) } }
+
 var _log OperationUnary = OperationUnary{
   Operation: &Operation{Final: true},
   Func : func(a float64) float64 { return math.Log(a) },
@@ -283,8 +288,13 @@ var _divrev OperationBinary = OperationBinary{
 func init() {
   _exp.AddIncompatible(_exp.Operation)
   _exp.AddIncompatible(_log.Operation)
+  _exp.AddIncompatible(_expneg.Operation)
   _log.AddIncompatible(_exp.Operation)
   _log.AddIncompatible(_log.Operation)
+  _log.AddIncompatible(_expneg.Operation)
+  _expneg.AddIncompatible(_exp.Operation)
+  _expneg.AddIncompatible(_log.Operation)
+  _expneg.AddIncompatible(_expneg.Operation)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -360,6 +370,7 @@ func expand_parse_operations(allowed_operations string) []AbstractOperation {
   operations := []AbstractOperation{}
   if allowed_operations == "" {
     operations = append(operations, _exp)
+    operations = append(operations, _expneg)
     operations = append(operations, _log)
     operations = append(operations, _square)
     operations = append(operations, _sqrt)
@@ -374,6 +385,7 @@ func expand_parse_operations(allowed_operations string) []AbstractOperation {
       switch op_str {
       case "exp":
         operations = append(operations, _exp)
+        operations = append(operations, _expneg)
       case "log":
         operations = append(operations, _log)
       case "square":
