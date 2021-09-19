@@ -243,6 +243,11 @@ var _log OperationUnary = OperationUnary{
   Func : func(a float64) float64 { return math.Log(a) },
   Name : func(a string ) string  { return fmt.Sprintf("log(%s)", a) } }
 
+var _logneg OperationUnary = OperationUnary{
+  Operation: &Operation{Final: true},
+  Func : func(a float64) float64 { return math.Log(-a) },
+  Name : func(a string ) string  { return fmt.Sprintf("log(-%s)", a) } }
+
 var _square OperationUnary = OperationUnary{
   Operation: &Operation{Final: true},
   Func : func(a float64) float64 { return a*a },
@@ -252,6 +257,11 @@ var _sqrt OperationUnary = OperationUnary{
   Operation: &Operation{Final: true},
   Func : func(a float64) float64 { return math.Sqrt(a) },
   Name : func(a string ) string  { return fmt.Sprintf("sqrt(%s)", a) } }
+
+var _sqrtneg OperationUnary = OperationUnary{
+  Operation: &Operation{Final: true},
+  Func : func(a float64) float64 { return math.Sqrt(-a) },
+  Name : func(a string ) string  { return fmt.Sprintf("sqrt(-%s)", a) } }
 
 var _add OperationBinary = OperationBinary{
   Operation: &Operation{Final: false},
@@ -289,12 +299,19 @@ func init() {
   _exp.AddIncompatible(_exp.Operation)
   _exp.AddIncompatible(_log.Operation)
   _exp.AddIncompatible(_expneg.Operation)
+  _exp.AddIncompatible(_logneg.Operation)
   _log.AddIncompatible(_exp.Operation)
   _log.AddIncompatible(_log.Operation)
   _log.AddIncompatible(_expneg.Operation)
+  _log.AddIncompatible(_logneg.Operation)
   _expneg.AddIncompatible(_exp.Operation)
   _expneg.AddIncompatible(_log.Operation)
   _expneg.AddIncompatible(_expneg.Operation)
+  _expneg.AddIncompatible(_logneg.Operation)
+  _logneg.AddIncompatible(_exp.Operation)
+  _logneg.AddIncompatible(_log.Operation)
+  _logneg.AddIncompatible(_expneg.Operation)
+  _logneg.AddIncompatible(_logneg.Operation)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -372,8 +389,10 @@ func expand_parse_operations(allowed_operations string) []AbstractOperation {
     operations = append(operations, _exp)
     operations = append(operations, _expneg)
     operations = append(operations, _log)
+    operations = append(operations, _logneg)
     operations = append(operations, _square)
     operations = append(operations, _sqrt)
+    operations = append(operations, _sqrtneg)
     operations = append(operations, _add)
     operations = append(operations, _sub)
     operations = append(operations, _subrev)
@@ -388,10 +407,12 @@ func expand_parse_operations(allowed_operations string) []AbstractOperation {
         operations = append(operations, _expneg)
       case "log":
         operations = append(operations, _log)
+        operations = append(operations, _logneg)
       case "square":
         operations = append(operations, _square)
       case "sqrt":
         operations = append(operations, _sqrt)
+        operations = append(operations, _sqrtneg)
       case "add":
         operations = append(operations, _add)
       case "sub":
