@@ -37,7 +37,8 @@ type AbstractOperation interface {
 /* -------------------------------------------------------------------------- */
 
 type Operation struct {
-  Final bool
+  Final           bool
+  Incompatible []*Operation
 }
 
 func (op Operation) Append(columns, incomplete_columns [][]float64, names, incomplete_names []string, column []float64, name string) ([][]float64, [][]float64, []string, []string) {
@@ -57,10 +58,23 @@ func (op Operation) Append(columns, incomplete_columns [][]float64, names, incom
   return columns, incomplete_columns, names, incomplete_names
 }
 
+func (op *Operation) AddIncompatible(op_a *Operation) {
+  op.Incompatible = append(op.Incompatible, op_a)
+}
+
+func (op Operation) IsIncompatible(op_a *Operation) bool {
+  for _, op_b := range op.Incompatible {
+    if op_a == op_b {
+      return true
+    }
+  }
+  return false
+}
+
 /* -------------------------------------------------------------------------- */
 
 type OperationUnary struct {
-  Operation
+  *Operation
   Func func(float64) float64
   Name func(string ) string
 }
@@ -104,7 +118,7 @@ func (op OperationUnary) Apply(columns, incomplete_columns [][]float64, names, i
 /* -------------------------------------------------------------------------- */
 
 type OperationBinary struct {
-  Operation
+  *Operation
   Func func(float64, float64) float64
   Name func(string , string ) string
 }
@@ -151,54 +165,63 @@ ret:
 /* -------------------------------------------------------------------------- */
 
 var _exp OperationUnary = OperationUnary{
-  Operation: Operation{true},
+  Operation: &Operation{Final: true},
   Func : func(a float64) float64 { return math.Exp(a) },
   Name : func(a string ) string  { return fmt.Sprintf("exp(%s)", a) } }
 
 var _log OperationUnary = OperationUnary{
-  Operation: Operation{true},
+  Operation: &Operation{Final: true},
   Func : func(a float64) float64 { return math.Log(a) },
   Name : func(a string ) string  { return fmt.Sprintf("log(%s)", a) } }
 
 var _square OperationUnary = OperationUnary{
-  Operation: Operation{true},
+  Operation: &Operation{Final: true},
   Func : func(a float64) float64 { return a*a },
   Name : func(a string ) string  { return fmt.Sprintf("(%s^2)", a) } }
 
 var _sqrt OperationUnary = OperationUnary{
-  Operation: Operation{true},
+  Operation: &Operation{Final: true},
   Func : func(a float64) float64 { return math.Sqrt(a) },
   Name : func(a string ) string  { return fmt.Sprintf("sqrt(%s)", a) } }
 
 var _add OperationBinary = OperationBinary{
-  Operation: Operation{false},
+  Operation: &Operation{Final: false},
   Func : func(a, b float64) float64 { return a+b },
   Name : func(a, b string ) string  { return fmt.Sprintf("(%s+%s)", a, b) } }
 
 var _sub OperationBinary = OperationBinary{
-  Operation: Operation{false},
+  Operation: &Operation{Final: false},
   Func : func(a, b float64) float64 { return a-b },
   Name : func(a, b string ) string  { return fmt.Sprintf("(%s-%s)", a, b) } }
 
 var _subrev OperationBinary = OperationBinary{
-  Operation: Operation{false},
+  Operation: &Operation{Final: false},
   Func : func(a, b float64) float64 { return b-a },
   Name : func(a, b string ) string  { return fmt.Sprintf("(%s-%s)", b, a) } }
 
 var _mul OperationBinary = OperationBinary{
-  Operation: Operation{true},
+  Operation: &Operation{Final: true},
   Func : func(a, b float64) float64 { return a*b },
   Name : func(a, b string ) string  { return fmt.Sprintf("(%s*%s)", a, b) } }
 
 var _div OperationBinary = OperationBinary{
-  Operation: Operation{true},
+  Operation: &Operation{Final: true},
   Func : func(a, b float64) float64 { return a/b },
   Name : func(a, b string ) string  { return fmt.Sprintf("(%s/%s)", a, b) } }
 
 var _divrev OperationBinary = OperationBinary{
-  Operation: Operation{true},
+  Operation: &Operation{Final: true},
   Func : func(a, b float64) float64 { return b/a },
   Name : func(a, b string ) string  { return fmt.Sprintf("(%s/%s)", b, a) } }
+
+/* -------------------------------------------------------------------------- */
+
+func init() {
+  _exp.AddIncompatible(_exp.Operation)
+  _exp.AddIncompatible(_log.Operation)
+  _log.AddIncompatible(_exp.Operation)
+  _log.AddIncompatible(_log.Operation)
+}
 
 /* -------------------------------------------------------------------------- */
 
