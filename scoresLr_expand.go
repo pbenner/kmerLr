@@ -32,7 +32,7 @@ import   "github.com/pborman/getopt"
 /* -------------------------------------------------------------------------- */
 
 type AbstractOperation interface {
-  Apply(desk Desk, from, to, max_features int, max_value float64) Desk
+  Apply(desk Desk, from, to, max_features int, max_value, min_value float64) Desk
 }
 
 /* -------------------------------------------------------------------------- */
@@ -70,18 +70,18 @@ type Desk struct {
 }
 
 func (obj Desk) GetColumns(from, to int) [][]float64 {
-  return obj.columns[from:to]
+  return append([][]float64{}, obj.columns[from:to]...)
 }
 
 func (obj Desk) GetLastop(from, to int) []*Operation {
-  return obj.lastop[from:to]
+  return append([]*Operation{}, obj.lastop[from:to]...)
 }
 
 func (obj Desk) GetNames(from, to int) []string {
   if len(obj.names) == 0 {
     return nil
   } else {
-    return obj.names[from:to]
+    return append([]string{}, obj.names[from:to]...)
   }
 }
 
@@ -131,7 +131,7 @@ func (op OperationUnary) apply(column_in []float64, name_in string, max_value fl
   return column, name
 }
 
-func (op OperationUnary) Apply(desk Desk, from, to, max_features int, max_value float64) Desk {
+func (op OperationUnary) Apply(desk Desk, from, to, max_features int, max_value, min_value float64) Desk {
   tmp_columns := desk.GetColumns(from, to)
   tmp_lastop  := desk.GetLastop (from, to)
   tmp_names   := desk.GetNames  (from, to)
@@ -156,7 +156,13 @@ func (op OperationUnary) Apply(desk Desk, from, to, max_features int, max_value 
       tmp_name = tmp_names[j]
     }
     column, name := op.apply(tmp_columns[j], tmp_name, max_value)
-    desk = desk.Append(column, name, op.Operation)
+    // append if minimum value is exceeded
+    for i := 0; i < len(column); i++ {
+      if math.Abs(column[i]) > min_value {
+        desk = desk.Append(column, name, op.Operation)
+        break
+      }
+    }
   }
   return desk
 }
@@ -189,7 +195,7 @@ func (op OperationBinary) apply(column_a, column_b []float64, name_a, name_b str
   return column, name
 }
 
-func (op OperationBinary) Apply(desk Desk, from, to, max_features int, max_value float64) Desk {
+func (op OperationBinary) Apply(desk Desk, from, to, max_features int, max_value, min_value float64) Desk {
   tmp_columns := desk.GetColumns(from, to)
   tmp_lastop  := desk.GetLastop (from, to)
   tmp_names   := desk.GetNames  (from, to)
@@ -219,7 +225,13 @@ func (op OperationBinary) Apply(desk Desk, from, to, max_features int, max_value
         tmp_name_b = tmp_names[j2]
       }
       column, name := op.apply(tmp_columns[j1], tmp_columns[j2], tmp_name_a, tmp_name_b, max_value)
-      desk = desk.Append(column, name, op.Operation)
+      // append if minimum value is exceeded
+      for i := 0; i < len(column); i++ {
+        if math.Abs(column[i]) > min_value {
+          desk = desk.Append(column, name, op.Operation)
+          break
+        }
+      }
     }
   }
 ret:
@@ -433,7 +445,7 @@ func expand_parse_operations(allowed_operations string) []AbstractOperation {
 
 /* -------------------------------------------------------------------------- */
 
-func expand_scores(config Config, filenames_in []string, basename_out string, max_d, max_features int, max_value float64, operations []AbstractOperation) {
+func expand_scores(config Config, filenames_in []string, basename_out string, max_d, max_features int, max_value, min_value float64, operations []AbstractOperation) {
   desk    := Desk{}
   lengths := []int{}
   // import data
@@ -447,7 +459,7 @@ func expand_scores(config Config, filenames_in []string, basename_out string, ma
   to   := len(desk.columns)
   for d := 0; max_d == 0 || d < max_d; d++ {
     for _, op := range operations {
-      desk = op.Apply(desk, from, to, max_features, max_value)
+      desk = op.Apply(desk, from, to, max_features, max_value, min_value)
     }
     if max_features > 0 && len(desk.columns) >= max_features {
       break
@@ -467,6 +479,7 @@ func main_expand_scores(config Config, args []string) {
   optMaxDepth    := options.   IntLong("max-depth",     0 ,   0, "maximum recursion depth, zero for no maximum [default: 0]")
   optMaxFeatures := options.   IntLong("max-features",  0 , 100, "maximum number of features, zero for no maximum [default: 0]")
   optMaxValue    := options.StringLong("max-value",     0 , "0", "maximum absolute value")
+  optMinValue    := options.StringLong("min-value",     0 , "0", "minimum absolute value")
   optOperations  := options.StringLong("operations",    0 ,  "", "list of allowed operations")
   optHeader      := options.  BoolLong("header",        0 ,      "input files contain a header with feature names")
   optHelp        := options.  BoolLong("help",         'h',      "print help")
@@ -492,10 +505,16 @@ func main_expand_scores(config Config, args []string) {
     log.Fatal("Recursion depth or number of features must be constrained")
   }
   max_value := 0.0
+  min_value := 0.0
   if v, err := strconv.ParseFloat(*optMaxValue, 64); err != nil {
     log.Fatalf("Parsing option `--max-value' failed: %v", err)
   } else {
     max_value = v
+  }
+  if v, err := strconv.ParseFloat(*optMinValue, 64); err != nil {
+    log.Fatalf("Parsing option `--min-value' failed: %v", err)
+  } else {
+    min_value = v
   }
   config.Header = *optHeader
   // parse arguments
@@ -507,5 +526,5 @@ func main_expand_scores(config Config, args []string) {
   filenames_in := strings.Split(options.Args()[0], ",")
   basename_out := options.Args()[1]
 
-  expand_scores(config, filenames_in, basename_out, *optMaxDepth, *optMaxFeatures, max_value, expand_parse_operations(*optOperations))
+  expand_scores(config, filenames_in, basename_out, *optMaxDepth, *optMaxFeatures, max_value, min_value, expand_parse_operations(*optOperations))
 }
