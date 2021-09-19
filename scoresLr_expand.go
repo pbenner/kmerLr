@@ -174,8 +174,8 @@ func (op OperationBinary) apply(column_a, column_b []float64, name_a, name_b str
 }
 
 func (op OperationBinary) Apply(desk Desk, from, to, max_features int) Desk {
-  tmp_columns := desk.columns[from:to]
-  tmp_names   := desk.  names[from:to]
+  tmp_columns := desk.GetColumns(from, to)
+  tmp_names   := desk.GetNames  (from, to)
   if op.Final {
     tmp_columns = append(tmp_columns, desk.incomplete_columns...)
     tmp_names   = append(tmp_names  , desk.incomplete_names  ...)
