@@ -72,6 +72,10 @@ func (obj Desk) GetColumns(from, to int) [][]float64 {
   return obj.columns[from:to]
 }
 
+func (obj Desk) GetLastop(from, to int) []*Operation {
+  return obj.lastop[from:to]
+}
+
 func (obj Desk) GetNames(from, to int) []string {
   if len(obj.names) == 0 {
     return nil
@@ -125,9 +129,11 @@ func (op OperationUnary) apply(column_in []float64, name_in string) ([]float64, 
 
 func (op OperationUnary) Apply(desk Desk, from, to, max_features int) Desk {
   tmp_columns := desk.GetColumns(from, to)
+  tmp_lastop  := desk.GetLastop (from, to)
   tmp_names   := desk.GetNames  (from, to)
   if op.Final {
     tmp_columns = append(tmp_columns, desk.incomplete_columns...)
+    tmp_lastop  = append(tmp_lastop , desk.incomplete_lastop ...)
     tmp_names   = append(tmp_names  , desk.incomplete_names  ...)
     desk.incomplete_columns = nil
     desk.incomplete_lastop  = nil
@@ -135,6 +141,9 @@ func (op OperationUnary) Apply(desk Desk, from, to, max_features int) Desk {
   }
   // apply to complete
   for j := 0; j < len(tmp_columns); j++ {
+    if op.IsIncompatible(tmp_lastop[j]) {
+      continue
+    }
     if max_features > 0 && len(desk.columns) >= max_features {
       break
     }
@@ -175,16 +184,24 @@ func (op OperationBinary) apply(column_a, column_b []float64, name_a, name_b str
 
 func (op OperationBinary) Apply(desk Desk, from, to, max_features int) Desk {
   tmp_columns := desk.GetColumns(from, to)
+  tmp_lastop  := desk.GetLastop (from, to)
   tmp_names   := desk.GetNames  (from, to)
   if op.Final {
     tmp_columns = append(tmp_columns, desk.incomplete_columns...)
+    tmp_lastop  = append(tmp_lastop , desk.incomplete_lastop ...)
     tmp_names   = append(tmp_names  , desk.incomplete_names  ...)
     desk.incomplete_columns = nil
     desk.incomplete_lastop  = nil
     desk.incomplete_names   = nil
   }
   for j1 := 0; j1 < len(tmp_columns); j1++ {
+    if op.IsIncompatible(tmp_lastop[j1]) {
+      continue
+    }
     for j2 := j1+1; j2 < len(tmp_columns); j2++ {
+      if op.IsIncompatible(tmp_lastop[j2]) {
+        continue
+      }
       if max_features > 0 && len(desk.columns) >= max_features {
         goto ret
       }
