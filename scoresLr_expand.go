@@ -113,8 +113,9 @@ type OperationUnary struct {
 }
 
 func (op OperationUnary) apply(column_in []float64, name_in string, max_value float64) ([]float64, string) {
-  column := make([]float64, len(column_in))
-  name   := ""
+  column  := make([]float64, len(column_in))
+  name    := ""
+  mutated := false
   for i := 0; i < len(column_in); i++ {
     column[i] = op.Func(column_in[i])
     // check if operation is valid
@@ -124,6 +125,12 @@ func (op OperationUnary) apply(column_in []float64, name_in string, max_value fl
     if max_value > 0.0 && math.Abs(column[i]) > max_value {
       return nil, name
     }
+    if math.Abs(column[i] - column_in[i]) > 1e-12 {
+      mutated = true
+    }
+  }
+  if !mutated {
+    return nil, name
   }
   if name_in != "" {
     name = op.Name(name_in)
@@ -240,6 +247,11 @@ ret:
 
 /* -------------------------------------------------------------------------- */
 
+var _abs OperationUnary = OperationUnary{
+  Operation: &Operation{Final: true},
+  Func : func(a float64) float64 { return math.Abs(a) },
+  Name : func(a string ) string  { return fmt.Sprintf("abs(%s)", a) } }
+
 var _exp OperationUnary = OperationUnary{
   Operation: &Operation{Final: true},
   Func : func(a float64) float64 { return math.Exp(a) },
@@ -308,6 +320,9 @@ var _divrev OperationBinary = OperationBinary{
 /* -------------------------------------------------------------------------- */
 
 func init() {
+  _abs.AddIncompatible(_exp.Operation)
+  _abs.AddIncompatible(_square.Operation)
+  _abs.AddIncompatible(_sqrt.Operation)
   _exp.AddIncompatible(_exp.Operation)
   _exp.AddIncompatible(_log.Operation)
   _exp.AddIncompatible(_expneg.Operation)
@@ -398,6 +413,7 @@ func expand_export(config Config, columns [][]float64, lengths []int, names []st
 func expand_parse_operations(allowed_operations string) []AbstractOperation {
   operations := []AbstractOperation{}
   if allowed_operations == "" {
+    operations = append(operations, _abs)
     operations = append(operations, _exp)
     operations = append(operations, _expneg)
     operations = append(operations, _log)
@@ -414,6 +430,8 @@ func expand_parse_operations(allowed_operations string) []AbstractOperation {
   } else {
     for _, op_str := range strings.Split(allowed_operations, ",") {
       switch op_str {
+      case "abs":
+        operations = append(operations, _abs)
       case "exp":
         operations = append(operations, _exp)
         operations = append(operations, _expneg)
