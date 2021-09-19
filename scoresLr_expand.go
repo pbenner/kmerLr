@@ -30,8 +30,34 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
+type Desk struct {
+  columns            [][]float64
+  names                []string
+  incomplete_columns [][]float64
+  incomplete_names     []string
+}
+
+func (obj Desk) Append(column []float64, name string, final bool) Desk {
+  if column != nil {
+    if final {
+      obj.columns = append(obj.columns, column)
+      if len(obj.names) > 0 {
+        obj.names = append(obj.names, name)
+      }
+    } else {
+      obj.incomplete_columns = append(obj.incomplete_columns, column)
+      if len(obj.names) > 0 {
+        obj.incomplete_names = append(obj.incomplete_names, name)
+      }
+    }
+  }
+  return obj
+}
+
+/* -------------------------------------------------------------------------- */
+
 type AbstractOperation interface {
-  Apply(columns, incomplete_columns [][]float64, names, incomplete_names []string, from, to, max_features int) ([][]float64, [][]float64, []string, []string)
+  Apply(desk Desk, from, to, max_features int) Desk
 }
 
 /* -------------------------------------------------------------------------- */
@@ -39,23 +65,6 @@ type AbstractOperation interface {
 type Operation struct {
   Final           bool
   Incompatible []*Operation
-}
-
-func (op Operation) Append(columns, incomplete_columns [][]float64, names, incomplete_names []string, column []float64, name string) ([][]float64, [][]float64, []string, []string) {
-  if column != nil {
-    if op.Final {
-      columns = append(columns, column)
-      if len(names) > 0 {
-        names = append(names, name)
-      }
-    } else {
-      incomplete_columns = append(incomplete_columns, column)
-      if len(names) > 0 {
-        incomplete_names = append(incomplete_names, name)
-      }
-    }
-  }
-  return columns, incomplete_columns, names, incomplete_names
 }
 
 func (op *Operation) AddIncompatible(op_a *Operation) {
@@ -95,24 +104,24 @@ func (op OperationUnary) apply(column_in []float64, name_in string) ([]float64, 
   return column, name
 }
 
-func (op OperationUnary) Apply(columns, incomplete_columns [][]float64, names, incomplete_names []string, from, to, max_features int) ([][]float64, [][]float64, []string, []string) {
-  tmp_columns := columns[from:to]
-  tmp_names   :=   names[from:to]
+func (op OperationUnary) Apply(desk Desk, from, to, max_features int) Desk {
+  tmp_columns := desk.columns[from:to]
+  tmp_names   := desk.  names[from:to]
   if op.Final {
-    tmp_columns = append(tmp_columns, incomplete_columns...)
-    tmp_names   = append(tmp_names  , incomplete_names  ...)
-    incomplete_columns = nil
-    incomplete_names   = nil
+    tmp_columns = append(tmp_columns, desk.incomplete_columns...)
+    tmp_names   = append(tmp_names  , desk.incomplete_names  ...)
+    desk.incomplete_columns = nil
+    desk.incomplete_names   = nil
   }
   // apply to complete
   for j := 0; j < len(tmp_columns); j++ {
-    if max_features > 0 && len(columns) >= max_features {
+    if max_features > 0 && len(desk.columns) >= max_features {
       break
     }
     column, name := op.apply(tmp_columns[j], tmp_names[j])
-    columns, incomplete_columns, names, incomplete_names = op.Append(columns, incomplete_columns, names, incomplete_names, column, name)
+    desk = desk.Append(column, name, op.Final)
   }
-  return columns, incomplete_columns, names, incomplete_names
+  return desk
 }
 
 /* -------------------------------------------------------------------------- */
@@ -140,26 +149,26 @@ func (op OperationBinary) apply(column_a, column_b []float64, name_a, name_b str
   return column, name
 }
 
-func (op OperationBinary) Apply(columns, incomplete_columns [][]float64, names, incomplete_names []string, from, to, max_features int) ([][]float64, [][]float64, []string, []string) {
-  tmp_columns := columns[from:to]
-  tmp_names   :=   names[from:to]
+func (op OperationBinary) Apply(desk Desk, from, to, max_features int) Desk {
+  tmp_columns := desk.columns[from:to]
+  tmp_names   := desk.  names[from:to]
   if op.Final {
-    tmp_columns = append(tmp_columns, incomplete_columns...)
-    tmp_names   = append(tmp_names  , incomplete_names  ...)
-    incomplete_columns = nil
-    incomplete_names   = nil
+    tmp_columns = append(tmp_columns, desk.incomplete_columns...)
+    tmp_names   = append(tmp_names  , desk.incomplete_names  ...)
+    desk.incomplete_columns = nil
+    desk.incomplete_names   = nil
   }
   for j1 := 0; j1 < len(tmp_columns); j1++ {
     for j2 := j1+1; j2 < len(tmp_columns); j2++ {
-      if max_features > 0 && len(columns) >= max_features {
+      if max_features > 0 && len(desk.columns) >= max_features {
         goto ret
       }
       column, name := op.apply(tmp_columns[j1], tmp_columns[j2], tmp_names[j1], tmp_names[j2])
-      columns, incomplete_columns, names, incomplete_names = op.Append(columns, incomplete_columns, names, incomplete_names, column, name)
+      desk = desk.Append(column, name, op.Final)
     }
   }
 ret:
-  return columns, incomplete_columns, names, incomplete_names
+  return desk
 }
 
 /* -------------------------------------------------------------------------- */
@@ -336,26 +345,29 @@ func expand_parse_operations(allowed_operations string) []AbstractOperation {
 
 /* -------------------------------------------------------------------------- */
 
-func expand_scores(config Config, filenames_in []string, basename_out string, max_d, max_features int, allowed_operations string) {
-  operations := expand_parse_operations(allowed_operations)
-  columns, lengths, names := expand_import(config, filenames_in)
-  incomplete_columns := [][]float64{}
-  incomplete_names   := []string{}
-
+func expand_scores(config Config, filenames_in []string, basename_out string, max_d, max_features int, operations []AbstractOperation) {
+  desk    := Desk{}
+  lengths := []int{}
+  // import data
+  if columns, lengths_, names := expand_import(config, filenames_in); true {
+    desk.columns = columns
+    desk.names   = names
+    lengths      = lengths_
+  }
   from := 0
-  to   := len(columns)
+  to   := len(desk.columns)
   for d := 0; max_d == 0 || d < max_d; d++ {
     for _, op := range operations {
-      columns, incomplete_columns, names, incomplete_names = op.Apply(columns, incomplete_columns, names, incomplete_names, from, to, max_features)
+      desk = op.Apply(desk, from, to, max_features)
     }
-    if max_features > 0 && len(columns) >= max_features {
+    if max_features > 0 && len(desk.columns) >= max_features {
       break
     }
     // update range
     from = to
-    to   = len(columns)
+    to   = len(desk.columns)
   }
-  expand_export(config, columns, lengths, names, basename_out)
+  expand_export(config, desk.columns, lengths, desk.names, basename_out)
 }
 
 /* -------------------------------------------------------------------------- */
@@ -399,5 +411,5 @@ func main_expand_scores(config Config, args []string) {
   filenames_in := strings.Split(options.Args()[0], ",")
   basename_out := options.Args()[1]
 
-  expand_scores(config, filenames_in, basename_out, *optMaxDepth, *optMaxFeatures, *optOperations)
+  expand_scores(config, filenames_in, basename_out, *optMaxDepth, *optMaxFeatures, expand_parse_operations(*optOperations))
 }
