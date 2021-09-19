@@ -45,7 +45,10 @@ func (op *Operation) AddIncompatible(op_a *Operation) {
   op.Incompatible = append(op.Incompatible, op_a)
 }
 
-func (op Operation) IsIncompatible(op_a *Operation) bool {
+func (op *Operation) IsIncompatible(op_a *Operation) bool {
+  if op == nil {
+    return false
+  }
   for _, op_b := range op.Incompatible {
     if op_a == op_b {
       return true
@@ -77,15 +80,17 @@ func (obj Desk) GetNames(from, to int) []string {
   }
 }
 
-func (obj Desk) Append(column []float64, name string, final bool) Desk {
+func (obj Desk) Append(column []float64, name string, op *Operation) Desk {
   if column != nil {
-    if final {
+    if op.Final {
       obj.columns = append(obj.columns, column)
+      obj.lastop  = append(obj.lastop , op)
       if len(obj.names) > 0 {
         obj.names = append(obj.names, name)
       }
     } else {
       obj.incomplete_columns = append(obj.incomplete_columns, column)
+      obj.incomplete_lastop  = append(obj.incomplete_lastop , op)
       if len(obj.names) > 0 {
         obj.incomplete_names = append(obj.incomplete_names, name)
       }
@@ -125,6 +130,7 @@ func (op OperationUnary) Apply(desk Desk, from, to, max_features int) Desk {
     tmp_columns = append(tmp_columns, desk.incomplete_columns...)
     tmp_names   = append(tmp_names  , desk.incomplete_names  ...)
     desk.incomplete_columns = nil
+    desk.incomplete_lastop  = nil
     desk.incomplete_names   = nil
   }
   // apply to complete
@@ -137,7 +143,7 @@ func (op OperationUnary) Apply(desk Desk, from, to, max_features int) Desk {
       tmp_name = tmp_names[j]
     }
     column, name := op.apply(tmp_columns[j], tmp_name)
-    desk = desk.Append(column, name, op.Final)
+    desk = desk.Append(column, name, op.Operation)
   }
   return desk
 }
@@ -174,6 +180,7 @@ func (op OperationBinary) Apply(desk Desk, from, to, max_features int) Desk {
     tmp_columns = append(tmp_columns, desk.incomplete_columns...)
     tmp_names   = append(tmp_names  , desk.incomplete_names  ...)
     desk.incomplete_columns = nil
+    desk.incomplete_lastop  = nil
     desk.incomplete_names   = nil
   }
   for j1 := 0; j1 < len(tmp_columns); j1++ {
@@ -188,7 +195,7 @@ func (op OperationBinary) Apply(desk Desk, from, to, max_features int) Desk {
         tmp_name_b = tmp_names[j2]
       }
       column, name := op.apply(tmp_columns[j1], tmp_columns[j2], tmp_name_a, tmp_name_b)
-      desk = desk.Append(column, name, op.Final)
+      desk = desk.Append(column, name, op.Operation)
     }
   }
 ret:
@@ -376,6 +383,7 @@ func expand_scores(config Config, filenames_in []string, basename_out string, ma
   if columns, lengths_, names := expand_import(config, filenames_in); true {
     desk.columns = columns
     desk.names   = names
+    desk.lastop  = make([]*Operation, len(columns))
     lengths      = lengths_
   }
   from := 0
