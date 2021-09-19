@@ -65,6 +65,18 @@ type Desk struct {
   incomplete_lastop    []*Operation
 }
 
+func (obj Desk) GetColumns(from, to int) [][]float64 {
+  return obj.columns[from:to]
+}
+
+func (obj Desk) GetNames(from, to int) []string {
+  if len(obj.names) == 0 {
+    return nil
+  } else {
+    return obj.names[from:to]
+  }
+}
+
 func (obj Desk) Append(column []float64, name string, final bool) Desk {
   if column != nil {
     if final {
@@ -107,8 +119,8 @@ func (op OperationUnary) apply(column_in []float64, name_in string) ([]float64, 
 }
 
 func (op OperationUnary) Apply(desk Desk, from, to, max_features int) Desk {
-  tmp_columns := desk.columns[from:to]
-  tmp_names   := desk.  names[from:to]
+  tmp_columns := desk.GetColumns(from, to)
+  tmp_names   := desk.GetNames  (from, to)
   if op.Final {
     tmp_columns = append(tmp_columns, desk.incomplete_columns...)
     tmp_names   = append(tmp_names  , desk.incomplete_names  ...)
@@ -120,7 +132,11 @@ func (op OperationUnary) Apply(desk Desk, from, to, max_features int) Desk {
     if max_features > 0 && len(desk.columns) >= max_features {
       break
     }
-    column, name := op.apply(tmp_columns[j], tmp_names[j])
+    tmp_name := ""
+    if len(tmp_names) > 0 {
+      tmp_name = tmp_names[j]
+    }
+    column, name := op.apply(tmp_columns[j], tmp_name)
     desk = desk.Append(column, name, op.Final)
   }
   return desk
@@ -165,7 +181,13 @@ func (op OperationBinary) Apply(desk Desk, from, to, max_features int) Desk {
       if max_features > 0 && len(desk.columns) >= max_features {
         goto ret
       }
-      column, name := op.apply(tmp_columns[j1], tmp_columns[j2], tmp_names[j1], tmp_names[j2])
+      tmp_name_a := ""
+      tmp_name_b := ""
+      if len(tmp_names) > 0 {
+        tmp_name_a = tmp_names[j1]
+        tmp_name_b = tmp_names[j2]
+      }
+      column, name := op.apply(tmp_columns[j1], tmp_columns[j2], tmp_name_a, tmp_name_b)
       desk = desk.Append(column, name, op.Final)
     }
   }
