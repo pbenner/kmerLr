@@ -157,7 +157,7 @@ func saveCrossvalidationLoss(filename string, cvr CVResult) error {
 
   fmt.Fprintf(w, "%15s\t%15s\n", "train", "test")
   for i := 0; i < len(cvr.LossTrain); i++ {
-    fmt.Fprintf(w, "%15e\t%15e\n", cvr.LossTrain[i], cvr.LossTest)
+    fmt.Fprintf(w, "%15e\t%15e\n", cvr.LossTrain[i], cvr.LossTest[i])
   }
   return nil
 }
