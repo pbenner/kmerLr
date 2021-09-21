@@ -95,7 +95,7 @@ func (obj ScoresLrEstimatorEnsemble) estimate_ensemble(config Config, data_train
   return result
 }
 
-func (obj ScoresLrEstimatorEnsemble) Estimate(config Config, data_train, data_val, data_test ScoresDataSet) ([]*ScoresLrEnsemble, [][]float64) {
+func (obj ScoresLrEstimatorEnsemble) Estimate(config Config, data_train, data_val, data_test ScoresDataSet) ([]*ScoresLrEnsemble, [][]float64, []float64, []float64) {
   if obj.Estimators[0].Cooccurrence && config.Copreselection != 0 {
     transform := TransformFull{}
     // estimate transform on full data set so that all estimated
@@ -133,9 +133,14 @@ func (obj ScoresLrEstimatorEnsemble) Estimate(config Config, data_train, data_va
   }
   // evaluate classifier(s) on test data
   predictions := make([][]float64, len(classifiers))
+  loss_train  := make(  []float64, len(classifiers))
+  loss_test   := make(  []float64, len(classifiers))
   for i, _ := range classifiers {
-    data_test     := classifiers[i].SelectData(config, data_test)
-    predictions[i] = classifiers[i].Predict   (config, data_test)
+    data_test_    := classifiers[i].SelectData(config, data_test)
+    data_train_   := classifiers[i].SelectData(config, data_train)
+    predictions[i] = classifiers[i].Predict   (config, data_test_)
+    loss_train [i] = classifiers[i].Loss      (config, data_train_, data_train.Labels)
+    loss_test  [i] = classifiers[i].Loss      (config, data_test_ , data_test .Labels)
   }
-  return classifiers, predictions
+  return classifiers, predictions, loss_train, loss_test
 }

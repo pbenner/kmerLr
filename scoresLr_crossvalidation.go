@@ -53,11 +53,13 @@ func scoresFilterCvGroup(data ScoresDataSet, groups, validation []int, i int) (S
 }
 
 func scoresCrossvalidation(config Config, data ScoresDataSet,
-  learnAndTestClassifiers func(i int, data_train, data_val, data_test ScoresDataSet) [][]float64) []CVResult {
+  learnAndTestClassifiers func(i int, data_train, data_val, data_test ScoresDataSet) ([][]float64, []float64, []float64)) []CVResult {
   groups, validation := getCvGroups(len(data.Data), config.KFoldCV, config.ValidationSize, config.Seed)
 
   r_predictions := make([][][]float64, config.KFoldCV)
   r_labels      := make(  [][]bool,    config.KFoldCV)
+  r_loss_train  := make(  [][]float64, config.KFoldCV)
+  r_loss_test   := make(  [][]float64, config.KFoldCV)
 
   config.PoolCV.RangeJob(0, config.KFoldCV, func(i int, pool threadpool.ThreadPool, erf func() error) error {
     config := config; config.PoolCV = pool
@@ -69,8 +71,12 @@ func scoresCrossvalidation(config Config, data ScoresDataSet,
 
     data_train, data_val, data_test := scoresFilterCvGroup(data, groups, validation, i)
 
-    r_predictions[i] = learnAndTestClassifiers(i_, data_train, data_val, data_test)
+    predictions, loss_train, loss_test := learnAndTestClassifiers(i_, data_train, data_val, data_test)
+
     r_labels     [i] = data_test.Labels
+    r_predictions[i] = predictions
+    r_loss_train [i] = loss_train
+    r_loss_test  [i] = loss_test
     return nil
   })
   // join results
@@ -85,6 +91,8 @@ func scoresCrossvalidation(config Config, data ScoresDataSet,
     for j := 0; j < len(r_predictions[i]); j++ {
       result[j].Predictions = append(result[j].Predictions, r_predictions[i][j]...)
       result[j].Labels      = append(result[j].Labels     , r_labels     [i]   ...)
+      result[j].LossTrain   = append(result[j].LossTrain  , r_loss_train [i]   ...)
+      result[j].LossTest    = append(result[j].LossTest   , r_loss_test  [i]   ...)
     }
   }
   return result

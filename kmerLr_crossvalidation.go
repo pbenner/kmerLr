@@ -33,6 +33,8 @@ type CVResult struct {
   Predictions []float64
   Labels      []bool
   LambdaAuto  []int
+  LossTest    []float64
+  LossTrain   []float64
 }
 
 /* -------------------------------------------------------------------------- */
@@ -140,14 +142,36 @@ func saveCrossvalidation(filename string, cvr CVResult) error {
   return nil
 }
 
+func saveCrossvalidationLoss(filename string, cvr CVResult) error {
+  if len(cvr.LossTrain) == 0 {
+    return nil
+  }
+  f, err := os.Create(filename)
+  if err != nil {
+    return err
+  }
+  defer f.Close()
+
+  w := bufio.NewWriter(f)
+  defer w.Flush()
+
+  fmt.Fprintf(w, "%15s\t%15s\n", "train", "test")
+  for i := 0; i < len(cvr.LossTrain); i++ {
+    fmt.Fprintf(w, "%15e\t%15e\n", cvr.LossTrain[i], cvr.LossTest)
+  }
+  return nil
+}
+
 /* -------------------------------------------------------------------------- */
 
 func crossvalidation(config Config, data KmerDataSet,
-  learnAndTestClassifiers func(i int, data_train, data_val, data_test KmerDataSet) [][]float64) []CVResult {
+  learnAndTestClassifiers func(i int, data_train, data_val, data_test KmerDataSet) ([][]float64, []float64, []float64)) []CVResult {
   groups, validation := getCvGroups(len(data.Data), config.KFoldCV, config.ValidationSize, config.Seed)
 
   r_predictions := make([][][]float64, config.KFoldCV)
   r_labels      := make(  [][]bool,    config.KFoldCV)
+  r_loss_train  := make(  [][]float64, config.KFoldCV)
+  r_loss_test   := make(  [][]float64, config.KFoldCV)
 
   config.PoolCV.RangeJob(0, config.KFoldCV, func(i int, pool threadpool.ThreadPool, erf func() error) error {
     config := config; config.PoolCV = pool
@@ -159,8 +183,12 @@ func crossvalidation(config Config, data KmerDataSet,
 
     data_train, data_val, data_test := filterCvGroup(data, groups, validation, i)
 
-    r_predictions[i] = learnAndTestClassifiers(i_, data_train, data_val, data_test)
+    predictions, loss_train, loss_test := learnAndTestClassifiers(i_, data_train, data_val, data_test)
+
     r_labels     [i] = data_test.Labels
+    r_predictions[i] = predictions
+    r_loss_train [i] = loss_train
+    r_loss_test  [i] = loss_test
     return nil
   })
   // join results
@@ -175,6 +203,8 @@ func crossvalidation(config Config, data KmerDataSet,
     for j := 0; j < len(r_predictions[i]); j++ {
       result[j].Predictions = append(result[j].Predictions, r_predictions[i][j]...)
       result[j].Labels      = append(result[j].Labels     , r_labels     [i]   ...)
+      result[j].LossTrain   = append(result[j].LossTrain  , r_loss_train [i]   ...)
+      result[j].LossTest    = append(result[j].LossTest   , r_loss_test  [i]   ...)
     }
   }
   return result

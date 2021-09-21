@@ -33,10 +33,10 @@ import   "github.com/pborman/getopt"
 
 /* -------------------------------------------------------------------------- */
 
-func learn_scores_parameters(config Config, classifier *ScoresLrEnsemble, data_train, data_val, data_test ScoresDataSet, icv int, basename_out string) ([]*ScoresLrEnsemble, [][]float64) {
+func learn_scores_parameters(config Config, classifier *ScoresLrEnsemble, data_train, data_val, data_test ScoresDataSet, icv int, basename_out string) ([]*ScoresLrEnsemble, [][]float64, []float64, []float64) {
   estimator := NewScoresLrEnsembleEstimator(config, classifier, icv)
 
-  classifiers, predictions := estimator.Estimate(config, data_train, data_val, data_test)
+  classifiers, predictions, loss_train, loss_test := estimator.Estimate(config, data_train, data_val, data_test)
 
   filename_json  := basename_out
   filename_trace := basename_out
@@ -64,21 +64,23 @@ func learn_scores_parameters(config Config, classifier *ScoresLrEnsemble, data_t
       SaveModel(config, fmt.Sprintf("%s_%d.json", filename_json, config.LambdaAuto[i]), classifier)
     }
   }
-  return classifiers, predictions
+  return classifiers, predictions, loss_train, loss_test
 }
 
 func learn_scores_cv(config Config, classifier *ScoresLrEnsemble, data ScoresDataSet, basename_out string) {
-  learnAndTestClassifiers := func(i int, data_train, data_val, data_test ScoresDataSet) [][]float64 {
-    _, predictions := learn_scores_parameters(config, classifier, data_train, data_val, data_test, i, basename_out)
-    return predictions
+  learnAndTestClassifiers := func(i int, data_train, data_val, data_test ScoresDataSet) ([][]float64, []float64, []float64) {
+    _, predictions, loss_train, loss_test := learn_scores_parameters(config, classifier, data_train, data_val, data_test, i, basename_out)
+    return predictions, loss_train, loss_test
   }
   cvrs := scoresCrossvalidation(config, data, learnAndTestClassifiers)
 
   if len(cvrs) == 1 {
-    SaveCrossvalidation(config, fmt.Sprintf("%s.table", basename_out), cvrs[0])
+    SaveCrossvalidation    (config, fmt.Sprintf("%s.table"     , basename_out), cvrs[0])
+    SaveCrossvalidationLoss(config, fmt.Sprintf("%s_loss.table", basename_out), cvrs[0])
   } else {
     for i, cvr := range cvrs {
-      SaveCrossvalidation(config, fmt.Sprintf("%s_%d.table", basename_out, config.LambdaAuto[i]), cvr)
+      SaveCrossvalidation    (config, fmt.Sprintf("%s_%d.table"     , basename_out, config.LambdaAuto[i]), cvr)
+      SaveCrossvalidationLoss(config, fmt.Sprintf("%s_%d_loss.table", basename_out, config.LambdaAuto[i]), cvr)
     }
   }
 }
