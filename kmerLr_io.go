@@ -62,7 +62,7 @@ func SaveCrossvalidation(config Config, filename string, cvr CVResult) {
 
 func SaveCrossvalidationLoss(config Config, filename string, cvr CVResult) {
   PrintStderr(config, 1, "Exporting cross-validation loss to `%s'... ", filename)
-  if err := saveCrossvalidation(filename, cvr); err != nil {
+  if err := saveCrossvalidationLoss(filename, cvr); err != nil {
     PrintStderr(config, 1, "failed\n")
     log.Fatal(err)
   }
